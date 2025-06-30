@@ -17,7 +17,7 @@ type Game struct {
 type Player struct {
 	ID    uint `gorm:"primaryKey"`
 	Name  string
-	Games []GamePlayer `gorm:"foreignKey:PlayerID"`
+	Games []GamePlayer `gorm:"foreignKey:PlayerID" json:"-"`
 }
 
 type Round struct {
