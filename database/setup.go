@@ -1,0 +1,54 @@
+package database
+
+import (
+	"database/sql"
+	"log"
+
+	"github.com/arphillips06/TI4-stats/database/objectives"
+	"github.com/arphillips06/TI4-stats/models"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+
+	_ "modernc.org/sqlite" // pure Go SQLite driver
+)
+
+var DB *gorm.DB
+
+func initDatabase() {
+	// Open pure Go sqlite driver via database/sql
+	sqlDB, err := sql.Open("sqlite", "ti4stats.db")
+	if err != nil {
+		log.Fatal("Failed to open database/sql DB:", err)
+	}
+
+	// Pass sql.DB to GORM sqlite dialector
+	DB, err = gorm.Open(sqlite.Dialector{Conn: sqlDB}, &gorm.Config{})
+	if err != nil {
+		log.Fatal("Failed to connect to database (gorm):", err)
+	}
+
+	// Automigrate your models
+	err = DB.AutoMigrate(&models.Game{}, &models.Player{}, &models.Round{}, &models.Score{})
+	if err != nil {
+		log.Fatal("Failed to migrate database:", err)
+	}
+}
+
+func seedObjectives() {
+	allObjectives := append(append(objectives.StageOne, objectives.StageTwo...), objectives.Secret...)
+
+	for _, obj := range allObjectives {
+		var existing models.Objective
+		if err := DB.Where("name = ?", obj.Name).First(&existing).Error; err != nil {
+			if err == gorm.ErrRecordNotFound {
+				if err := DB.Create(&obj).Error; err != nil {
+					log.Printf("Failed to seed objective '%s': %v\n", obj.Name, err)
+				} else {
+					log.Printf("Seeded objective: %s\n", obj.Name)
+				}
+			} else {
+				log.Printf("Error checking objective '%s': %v\n", obj.Name, err)
+			}
+		}
+	}
+}
