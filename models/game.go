@@ -29,6 +29,7 @@ type Score struct {
 	ID          uint `gorm:"primaryKey"`
 	RoundID     uint
 	PlayerID    uint
+	GameID      uint
 	ObjectiveID uint `gorm:"not null"`
 	Objective   Objective
 	Points      int

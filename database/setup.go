@@ -14,7 +14,7 @@ import (
 
 var DB *gorm.DB
 
-func initDatabase() {
+func InitDatabase() {
 	// Open pure Go sqlite driver via database/sql
 	sqlDB, err := sql.Open("sqlite", "ti4stats.db")
 	if err != nil {
