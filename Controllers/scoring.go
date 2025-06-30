@@ -11,18 +11,18 @@ import (
 
 func AddScore(c *gin.Context) {
 	var input struct {
-		GameID      uint `json:"game_id"`
-		PlayerID    uint `json:"player_id"`
-		ObjectiveID uint `json:"objective_id"`
-		Points      int  `json:"points"`
+		GameID        uint   `json:"game_id"`
+		PlayerID      uint   `json:"player_id"`
+		ObjectiveName string `json:"objective_name"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	//load game
 	var game models.Game
-	if err := database.DB.First(&game, input.GameID).Error; err != nil {
+	if err := database.DB.Preload("Rounds").First(&game, input.GameID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Game Not Found"})
 		return
 	}
@@ -32,12 +32,27 @@ func AddScore(c *gin.Context) {
 		return
 	}
 
+	//load objective by name
+	var objective models.Objective
+	if err := database.DB.Where("name = ?", input.ObjectiveName).First(&objective).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Objective Not Found"})
+		return
+	}
+
+	//load current round for the game
+	var round models.Round
+	if err := database.DB.Where("game_id = ? AND number = ?", game.ID, game.CurrentRound).First(&round).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Current Round Not Found"})
+		return
+	}
+
 	//add the score
 	score := models.Score{
 		GameID:      input.GameID,
 		PlayerID:    input.PlayerID,
-		ObjectiveID: input.ObjectiveID,
-		Points:      input.Points,
+		ObjectiveID: objective.ID,
+		Points:      objective.Points,
+		RoundID:     round.ID,
 	}
 
 	if err := database.DB.Create(&score).Error; err != nil {
@@ -69,5 +84,11 @@ func AddScore(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "score added", "total_points": totalPoints})
+	c.JSON(http.StatusOK, gin.H{
+		"message":      "score added",
+		"total_points": totalPoints,
+		"round":        game.CurrentRound,
+		"objective":    objective.Name,
+		"points":       objective.Points,
+	})
 }

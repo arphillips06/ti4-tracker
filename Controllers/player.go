@@ -56,3 +56,35 @@ func AssignPlayerToGame(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gp)
 }
+
+func ListPlayersInGame(c *gin.Context) {
+	gameID := c.Param("id")
+	var gamePlayers []models.GamePlayer
+
+	if err := database.DB.Where("game_id = ?", gameID).Preload("Player").Find(&gamePlayers).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gamePlayers)
+}
+
+func GetPlayerGames(c *gin.Context) {
+	playerID := c.Param("id")
+
+	var player models.Player
+
+	err := database.DB.
+		Preload("Games.Game").                    // Load Game inside each GamePlayer
+		Preload("Games.Game.GamePlayers.Player"). // Load all players of that Game
+		First(&player, playerID).Error
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Player not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"player": player.Name,
+		"games":  player.Games,
+	})
+}

@@ -18,6 +18,10 @@ func main() {
 	r.POST("/players", controllers.CreatePlayer)
 	r.POST("/games", controllers.CreateGame)
 	r.POST("/gameplayers", controllers.AssignPlayerToGame)
+	r.GET("/games/:id/players", controllers.ListPlayersInGame)
+	r.GET("/players/:id/games", controllers.GetPlayerGames)
+	r.POST("/score", controllers.AddScore)
+	r.POST("/games/:game_id/advance-round", controllers.AdvanceRound)
 
 	// Start server on port 8080
 	r.Run(":8080")
