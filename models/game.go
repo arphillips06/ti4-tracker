@@ -11,6 +11,7 @@ type Game struct {
 	Rounds        []Round      `gorm:"foreignKey:GameID"`
 	GamePlayers   []GamePlayer `gorm:"foreignKey:GameID"`
 	WinningPoints int
+	CurrentRound  int `gorm:"default:1"`
 }
 
 type Player struct {
@@ -49,4 +50,6 @@ type GamePlayer struct {
 	GameID   uint
 	PlayerID uint
 	Faction  string
+	Player   Player `gorm:"foreignKey:PlayerID"`
+	Game     Game   `gorm:"foreignKey:GameID;references:ID"`
 }
