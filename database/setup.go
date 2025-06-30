@@ -28,27 +28,57 @@ func InitDatabase() {
 	}
 
 	// Automigrate your models
-	err = DB.AutoMigrate(&models.Game{}, &models.Player{}, &models.Round{}, &models.Score{}, &models.GamePlayer{})
+	err = DB.AutoMigrate(&models.Game{}, &models.Player{}, &models.Round{}, &models.Score{}, &models.GamePlayer{}, &models.GameObjective{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
 }
 
 func SeedObjectives() {
-	allObjectives := append(append(objectives.StageOne, objectives.StageTwo...), objectives.Secret...)
+	//add "stage I" && "Stage II to objectives"
+	for _, obj := range objectives.StageOne {
+		obj.Stage = "I"
+		upsertObjective(obj)
+	}
+	for _, obj := range objectives.StageTwo {
+		obj.Stage = "II"
+		upsertObjective(obj)
+	}
+	for _, obj := range objectives.Secret {
+		obj.Stage = "Secret"
+		upsertObjective(obj)
+	}
+}
 
-	for _, obj := range allObjectives {
-		var existing models.Objective
-		if err := DB.Where("name = ?", obj.Name).First(&existing).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				if err := DB.Create(&obj).Error; err != nil {
-					log.Printf("Failed to seed objective '%s': %v\n", obj.Name, err)
-				} else {
-					log.Printf("Seeded objective: %s\n", obj.Name)
-				}
+func upsertObjective(obj models.Objective) {
+	var existing models.Objective
+	if err := DB.Where("name = ?", obj.Name).First(&existing).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			if err := DB.Create(&obj).Error; err != nil {
+				log.Printf("Failed to seed objective '%s': %v\n", obj.Name, err)
 			} else {
-				log.Printf("Error checking objective '%s': %v\n", obj.Name, err)
+				log.Printf("Seeded objective: %s\n", obj.Name)
 			}
+		} else {
+			log.Printf("Error checking objective '%s': %v\n", obj.Name, err)
 		}
 	}
 }
+
+// allObjectives := append(append(objectives.StageOne, objectives.StageTwo...), objectives.Secret...)
+
+// for _, obj := range allObjectives {
+// 	var existing models.Objective
+// 	if err := DB.Where("name = ?", obj.Name).First(&existing).Error; err != nil {
+// 		if err == gorm.ErrRecordNotFound {
+// 			if err := DB.Create(&obj).Error; err != nil {
+// 				log.Printf("Failed to seed objective '%s': %v\n", obj.Name, err)
+// 			} else {
+// 				log.Printf("Seeded objective: %s\n", obj.Name)
+// 			}
+// 		} else {
+// 			log.Printf("Error checking objective '%s': %v\n", obj.Name, err)
+// 		}
+// 	}
+// }
+//}

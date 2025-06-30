@@ -1,27 +1,18 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
-	"strconv"
-	"strings"
 
 	"github.com/arphillips06/TI4-stats/database"
-	"github.com/arphillips06/TI4-stats/database/factions"
 	"github.com/arphillips06/TI4-stats/models"
+	"github.com/arphillips06/TI4-stats/services"
 
 	"github.com/gin-gonic/gin"
 )
 
-type PlayerInput struct {
-	ID      string
-	Name    string
-	Faction string
-}
-
 type CreateGameInput struct {
 	WinningPoints int
-	Players       []PlayerInput
+	Players       []models.PlayerInput
 }
 
 type selectedPlayersWithFaction struct {
@@ -42,42 +33,15 @@ func CreateGame(c *gin.Context) {
 	if input.WinningPoints != 10 && input.WinningPoints != 14 {
 		input.WinningPoints = 10
 	}
-	var allPlayers []models.Player
-	_ = database.DB.Find(&allPlayers)
 
-	playerMap := make(map[string]models.Player)
-	for _, p := range allPlayers {
-		playerMap[strconv.Itoa(int(p.ID))] = p
-		playerMap[strings.ToLower(p.Name)] = p
+	selected, err := services.ParseAndValidatePlayers(input.Players)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
-	var selected []selectedPlayersWithFaction
-
-	for _, p := range input.Players {
-		lookup := strings.ToLower(p.Name)
-		if p.ID != "" {
-			lookup = p.ID
-		}
-
-		player, exists := playerMap[lookup]
-		if !exists {
-			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("player not found")})
-			return
-		}
-
-		if !factions.IsValidFaction(p.Faction) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("invalid faction: %s", p.Faction)})
-			return
-		}
-
-		selected = append(selected, selectedPlayersWithFaction{
-			Player:  player,
-			Faction: p.Faction,
-		})
-	}
-
-	game := models.Game{WinningPoints: input.WinningPoints}
-	if err := database.DB.Create(&game).Error; err != nil {
+	game, round1, err := services.CreateGameAndRound(input.WinningPoints)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -88,49 +52,93 @@ func CreateGame(c *gin.Context) {
 			PlayerID: entry.Player.ID,
 			Faction:  entry.Faction,
 		}
-
 		if err := database.DB.Create(&gamePlayer).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 	}
 
-	c.JSON(http.StatusOK, game)
+	if err := services.AssignObjectivesToGame(game, round1); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 
+	var revealed []models.GameObjective
+	_ = database.DB.
+		Preload("Objective").
+		Joins("JOIN rounds ON rounds.id = game_objectives.round_id").
+		Where("game_objectives.game_id = ?", game.ID).
+		Find(&revealed)
+
+	response := gin.H{
+		"game":     game,
+		"revealed": revealed,
+	}
+	c.JSON(http.StatusOK, response)
 }
 
 // advances the round counter and creates a record
 func AdvanceRound(c *gin.Context) {
-	gameIDstr := c.Param("game_id")
-	gameID, err := strconv.ParseUint(gameIDstr, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game_id"})
-		return
-	}
+	gameID := c.Param("game_id")
 
 	var game models.Game
 	if err := database.DB.First(&game, gameID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "game not found"})
 		return
 	}
-	game.CurrentRound += 1
+	if game.FinishedAt != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Game already finished"})
+		return
+	}
 
-	round := models.Round{
+	newRound := models.Round{
 		GameID: game.ID,
-		Number: game.CurrentRound,
+		Number: game.CurrentRound + 1,
 	}
 
-	if err := database.DB.Create(&round).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	if err := database.DB.Create(&newRound).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new round"})
 		return
 	}
 
+	game.CurrentRound = newRound.Number
 	if err := database.DB.Save(&game).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update game"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "round_advanded", "current_round": game.CurrentRound})
+	//Count home many stage 1 objectives have been revealed
+	var revealedStage1Count int64
+	database.DB.Model(&models.GameObjective{}).
+		Where("game_id = ? AND stage = ? AND round_id IS NOT NULL", game.ID, "I").
+		Count(&revealedStage1Count)
+
+	//decide what stage to reveal
+	stageToReveal := "I"
+	if revealedStage1Count >= 5 {
+		stageToReveal = "II"
+	}
+
+	var unrevealed models.GameObjective
+	err := database.DB.
+		Where("game_id = ? AND round_id IS NULL AND stage = ?", game.ID, stageToReveal).
+		First(&unrevealed).Error
+
+	if err == nil {
+		unrevealed.RoundID = newRound.ID
+		database.DB.Save(&unrevealed)
+	}
+
+	// if err := database.DB.Save(&game).Error; err != nil {
+	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	// 	return
+	// }
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "round_advanded",
+		"current_round": game.CurrentRound,
+		"revealed":      stageToReveal,
+	})
 }
 
 // list all games
@@ -141,4 +149,61 @@ func ListGames(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, games)
+}
+
+// list Scores in game
+func GetGameByID(c *gin.Context) {
+	id := c.Param("id")
+
+	var game models.Game
+	if err := database.DB.
+		Preload("GamePlayers.Player").
+		First(&game, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Game not found"})
+		return
+	}
+	var scores []PlayerScoreSummary
+	rows, err := database.DB.
+		Table("scores").
+		Select("players.id as player_id, players.name as player_name, SUM(scores.points) as points").
+		Joins("JOIN players ON scores.player_id = players.id").
+		Where("scores.game_id = ?", game.ID).
+		Group("players.id").
+		Rows()
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var s PlayerScoreSummary
+			database.DB.ScanRows(rows, &s)
+			scores = append(scores, s)
+		}
+	}
+	response := GameDetailResponse{
+		ID:            game.ID,
+		WinningPoints: game.WinningPoints,
+		CurrentRound:  game.CurrentRound,
+		FinishedAt:    game.FinishedAt,
+		Players:       game.GamePlayers,
+		Scores:        scores,
+	}
+
+	c.JSON(http.StatusOK, response)
+}
+
+func GetGameObjectives(c *gin.Context) {
+	gameID := c.Param("id")
+
+	var gameObjectives []models.GameObjective
+	err := database.DB.
+		Preload("Objective").
+		Preload("Round").
+		Where("game_id = ?", gameID).
+		Find(&gameObjectives).Error
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load objectives for game"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gameObjectives)
 }
