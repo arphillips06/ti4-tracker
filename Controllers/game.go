@@ -147,8 +147,8 @@ func GetGameObjectives(c *gin.Context) {
 func AdvanceRound(c *gin.Context) {
 	gameID := c.Param("game_id")
 
-	var game models.Game
-	if err := database.DB.First(&game, gameID).Error; err != nil {
+	game, err := services.GetGameByID(gameID)
+	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "game not found"})
 		return
 	}
@@ -157,65 +157,27 @@ func AdvanceRound(c *gin.Context) {
 		return
 	}
 
-	// Create new round
-	newRound := models.Round{
-		GameID: game.ID,
-		Number: game.CurrentRound + 1,
-	}
-	if err := database.DB.Create(&newRound).Error; err != nil {
+	newRound, err := services.CreateNewRound(game)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new round"})
 		return
 	}
 
-	game.CurrentRound = newRound.Number
-	if err := database.DB.Save(&game).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update game"})
+	stage := services.DetermineStageToReveal(game.ID)
+	if err := services.RevealNextObjective(game.ID, newRound.ID, stage); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reveal objective"})
 		return
 	}
 
-	// Count revealed objectives
-	var revealedStage1Count, revealedStage2Count int64
-	database.DB.Model(&models.GameObjective{}).
-		Where("game_id = ? AND stage = ? AND round_id > 0", game.ID, "I").
-		Count(&revealedStage1Count)
-	database.DB.Model(&models.GameObjective{}).
-		Where("game_id = ? AND stage = ? AND round_id > 0", game.ID, "II").
-		Count(&revealedStage2Count)
-
-	// Decide stage to reveal
-	stageToReveal := "I"
-	if revealedStage1Count >= 5 {
-		stageToReveal = "II"
-	}
-
-	// Reveal next objective
-	var unrevealed models.GameObjective
-	err := database.DB.
-		Where("game_id = ? AND round_id = 0 AND stage = ?", game.ID, stageToReveal).
-		First(&unrevealed).Error
-
-	if err == nil {
-		unrevealed.RoundID = newRound.ID
-		if err := database.DB.Save(&unrevealed).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to assign objective"})
-			return
-		}
-	}
-
-	// Recalculate after reveal
-	var finalRevealed int64
-	database.DB.Model(&models.GameObjective{}).
-		Where("game_id = ? AND round_id > 0", game.ID).
-		Count(&finalRevealed)
-
-	if finalRevealed >= 10 {
+	totalRevealed := services.CountRevealedObjectives(game.ID)
+	if totalRevealed >= 10 {
 		now := time.Now()
 		game.FinishedAt = &now
-		_ = database.DB.Save(&game)
+		database.DB.Save(&game)
 		c.JSON(http.StatusOK, gin.H{
 			"message":       "Game ended",
 			"round":         game.CurrentRound,
-			"totalRevealed": finalRevealed,
+			"totalRevealed": totalRevealed,
 		})
 		return
 	}
@@ -223,7 +185,7 @@ func AdvanceRound(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message":       "round_advanced",
 		"current_round": game.CurrentRound,
-		"revealed":      stageToReveal,
-		"totalRevealed": finalRevealed,
+		"revealed":      stage,
+		"totalRevealed": totalRevealed,
 	})
 }
