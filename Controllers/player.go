@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func createPlayer(c *gin.Context) {
+func CreatePlayer(c *gin.Context) {
 	var input models.Player
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -32,15 +32,27 @@ func createPlayer(c *gin.Context) {
 	c.JSON(http.StatusOK, player)
 }
 
-func assignObjectiveToPlayer(c *gin.Context) {
+func AssignPlayerToGame(c *gin.Context) {
 	var input struct {
-		PlayerName    string `json:"player_name"`
-		ObjectiveName string `json:"objective_name"`
+		GameID   uint   `json:"game_id"`
+		PlayerID uint   `json:"player_id"`
+		Faction  string `json:"faction"`
 	}
-
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	gp := models.GamePlayer{
+		GameID:   input.GameID,
+		PlayerID: input.PlayerID,
+		Faction:  input.Faction,
+	}
+
+	if err := database.DB.Create(&gp).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gp)
 }

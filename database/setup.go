@@ -28,13 +28,13 @@ func InitDatabase() {
 	}
 
 	// Automigrate your models
-	err = DB.AutoMigrate(&models.Game{}, &models.Player{}, &models.Round{}, &models.Score{})
+	err = DB.AutoMigrate(&models.Game{}, &models.Player{}, &models.Round{}, &models.Score{}, &models.GamePlayer{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
 }
 
-func seedObjectives() {
+func SeedObjectives() {
 	allObjectives := append(append(objectives.StageOne, objectives.StageTwo...), objectives.Secret...)
 
 	for _, obj := range allObjectives {
