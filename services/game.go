@@ -119,3 +119,57 @@ func AssignObjectivesToGame(game models.Game, round1 models.Round) error {
 	}
 	return nil
 }
+
+func GetGameByID(id string) (*models.Game, error) {
+	var game models.Game
+	if err := database.DB.First(&game, id).Error; err != nil {
+		return nil, err
+	}
+	return &game, nil
+}
+
+func CreateNewRound(game *models.Game) (*models.Round, error) {
+	newRound := models.Round{
+		GameID: game.ID,
+		Number: game.CurrentRound + 1,
+	}
+	if err := database.DB.Create(&newRound).Error; err != nil {
+		return nil, err
+	}
+	game.CurrentRound = newRound.Number
+	if err := database.DB.Save(&game).Error; err != nil {
+		return nil, err
+	}
+	return &newRound, nil
+}
+
+func DetermineStageToReveal(gameID uint) string {
+	var count int64
+	database.DB.Model(&models.GameObjective{}).
+		Where("game_id = ? AND stage = ? AND round_id > 0", gameID, "I").
+		Count(&count)
+	if count >= 5 {
+		return "II"
+	}
+	return "I"
+}
+
+func RevealNextObjective(gameID, roundID uint, stage string) error {
+	var obj models.GameObjective
+	err := database.DB.
+		Where("game_id = ? AND round_id = 0 AND stage = ?", gameID, stage).
+		First(&obj).Error
+	if err != nil {
+		return err
+	}
+	obj.RoundID = roundID
+	return database.DB.Save(&obj).Error
+}
+
+func CountRevealedObjectives(gameID uint) int64 {
+	var count int64
+	database.DB.Model(&models.GameObjective{}).
+		Where("game_id = ? AND round_id > 0", gameID).
+		Count(&count)
+	return count
+}
