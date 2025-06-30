@@ -1,7 +1,6 @@
 package services
 
 import (
-	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -85,33 +84,38 @@ func AssignObjectivesToGame(game models.Game, round1 models.Round) error {
 	database.DB.Where("stage = ?", "I").Find(&stage1)
 	database.DB.Where("stage = ?", "II").Find(&stage2)
 
-	if len(stage1) < 5 || len(stage2) < 5 {
-		return errors.New("not enough public objectives in database")
-	}
-
 	rand.Shuffle(len(stage1), func(i, j int) { stage1[i], stage1[j] = stage1[j], stage1[i] })
 	rand.Shuffle(len(stage2), func(i, j int) { stage2[i], stage2[j] = stage2[j], stage2[i] })
 
-	for i, obj := range stage1[:5] {
-		gameObj := models.GameObjective{
-			GameID:      game.ID,
-			ObjectiveID: obj.ID,
-			Stage:       "I",
-		}
+	selectedStage1 := stage1[:5]
+	selectedStage2 := stage2[:5]
+
+	for i, obj := range selectedStage1 {
+		roundID := uint(0)
 		if i < 2 {
-			gameObj.RoundID = round1.ID
+			roundID = round1.ID
 		}
-		database.DB.Create(&gameObj)
-	}
 
-	for _, obj := range stage2[:5] {
 		gameObj := models.GameObjective{
 			GameID:      game.ID,
 			ObjectiveID: obj.ID,
-			Stage:       "II",
+			RoundID:     roundID,
+			Stage:       obj.Stage,
 		}
-		database.DB.Create(&gameObj)
+		if err := database.DB.Create(&gameObj).Error; err != nil {
+			return err
+		}
 	}
-
+	for _, obj := range selectedStage2 {
+		gameObj := models.GameObjective{
+			GameID:      game.ID,
+			ObjectiveID: obj.ID,
+			RoundID:     0,
+			Stage:       obj.Stage,
+		}
+		if err := database.DB.Create(&gameObj).Error; err != nil {
+			return err
+		}
+	}
 	return nil
 }

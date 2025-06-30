@@ -2,11 +2,11 @@ package controllers
 
 import (
 	"net/http"
+	"time"
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
 	"github.com/arphillips06/TI4-stats/services"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -77,70 +77,6 @@ func CreateGame(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// advances the round counter and creates a record
-func AdvanceRound(c *gin.Context) {
-	gameID := c.Param("game_id")
-
-	var game models.Game
-	if err := database.DB.First(&game, gameID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "game not found"})
-		return
-	}
-	if game.FinishedAt != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Game already finished"})
-		return
-	}
-
-	newRound := models.Round{
-		GameID: game.ID,
-		Number: game.CurrentRound + 1,
-	}
-
-	if err := database.DB.Create(&newRound).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new round"})
-		return
-	}
-
-	game.CurrentRound = newRound.Number
-	if err := database.DB.Save(&game).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update game"})
-		return
-	}
-
-	//Count home many stage 1 objectives have been revealed
-	var revealedStage1Count int64
-	database.DB.Model(&models.GameObjective{}).
-		Where("game_id = ? AND stage = ? AND round_id IS NOT NULL", game.ID, "I").
-		Count(&revealedStage1Count)
-
-	//decide what stage to reveal
-	stageToReveal := "I"
-	if revealedStage1Count >= 5 {
-		stageToReveal = "II"
-	}
-
-	var unrevealed models.GameObjective
-	err := database.DB.
-		Where("game_id = ? AND round_id IS NULL AND stage = ?", game.ID, stageToReveal).
-		First(&unrevealed).Error
-
-	if err == nil {
-		unrevealed.RoundID = newRound.ID
-		database.DB.Save(&unrevealed)
-	}
-
-	// if err := database.DB.Save(&game).Error; err != nil {
-	// 	c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-	// 	return
-	// }
-
-	c.JSON(http.StatusOK, gin.H{
-		"message":       "round_advanded",
-		"current_round": game.CurrentRound,
-		"revealed":      stageToReveal,
-	})
-}
-
 // list all games
 func ListGames(c *gin.Context) {
 	var games []models.Game
@@ -206,4 +142,88 @@ func GetGameObjectives(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gameObjectives)
+}
+
+func AdvanceRound(c *gin.Context) {
+	gameID := c.Param("game_id")
+
+	var game models.Game
+	if err := database.DB.First(&game, gameID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "game not found"})
+		return
+	}
+	if game.FinishedAt != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Game already finished"})
+		return
+	}
+
+	// Create new round
+	newRound := models.Round{
+		GameID: game.ID,
+		Number: game.CurrentRound + 1,
+	}
+	if err := database.DB.Create(&newRound).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new round"})
+		return
+	}
+
+	game.CurrentRound = newRound.Number
+	if err := database.DB.Save(&game).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update game"})
+		return
+	}
+
+	// Count revealed objectives
+	var revealedStage1Count, revealedStage2Count int64
+	database.DB.Model(&models.GameObjective{}).
+		Where("game_id = ? AND stage = ? AND round_id > 0", game.ID, "I").
+		Count(&revealedStage1Count)
+	database.DB.Model(&models.GameObjective{}).
+		Where("game_id = ? AND stage = ? AND round_id > 0", game.ID, "II").
+		Count(&revealedStage2Count)
+
+	// Decide stage to reveal
+	stageToReveal := "I"
+	if revealedStage1Count >= 5 {
+		stageToReveal = "II"
+	}
+
+	// Reveal next objective
+	var unrevealed models.GameObjective
+	err := database.DB.
+		Where("game_id = ? AND round_id = 0 AND stage = ?", game.ID, stageToReveal).
+		First(&unrevealed).Error
+
+	if err == nil {
+		unrevealed.RoundID = newRound.ID
+		if err := database.DB.Save(&unrevealed).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to assign objective"})
+			return
+		}
+	}
+
+	// Recalculate after reveal
+	var finalRevealed int64
+	database.DB.Model(&models.GameObjective{}).
+		Where("game_id = ? AND round_id > 0", game.ID).
+		Count(&finalRevealed)
+
+	if finalRevealed >= 10 {
+		now := time.Now()
+		game.FinishedAt = &now
+		_ = database.DB.Save(&game)
+		c.JSON(http.StatusOK, gin.H{
+			"message":       "Game ended",
+			"round":         game.CurrentRound,
+			"totalRevealed": finalRevealed,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       "round_advanced",
+		"current_round": game.CurrentRound,
+		"revealed":      stageToReveal,
+		"totalRevealed": finalRevealed,
+	})
 }

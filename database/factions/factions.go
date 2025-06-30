@@ -11,7 +11,7 @@ var AllFactions = []string{
 	"Empyrean",
 	"Federation of Sol",
 	"Ghosts of Creuss",
-	"Hakann",
+	"Emirates of Hacan",
 	"L1Z1X Mindnet",
 	"Mahact Gene-Sorcerers",
 	"Mentak Coalition",
