@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -17,9 +18,7 @@ func AddScore(c *gin.Context) {
 		GameID        uint   `json:"game_id"`
 		PlayerID      uint   `json:"player_id"`
 		RoundID       uint   `json:"round_id"`
-		Points        int    `json:"points"`
 		ObjectiveName string `json:"objective_name"`
-		ObjectiveID   uint   `json:"objective_id"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -45,9 +44,28 @@ func AddScore(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Objective Not Found"})
 		return
 	}
-
-	//load current round for the game
 	var round models.Round
+	if objective.Type == "Secret" {
+		var count int64
+		err := database.DB.
+			Model(&models.Score{}).
+			Joins("JOIN objectives ON objectives.id = scores.objective_id").
+			Where("scores.player_id = ? AND scores.round_id = ? AND objectives.type = ? AND objectives.phase = ?",
+				input.PlayerID, round.ID, "Secret", objective.Phase).
+			Count(&count).Error
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to validate secret scoring rules"})
+			return
+		}
+		if count > 0 {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error": fmt.Sprint("Player has already scored a secret objective during the %s phase this round", objective.Phase),
+			})
+			return
+		}
+	}
+	//load current round for the game
+
 	if err := database.DB.Where("game_id = ? AND number = ?", game.ID, game.CurrentRound).First(&round).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Current Round Not Found"})
 		return
@@ -107,78 +125,4 @@ func AddScore(c *gin.Context) {
 		"objective":    objective.Name,
 		"points":       objective.Points,
 	})
-}
-
-// GET /games/:game_id/scores
-// Description: Returns a grouped list of round-by-round scores for a game, including player names and objectives scored.
-func GetScoreSummary(c *gin.Context) {
-	gameID := c.Param("id")
-
-	var summaries []models.PlayerScoreSummary
-
-	rows, err := database.DB.
-		Table("scores").
-		Select("players.id as player_id, players.name as player_name, SUM(scores.points) as points").
-		Joins("JOIN players ON scores.player_id = players.id").
-		Where("scores.game_id = ?", gameID).
-		Group("players.id").
-		Rows()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not calculate scores"})
-		return
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var s models.PlayerScoreSummary
-		database.DB.ScanRows(rows, &s)
-		summaries = append(summaries, s)
-	}
-
-	c.JSON(http.StatusOK, summaries)
-}
-
-func GetScoresByRound(c *gin.Context) {
-	gameID := c.Param("id")
-	type rawScore struct {
-		RoundNumber int
-		PlayerName  string
-		Objective   string
-		Points      int
-	}
-
-	var results []rawScore
-
-	err := database.DB.
-		Table("scores").
-		Select("rounds.number as round_number, players.name as player_name, objectives.name as objective, scores.points").
-		Joins("JOIN players ON scores.player_id = players.id").
-		Joins("JOIN objectives ON scores.objective_id = objectives.id").
-		Joins("JOIN rounds ON scores.round_id = rounds.id").
-		Where("scores.game_id = ?", gameID).
-		Order("rounds.number, players.name").
-		Scan(&results).Error
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not load scores"})
-		return
-	}
-
-	grouped := make(map[int][]models.RoundScore)
-
-	for _, r := range results {
-		grouped[r.RoundNumber] = append(grouped[r.RoundNumber], models.RoundScore{
-			Player:    r.PlayerName,
-			Objective: r.Objective,
-			Points:    r.Points,
-		})
-	}
-
-	var response []models.RoundScoresGroup
-	for round, scores := range grouped {
-		response = append(response, models.RoundScoresGroup{
-			Round:  round,
-			Scores: scores,
-		})
-	}
-	c.JSON(http.StatusOK, response)
 }

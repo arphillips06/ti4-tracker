@@ -38,3 +38,9 @@ type SelectedPlayersWithFaction struct {
 	Player  Player
 	Faction string
 }
+
+type ScoredObjective struct {
+	ObjectiveID string
+	PlayerID    string
+	Round       int
+}
