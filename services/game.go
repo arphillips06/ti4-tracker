@@ -11,29 +11,20 @@ import (
 	"github.com/arphillips06/TI4-stats/models"
 )
 
-type CreateGameInput struct {
-	WinningPoints int
-	Players       []models.PlayerInput
-}
-
-type selectedPlayersWithFaction struct {
-	Player  models.Player
-	Faction string
-}
-
-func ParseAndValidatePlayers(inputPlayers []models.PlayerInput) ([]selectedPlayersWithFaction, error) {
+// Validates player input and returns matched players with faction info.
+func ParseAndValidatePlayers(inputPlayers []models.PlayerInput) ([]models.SelectedPlayersWithFaction, error) {
 	var allPlayers []models.Player
 	if err := database.DB.Find(&allPlayers).Error; err != nil {
 		return nil, err
 	}
-
+	// Map for quick lookup by ID or lowercase name
 	playerMap := make(map[string]models.Player)
 	for _, p := range allPlayers {
 		playerMap[strconv.Itoa(int(p.ID))] = p
 		playerMap[strings.ToLower(p.Name)] = p
 	}
 
-	var selected []selectedPlayersWithFaction
+	var selected []models.SelectedPlayersWithFaction
 	for _, p := range inputPlayers {
 		lookup := strings.ToLower(p.Name)
 		if p.ID != "" {
@@ -49,7 +40,7 @@ func ParseAndValidatePlayers(inputPlayers []models.PlayerInput) ([]selectedPlaye
 			return nil, fmt.Errorf("invalid faction: %s", p.Faction)
 		}
 
-		selected = append(selected, selectedPlayersWithFaction{
+		selected = append(selected, models.SelectedPlayersWithFaction{
 			Player:  player,
 			Faction: p.Faction,
 		})
@@ -58,8 +49,12 @@ func ParseAndValidatePlayers(inputPlayers []models.PlayerInput) ([]selectedPlaye
 	return selected, nil
 }
 
-func CreateGameAndRound(winningPoints int) (models.Game, models.Round, error) {
-	game := models.Game{WinningPoints: winningPoints}
+// Creates a new game and initial round
+func CreateGameAndRound(winningPoints int, useDecks bool) (models.Game, models.Round, error) {
+	game := models.Game{
+		WinningPoints:     winningPoints,
+		UseObjectiveDecks: useDecks,
+	}
 	if err := database.DB.Create(&game).Error; err != nil {
 		return game, models.Round{}, err
 	}
@@ -77,6 +72,8 @@ func CreateGameAndRound(winningPoints int) (models.Game, models.Round, error) {
 	return game, round1, nil
 }
 
+// Assigns 10 public objectives (5 stage I, 5 stage II) to a game.
+// Two stage I objectives are revealed in round 1.
 func AssignObjectivesToGame(game models.Game, round1 models.Round) error {
 	var stage1 []models.Objective
 	var stage2 []models.Objective
@@ -120,6 +117,7 @@ func AssignObjectivesToGame(game models.Game, round1 models.Round) error {
 	return nil
 }
 
+// Gets a game by its string ID
 func GetGameByID(id string) (*models.Game, error) {
 	var game models.Game
 	if err := database.DB.First(&game, id).Error; err != nil {
@@ -128,6 +126,7 @@ func GetGameByID(id string) (*models.Game, error) {
 	return &game, nil
 }
 
+// Creates and advances to a new round
 func CreateNewRound(game *models.Game) (*models.Round, error) {
 	newRound := models.Round{
 		GameID: game.ID,
@@ -143,6 +142,7 @@ func CreateNewRound(game *models.Game) (*models.Round, error) {
 	return &newRound, nil
 }
 
+// Determines if we should reveal a Stage I or Stage II objective this round
 func DetermineStageToReveal(gameID uint) string {
 	var count int64
 	database.DB.Model(&models.GameObjective{}).
@@ -154,6 +154,7 @@ func DetermineStageToReveal(gameID uint) string {
 	return "I"
 }
 
+// Marks the next unrevealed objective of the given stage as revealed in the current round
 func RevealNextObjective(gameID, roundID uint, stage string) error {
 	var obj models.GameObjective
 	err := database.DB.
@@ -166,6 +167,7 @@ func RevealNextObjective(gameID, roundID uint, stage string) error {
 	return database.DB.Save(&obj).Error
 }
 
+// Counts total number of revealed public objectives for a game
 func CountRevealedObjectives(gameID uint) int64 {
 	var count int64
 	database.DB.Model(&models.GameObjective{}).

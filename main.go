@@ -14,20 +14,23 @@ func main() {
 	// Setup Gin router
 	r := gin.Default()
 
-	//routes
+	//player management
 	r.POST("/players", controllers.CreatePlayer)
-	r.POST("/games", controllers.CreateGame)
-	r.POST("/gameplayers", controllers.AssignPlayerToGame)
-	r.GET("/games/:id/players", controllers.ListPlayersInGame)
-	r.GET("/players/:id/games", controllers.GetPlayerGames)
-	r.POST("/score", controllers.AddScore)
-	r.POST("/games/:game_id/advance-round", controllers.AdvanceRound)
-	r.GET("/games", controllers.ListGames)
 	r.GET("/players", controllers.ListPlayers)
+	r.GET("/players/:id/games", controllers.GetPlayerGames)
+
+	// game routes
+	r.POST("/games", controllers.CreateGame)
+	r.GET("/games/:id/players", controllers.ListPlayersInGame)
+	r.GET("/games", controllers.ListGames)
+	r.POST("/gameplayers", controllers.AssignPlayerToGame)
+	r.POST("/games/:game_id/advance-round", controllers.AdvanceRound)
 	r.GET("/games/:id/score-summary", controllers.GetScoreSummary)
 	r.GET("/games/:id/scores-by-round", controllers.GetScoresByRound)
 	r.GET("/games/:id", controllers.GetGameByID)
 	r.GET("/games/:id/objectives", controllers.GetGameObjectives)
+	//scoring
+	r.POST("/score", controllers.AddScore)
 
 	// Start server on port 8080
 	r.Run("127.0.0.1:8080")

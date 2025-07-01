@@ -4,15 +4,16 @@ import "time"
 
 //Game represents a single game
 type Game struct {
-	ID             uint `gorm:"primaryKey"`
-	CreatedAt      time.Time
-	FinishedAt     *time.Time
-	WinnerID       uint
-	Rounds         []Round      `gorm:"foreignKey:GameID"`
-	GamePlayers    []GamePlayer `gorm:"foreignKey:GameID"`
-	WinningPoints  int
-	CurrentRound   int `gorm:"default:1"`
-	GameObjectives []GameObjective
+	ID                uint `gorm:"primaryKey"`
+	CreatedAt         time.Time
+	FinishedAt        *time.Time
+	WinnerID          uint
+	Rounds            []Round      `gorm:"foreignKey:GameID"`
+	GamePlayers       []GamePlayer `gorm:"foreignKey:GameID"`
+	WinningPoints     int
+	CurrentRound      int `gorm:"default:1"`
+	GameObjectives    []GameObjective
+	UseObjectiveDecks bool `json:"use_objective_decks"`
 }
 
 //Single player
@@ -49,6 +50,7 @@ type Objective struct {
 	Description string
 	Points      int
 	Stage       string `gorm:"type:VARCHAR(5)"`
+	Phase       string `gorm:"type:VARCHAR(10)"`
 }
 
 //links game and player together into one struct
