@@ -2,9 +2,11 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
+	"github.com/arphillips06/TI4-stats/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -80,4 +82,21 @@ func GetScoresByRound(c *gin.Context) {
 		})
 	}
 	c.JSON(http.StatusOK, response)
+}
+
+func GetObjectiveScoreSummary(c *gin.Context) {
+	gameIDStr := c.Param("id")
+	gameID, err := strconv.Atoi(gameIDStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid game ID"})
+		return
+	}
+
+	summary, err := services.GetObjectiveScoreSummary(uint(gameID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, summary)
 }

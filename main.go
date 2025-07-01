@@ -31,6 +31,9 @@ func main() {
 	r.GET("/games/:id/objectives", controllers.GetGameObjectives)
 	//scoring
 	r.POST("/score", controllers.AddScore)
+	r.POST("/score/imperial", controllers.ScoreImperialPoint)
+	r.POST("/score/mecatol", controllers.ScoreMecatolPoint)
+	r.GET("/games/:id/objectives/scores", controllers.GetObjectiveScoreSummary)
 
 	// Start server on port 8080
 	r.Run("127.0.0.1:8080")
