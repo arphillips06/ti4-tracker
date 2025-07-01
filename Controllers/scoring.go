@@ -10,43 +10,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type PlayerScoreSummary struct {
-	PlayerID   uint   `json:"player_id"`
-	PlayerName string `json:"player_name"`
-	Points     int    `json:"points"`
-}
-
-var input struct {
-	GameID        uint   `json:"game_id"`
-	PlayerID      uint   `json:"player_id"`
-	RoundID       uint   `json:"round_id"`
-	Points        int    `json:"points"`
-	ObjectiveName string `json:"objective_name"`
-	ObjectiveID   uint   `json:"objective_id"`
-}
-
-type RoundScore struct {
-	Player    string `json:"player"`
-	Objective string `json:"objective"`
-	Points    int    `json:"points"`
-}
-
-type RoundScoresGroup struct {
-	Round  int          `json:"round"`
-	Scores []RoundScore `json:"scores"`
-}
-
-type GameDetailResponse struct {
-	ID            uint                 `json:"id"`
-	WinningPoints int                  `json:"winning_points"`
-	CurrentRound  int                  `json:"current_round"`
-	FinishedAt    *time.Time           `json:"finished_at"`
-	Players       []models.GamePlayer  `json:"players"`
-	Scores        []PlayerScoreSummary `json:"scores"`
-}
-
-// Records points for a player by linking a scored objective in a specific round.
+// POST /games/:game_id/score
+// Description: Submits a score for a player by marking them as having scored a specific objective in a game.
 func AddScore(c *gin.Context) {
+	var input struct {
+		GameID        uint   `json:"game_id"`
+		PlayerID      uint   `json:"player_id"`
+		RoundID       uint   `json:"round_id"`
+		Points        int    `json:"points"`
+		ObjectiveName string `json:"objective_name"`
+		ObjectiveID   uint   `json:"objective_id"`
+	}
+
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -134,10 +109,12 @@ func AddScore(c *gin.Context) {
 	})
 }
 
+// GET /games/:game_id/scores
+// Description: Returns a grouped list of round-by-round scores for a game, including player names and objectives scored.
 func GetScoreSummary(c *gin.Context) {
 	gameID := c.Param("id")
 
-	var summaries []PlayerScoreSummary
+	var summaries []models.PlayerScoreSummary
 
 	rows, err := database.DB.
 		Table("scores").
@@ -153,7 +130,7 @@ func GetScoreSummary(c *gin.Context) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var s PlayerScoreSummary
+		var s models.PlayerScoreSummary
 		database.DB.ScanRows(rows, &s)
 		summaries = append(summaries, s)
 	}
@@ -186,19 +163,19 @@ func GetScoresByRound(c *gin.Context) {
 		return
 	}
 
-	grouped := make(map[int][]RoundScore)
+	grouped := make(map[int][]models.RoundScore)
 
 	for _, r := range results {
-		grouped[r.RoundNumber] = append(grouped[r.RoundNumber], RoundScore{
+		grouped[r.RoundNumber] = append(grouped[r.RoundNumber], models.RoundScore{
 			Player:    r.PlayerName,
 			Objective: r.Objective,
 			Points:    r.Points,
 		})
 	}
 
-	var response []RoundScoresGroup
+	var response []models.RoundScoresGroup
 	for round, scores := range grouped {
-		response = append(response, RoundScoresGroup{
+		response = append(response, models.RoundScoresGroup{
 			Round:  round,
 			Scores: scores,
 		})

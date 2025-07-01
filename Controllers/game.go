@@ -10,42 +10,42 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type CreateGameInput struct {
-	WinningPoints int
-	Players       []models.PlayerInput
-}
-
-type selectedPlayersWithFaction struct {
-	Player  models.Player
-	Faction string
-}
-
-// creates a new game and assigns players to it using names or IDs
-// also assigns factions
+// CreateGame handles the POST /games endpoint
+// It creates a new game with players and optionally generates objectives
 func CreateGame(c *gin.Context) {
-	var input CreateGameInput
 
+	var input models.CreateGameInput
+
+	//bind incoming JSON to the CreateGameInput struct
+	//the struct is defined in 'models' so it can be reused and keeps this code cleaner
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
+	//sets to true unless otherwise set
+	//true means that the code will generate the objectives
+	useDecks := true
+	if input.UseObjectiveDecks != nil {
+		useDecks = *input.UseObjectiveDecks
+	}
+	//set 10 points as default unless 14 is given
 	if input.WinningPoints != 10 && input.WinningPoints != 14 {
 		input.WinningPoints = 10
 	}
-
+	//basic validation on player names
+	//calls a function from 'services'
 	selected, err := services.ParseAndValidatePlayers(input.Players)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	game, round1, err := services.CreateGameAndRound(input.WinningPoints)
+	//creates game and first round and adds it to the database
+	game, round1, err := services.CreateGameAndRound(input.WinningPoints, useDecks)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
+	//save player & faction combo to the struct 'GamePlayer'
 	for _, entry := range selected {
 		gamePlayer := models.GamePlayer{
 			GameID:   game.ID,
@@ -57,12 +57,23 @@ func CreateGame(c *gin.Context) {
 			return
 		}
 	}
-
-	if err := services.AssignObjectivesToGame(game, round1); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+	//Reload to make sure UseObjectiveDecks persists correctly from DB
+	if err := database.DB.First(&game, game.ID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reload game"})
 		return
 	}
+	// If we're using the internal decks, assign public objectives now
+	if game.UseObjectiveDecks {
+		if err := services.AssignObjectivesToGame(game, round1); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
 
+	// Return the new game and any initially revealed objectives
+	//TO-DO: currently the game will only let you score a 'revealed' objective
+	//however when querying to see what obj were assingned to a game it will
+	//always show you all of them. Needs fixing
 	var revealed []models.GameObjective
 	_ = database.DB.
 		Preload("Objective").
@@ -77,7 +88,8 @@ func CreateGame(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
-// list all games
+// GET /games
+// Returns all games with their associated players
 func ListGames(c *gin.Context) {
 	var games []models.Game
 	if err := database.DB.Preload("GamePlayers").Find(&games).Error; err != nil {
@@ -87,7 +99,8 @@ func ListGames(c *gin.Context) {
 	c.JSON(http.StatusOK, games)
 }
 
-// list Scores in game
+// GET /games/:id
+// Returns full game data including player names, factions, and total points scored.
 func GetGameByID(c *gin.Context) {
 	id := c.Param("id")
 
@@ -98,7 +111,7 @@ func GetGameByID(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Game not found"})
 		return
 	}
-	var scores []PlayerScoreSummary
+	var scores []models.PlayerScoreSummary
 	rows, err := database.DB.
 		Table("scores").
 		Select("players.id as player_id, players.name as player_name, SUM(scores.points) as points").
@@ -109,12 +122,12 @@ func GetGameByID(c *gin.Context) {
 	if err == nil {
 		defer rows.Close()
 		for rows.Next() {
-			var s PlayerScoreSummary
+			var s models.PlayerScoreSummary
 			database.DB.ScanRows(rows, &s)
 			scores = append(scores, s)
 		}
 	}
-	response := GameDetailResponse{
+	response := models.GameDetailResponse{
 		ID:            game.ID,
 		WinningPoints: game.WinningPoints,
 		CurrentRound:  game.CurrentRound,
@@ -126,6 +139,8 @@ func GetGameByID(c *gin.Context) {
 	c.JSON(http.StatusOK, response)
 }
 
+// GET /games/:id/objectives
+// Returns all public objectives tied to this game, including stage and round info
 func GetGameObjectives(c *gin.Context) {
 	gameID := c.Param("id")
 
@@ -133,7 +148,7 @@ func GetGameObjectives(c *gin.Context) {
 	err := database.DB.
 		Preload("Objective").
 		Preload("Round").
-		Where("game_id = ?", gameID).
+		Where("game_id = ? AND round_id > 0", gameID).
 		Find(&gameObjectives).Error
 
 	if err != nil {
@@ -144,6 +159,8 @@ func GetGameObjectives(c *gin.Context) {
 	c.JSON(http.StatusOK, gameObjectives)
 }
 
+// POST /games/:game_id/advance-round
+// Advances the round and reveals a public objective unless none remain (in which case, ends the game)
 func AdvanceRound(c *gin.Context) {
 	gameID := c.Param("game_id")
 
@@ -156,7 +173,6 @@ func AdvanceRound(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Game already finished"})
 		return
 	}
-
 	newRound, err := services.CreateNewRound(game)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new round"})
@@ -164,24 +180,20 @@ func AdvanceRound(c *gin.Context) {
 	}
 
 	stage := services.DetermineStageToReveal(game.ID)
-	if err := services.RevealNextObjective(game.ID, newRound.ID, stage); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to reveal objective"})
-		return
-	}
 
-	totalRevealed := services.CountRevealedObjectives(game.ID)
-	if totalRevealed >= 10 {
+	err = services.RevealNextObjective(game.ID, newRound.ID, stage)
+	if err != nil {
 		now := time.Now()
 		game.FinishedAt = &now
 		database.DB.Save(&game)
 		c.JSON(http.StatusOK, gin.H{
-			"message":       "Game ended",
+			"message":       "Game Ended",
 			"round":         game.CurrentRound,
-			"totalRevealed": totalRevealed,
+			"totalRevealed": services.CountRevealedObjectives(game.ID),
 		})
 		return
 	}
-
+	totalRevealed := services.CountRevealedObjectives(game.ID)
 	c.JSON(http.StatusOK, gin.H{
 		"message":       "round_advanced",
 		"current_round": game.CurrentRound,

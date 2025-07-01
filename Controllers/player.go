@@ -9,7 +9,9 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// create a new player, checks for blank entries and errors for existing
+// POST /players
+// Creates a new player.
+// Ensures the name is provided and not already in use.
 func CreatePlayer(c *gin.Context) {
 	var input models.Player
 	if err := c.ShouldBindJSON(&input); err != nil || strings.TrimSpace(input.Name) == "" {
@@ -34,7 +36,9 @@ func CreatePlayer(c *gin.Context) {
 	c.JSON(http.StatusOK, player)
 }
 
-// links a player to a game manually
+// POST /games/assign-player
+// Manually assigns a player to a game with a faction.
+// Useful when not using the automated game setup flow.
 func AssignPlayerToGame(c *gin.Context) {
 	var input struct {
 		GameID   uint   `json:"game_id"`
@@ -60,7 +64,8 @@ func AssignPlayerToGame(c *gin.Context) {
 	c.JSON(http.StatusOK, gp)
 }
 
-// returns a list of players in a specific game
+// GET /games/:id/players
+// Returns a list of players and their factions in a specific game.
 func ListPlayersInGame(c *gin.Context) {
 	gameID := c.Param("id")
 	var gamePlayers []models.GamePlayer
@@ -73,7 +78,9 @@ func ListPlayersInGame(c *gin.Context) {
 	c.JSON(http.StatusOK, gamePlayers)
 }
 
-// list all games that a specific player has been in
+// GET /players/:id/games
+// Returns a list of games that a specific player has participated in,
+// including which other players were in those games.
 func GetPlayerGames(c *gin.Context) {
 	playerID := c.Param("id")
 
@@ -94,7 +101,8 @@ func GetPlayerGames(c *gin.Context) {
 	})
 }
 
-// list all players
+// GET /players
+// Returns a list of all players in the system.
 func ListPlayers(c *gin.Context) {
 	var players []models.Player
 	if err := database.DB.Find(&players).Error; err != nil {
