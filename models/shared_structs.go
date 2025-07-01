@@ -44,3 +44,10 @@ type ScoredObjective struct {
 	PlayerID    string
 	Round       int
 }
+
+type ObjectiveScoreSummary struct {
+	ObjectiveID uint     `json:"objective_id"`
+	Name        string   `json:"name"`
+	Stage       string   `json:"stage"`
+	ScoredBy    []string `json:"scored_by"` // player names
+}
