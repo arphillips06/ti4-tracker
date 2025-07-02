@@ -11,7 +11,9 @@ A local self-hosted web application for tracking stats and scoring in **Twilight
 - Monitor round-by-round progress and game outcomes  
 - Analyze stats over multiple games *(planned)*  
 - Predefined database of official objectives and factions  
-- RESTful API for frontend integration  
+- RESTful API for frontend integration
+- GORM is used to manage the SQL database
+  - GORM or Go Object Relational Mapper take Go and translates it to SQL 
 
 ---
 
