@@ -13,7 +13,10 @@ import (
 // Returns all games with their associated players
 func ListGames(c *gin.Context) {
 	var games []models.Game
-	if err := database.DB.Preload("GamePlayers").Find(&games).Error; err != nil {
+	if err := database.DB.
+		Preload("GamePlayers.Player").
+		Preload("Winner").
+		Find(&games).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

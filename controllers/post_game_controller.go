@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
@@ -112,13 +111,16 @@ func AdvanceRound(c *gin.Context) {
 
 	err = services.RevealNextObjective(game.ID, newRound.ID, stage)
 	if err != nil {
-		now := time.Now()
-		game.FinishedAt = &now
-		database.DB.Save(&game)
+		//No more objectives, call end of game scoring and sort by highest points
+		if err := services.MaybeFinishGameFromExhaustion(game); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to finish game"})
+			return
+		}
 		c.JSON(http.StatusOK, gin.H{
 			"message":       "Game Ended",
 			"round":         game.CurrentRound,
 			"totalRevealed": services.CountRevealedObjectives(game.ID),
+			"winner_id":     game.WinnerID,
 		})
 		return
 	}
