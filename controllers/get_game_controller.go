@@ -5,6 +5,7 @@ import (
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
+	"github.com/arphillips06/TI4-stats/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,36 +25,33 @@ func ListGames(c *gin.Context) {
 func GetGameByID(c *gin.Context) {
 	id := c.Param("id")
 
-	var game models.Game
-	if err := database.DB.
-		Preload("GamePlayers.Player").
-		First(&game, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Game not found"})
+	game, scores, err := services.GetGameAndScores(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
-	var scores []models.PlayerScoreSummary
-	rows, err := database.DB.
-		Table("scores").
-		Select("players.id as player_id, players.name as player_name, SUM(scores.points) as points").
-		Joins("JOIN players ON scores.player_id = players.id").
-		Where("scores.game_id = ?", game.ID).
-		Group("players.id").
-		Rows()
-	if err == nil {
-		defer rows.Close()
-		for rows.Next() {
-			var s models.PlayerScoreSummary
-			database.DB.ScanRows(rows, &s)
-			scores = append(scores, s)
-		}
+
+	scoreSummaryMap := make(map[uint]models.PlayerScoreSummary)
+	for _, s := range scores {
+		summary := scoreSummaryMap[s.PlayerID]
+		summary.PlayerID = s.PlayerID
+		summary.PlayerName = s.Player.Name
+		summary.Points += s.Points
+		scoreSummaryMap[s.PlayerID] = summary
 	}
+
+	var summaryList []models.PlayerScoreSummary
+	for _, s := range scoreSummaryMap {
+		summaryList = append(summaryList, s)
+	}
+
 	response := models.GameDetailResponse{
 		ID:            game.ID,
 		WinningPoints: game.WinningPoints,
 		CurrentRound:  game.CurrentRound,
 		FinishedAt:    game.FinishedAt,
 		Players:       game.GamePlayers,
-		Scores:        scores,
+		Scores:        summaryList,
 	}
 
 	c.JSON(http.StatusOK, response)

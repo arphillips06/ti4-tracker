@@ -63,7 +63,7 @@ type GamePlayer struct {
 	PlayerID uint
 	Faction  string
 	Player   Player `gorm:"foreignKey:PlayerID"`
-	Game     Game   `gorm:"foreignKey:GameID;references:ID"`
+	Game     Game   `gorm:"foreignKey:GameID;references:ID" json:"-"`
 }
 
 //links game and ovjective into one struct

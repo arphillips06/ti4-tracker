@@ -13,30 +13,29 @@ import (
 // GET /games/:game_id/scores
 // Description: Returns a grouped list of round-by-round scores for a game, including player names and objectives scored.
 func GetScoreSummary(c *gin.Context) {
-	gameID := c.Param("id")
+	id := c.Param("id")
 
-	var summaries []models.PlayerScoreSummary
-
-	rows, err := database.DB.
-		Table("scores").
-		Select("players.id as player_id, players.name as player_name, SUM(scores.points) as points").
-		Joins("JOIN players ON scores.player_id = players.id").
-		Where("scores.game_id = ?", gameID).
-		Group("players.id").
-		Rows()
+	_, scores, err := services.GetGameAndScores(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not calculate scores"})
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var s models.PlayerScoreSummary
-		database.DB.ScanRows(rows, &s)
-		summaries = append(summaries, s)
+	scoreSummaryMap := make(map[uint]models.PlayerScoreSummary)
+	for _, s := range scores {
+		summary := scoreSummaryMap[s.PlayerID]
+		summary.PlayerID = s.PlayerID
+		summary.PlayerName = s.Player.Name
+		summary.Points += s.Points
+		scoreSummaryMap[s.PlayerID] = summary
 	}
 
-	c.JSON(http.StatusOK, summaries)
+	var summaryList []models.PlayerScoreSummary
+	for _, s := range scoreSummaryMap {
+		summaryList = append(summaryList, s)
+	}
+
+	c.JSON(http.StatusOK, summaryList)
 }
 
 func GetScoresByRound(c *gin.Context) {
