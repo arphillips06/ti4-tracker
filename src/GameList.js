@@ -4,14 +4,48 @@ import axios from 'axios';
 function GameList() {
   const [games, setGames] = useState([]);
 
-useEffect(() => {
-  axios.get('http://localhost:8080/games')
-    .then(response => {
-      console.log("API response:", response.data); // 👈 See the shape
-      setGames(response.data);
-    })
-    .catch(error => console.error('Error fetching games:', error));
-}, []);
+  function formatDuration(start, end) {
+    if (!end) return "Ongoing";
+
+    const ms = end - start;
+    const totalMinutes = Math.floor(ms / (1000 * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+
+    return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  }
+
+  async function fetchScoresForGame(id) {
+    try {
+      const res = await axios.get(`http://localhost:8080/games/${id}/score-summary`);
+      return res.data;
+    } catch (e) {
+      console.error("Error fetching scores for game", id, e);
+      return [];
+    }
+  }
+
+  useEffect(() => {
+    async function loadGames() {
+      try {
+        const res = await axios.get('http://localhost:8080/games');
+        const gamesData = res.data;
+
+        const withScores = await Promise.all(
+          gamesData.map(async (game) => {
+            const scores = await fetchScoresForGame(game.ID);
+            return { ...game, Scores: scores };
+          })
+        );
+
+        setGames(withScores);
+      } catch (error) {
+        console.error('Error fetching games:', error);
+      }
+    }
+
+    loadGames();
+  }, []);
 
   return (
     <div className="container mt-4">
@@ -19,13 +53,59 @@ useEffect(() => {
       {games.length === 0 ? (
         <p>No games found.</p>
       ) : (
-<ul className="list-group">
-  {games.map(game => (
-    <li key={game.id} className="list-group-item">
-      <strong>Game #{game.id}</strong> – {game.players?.length || 0} players – Round {game.current_round}
-    </li>
-  ))}
-</ul>
+        <ul className="list-group">
+          {games.map((game) => {
+            const start = new Date(game.CreatedAt);
+            const end = game.FinishedAt ? new Date(game.FinishedAt) : null;
+            const durationText = formatDuration(start, end);
+            const winner = game.Winner?.Name;
+
+            return (
+              <li className="list-group-item" key={game.ID}>
+                <div className="mb-2">
+                  <strong>Game #{game.ID}</strong> –{" "}
+                  <span>{game.GamePlayers?.length || 0} players</span> –{" "}
+                  <span>Round {game.CurrentRound || "?"}</span>
+                </div>
+
+                <div className="text-muted mb-2">Length: {durationText}</div>
+
+                {winner && (
+                  <div className="mb-2">
+                    <strong>Winner:</strong>{" "}
+                    <span className="text-success fw-bold">{winner}</span>
+                  </div>
+                )}
+
+                {game.Scores?.length > 0 && (
+                  <div className="mb-2">
+                    <strong>Scores:</strong>
+                    <ul className="list-unstyled ms-3">
+                      {game.Scores.map((s) => (
+                        <li key={s.player_id}>
+                          {s.player_name}: {s.points} pts
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {game.GamePlayers && (
+                  <div className="mb-2">
+                    <strong>Players:</strong>
+                    <ul className="list-unstyled ms-3">
+                      {game.GamePlayers.map((gp) => (
+                        <li key={gp.ID}>
+                          {gp.Player?.Name || "Unnamed"} <em>({gp.Faction})</em>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
       )}
     </div>
   );
