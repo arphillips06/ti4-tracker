@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"strconv"
@@ -174,4 +175,23 @@ func CountRevealedObjectives(gameID uint) int64 {
 		Where("game_id = ? AND round_id > 0", gameID).
 		Count(&count)
 	return count
+}
+
+func GetGameAndScores(gameID string) (models.Game, []models.Score, error) {
+	var game models.Game
+	if err := database.DB.
+		Preload("GamePlayers.Player").
+		First(&game, gameID).Error; err != nil {
+		return game, nil, errors.New("game not found")
+	}
+
+	var scores []models.Score
+	if err := database.DB.
+		Preload("Player").
+		Where("game_id = ?", game.ID).
+		Find(&scores).Error; err != nil {
+		return game, nil, errors.New("Could not load scores")
+	}
+
+	return game, scores, nil
 }
