@@ -4,8 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 import Home from './pages/Home';
 import GameList from './pages/GameList';
-import NewGamePage from './pages/NewGamePage'; // or './pages/GameForm' if that's what you name it
-
+import NewGamePage from './pages/NewGamePage';
 // import GameForm from './GameForm'; // Uncomment when this exists
 // import GameDetail from './GameDetail'; // Uncomment when this exists
 
