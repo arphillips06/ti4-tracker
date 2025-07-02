@@ -61,7 +61,7 @@ Invoke-RestMethod -Uri -Method GET http://localhost:8080/games/1/players
 ```
 Please note that were there is an ```int``` in the URL this is the ID of the game. If any more games are made then that number should be updated to reflect the new request.
 
-```
+---
 ### Contributing
 
 Contributions can be made by pulling the codebase into a branch and then making a PR to be reviewed. 
