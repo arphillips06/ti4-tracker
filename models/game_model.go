@@ -8,6 +8,7 @@ type Game struct {
 	CreatedAt         time.Time
 	FinishedAt        *time.Time
 	WinnerID          uint
+	Winner            Player       `gorm:"foreignKey:WinnerID"`
 	Rounds            []Round      `gorm:"foreignKey:GameID"`
 	GamePlayers       []GamePlayer `gorm:"foreignKey:GameID"`
 	WinningPoints     int
