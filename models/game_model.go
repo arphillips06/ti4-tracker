@@ -2,6 +2,7 @@ package models
 
 import "time"
 
+//these structs are to be used with the SQL database
 //Game represents a single game
 type Game struct {
 	ID                uint `gorm:"primaryKey"`

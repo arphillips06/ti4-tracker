@@ -42,6 +42,32 @@ func ScoreMecatolPoint(gameID, roundID, playerID uint) error {
 	return database.DB.Create(&score).Error
 }
 
+func ScoreSupportPoint(gameID, roundID, playerID uint) error {
+	score := models.Score{
+		GameID:   gameID,
+		RoundID:  roundID,
+		PlayerID: playerID,
+		Points:   1,
+		Type:     "Support",
+	}
+	return database.DB.Create(&score).Error
+}
+
+func LoseOneSupportPoint(gameID, playerID uint) error {
+	var score models.Score
+
+	err := database.DB.
+		Where("game_id = ? AND player_id = ? AND type = ?", gameID, playerID, "Support").
+		Order("id ASC").
+		First(&score).Error
+
+	if err != nil {
+		return err
+	}
+
+	return database.DB.Delete(&score).Error
+}
+
 func GetObjectiveScoreSummary(gameID uint) ([]models.ObjectiveScoreSummary, error) {
 	var objectives []models.Objective
 	var summaries []models.ObjectiveScoreSummary

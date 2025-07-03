@@ -48,6 +48,8 @@ func main() {
 	r.POST("/score/mecatol", controllers.ScoreMecatolPoint)
 	r.GET("/games/:id/objectives/scores", controllers.GetObjectiveScoreSummary)
 
+	//expose factions to API
+	r.GET("/api/factions", controllers.GetFactions)
 	// Start server on port 8080
 	r.Run("127.0.0.1:8080")
 }
