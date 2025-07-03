@@ -5,7 +5,6 @@ A web-based interface for tracking player scores, factions, and objectives in **
 This is the **frontend** portion of the project, built with React and Vite. It connects to a Go-based backend.
 
 ---
-
 ## Technologies
 
 - React (via Vite)
@@ -14,6 +13,13 @@ This is the **frontend** portion of the project, built with React and Vite. It c
 - Fetch API (to communicate with the Go backend)
 
 ---
+## Requirements
+
+Node.js - 18.x or newer
+NPM
+
+---
+
 
 ### Getting Started
 
