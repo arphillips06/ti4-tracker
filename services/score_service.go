@@ -43,6 +43,29 @@ func ScoreMecatolPoint(gameID, roundID, playerID uint) error {
 }
 
 func ScoreSupportPoint(gameID, roundID, playerID uint) error {
+	var playerCount int64
+	err := database.DB.
+		Model(&models.GamePlayer{}).
+		Where("game_id = ?", gameID).
+		Count(&playerCount).Error
+	if err != nil {
+		return err
+	}
+
+	var supportCount int64
+	err = database.DB.
+		Model(&models.Score{}).
+		Where("game_id = ? AND type = ?", gameID, "Support").
+		Distinct("player_id").
+		Count(&supportCount).Error
+	if err != nil {
+		return err
+	}
+
+	if supportCount >= playerCount-1 {
+		return fmt.Errorf("Support for the Throne can only be scored by %d players in a %d-player game", playerCount-1, playerCount)
+	}
+
 	score := models.Score{
 		GameID:   gameID,
 		RoundID:  roundID,

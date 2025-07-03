@@ -34,7 +34,11 @@ func ParseAndValidatePlayers(inputPlayers []models.PlayerInput) ([]models.Select
 
 		player, exists := playerMap[lookup]
 		if !exists {
-			return nil, fmt.Errorf("player not found: %s", p.Name)
+			newplayer, err := CreatePlayer(p.Name)
+			if err != nil {
+				return nil, fmt.Errorf("Failed to create player: %s", p.Name)
+			}
+			player = newplayer
 		}
 
 		if !factions.IsValidFaction(p.Faction) {

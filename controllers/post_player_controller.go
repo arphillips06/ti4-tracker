@@ -6,6 +6,7 @@ import (
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
+	"github.com/arphillips06/TI4-stats/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,20 +20,11 @@ func CreatePlayer(c *gin.Context) {
 		return
 	}
 
-	var existing models.Player
-	if err := database.DB.
-		Where("LOWER(name) = ?", strings.ToLower(input.Name)).
-		First(&existing).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "Player name taken"})
-		return
-	}
-
-	player := models.Player{Name: input.Name}
-	if err := database.DB.Create(&player).Error; err != nil {
+	player, err := services.CreatePlayer(input.Name)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(http.StatusOK, player)
 }
 
