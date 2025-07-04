@@ -27,6 +27,9 @@ func ParseAndValidatePlayers(inputPlayers []models.PlayerInput) ([]models.Select
 
 	var selected []models.SelectedPlayersWithFaction
 	for _, p := range inputPlayers {
+		if strings.TrimSpace(p.Name) == "" {
+			return nil, fmt.Errorf("Player name cannot be blank")
+		}
 		lookup := strings.ToLower(p.Name)
 		if p.ID != "" {
 			lookup = p.ID

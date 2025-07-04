@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"net/http"
-	"strings"
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
@@ -15,9 +14,9 @@ import (
 // Description: Submits a score for a player by marking them as having scored a specific objective in a game.
 func AddScore(c *gin.Context) {
 	var input struct {
-		GameID        uint   `json:"game_id"`
-		PlayerID      uint   `json:"player_id"`
-		ObjectiveName string `json:"objective_name"`
+		GameID      uint `json:"game_id"`
+		PlayerID    uint `json:"player_id"`
+		ObjectiveID uint `json:"objective_id"`
 	}
 
 	if err := c.ShouldBindJSON(&input); err != nil {
@@ -36,7 +35,7 @@ func AddScore(c *gin.Context) {
 	}
 
 	var objective models.Objective
-	if err := database.DB.Where("LOWER(name) = ?", strings.ToLower(input.ObjectiveName)).First(&objective).Error; err != nil {
+	if err := database.DB.First(&objective, input.ObjectiveID).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Objective not found"})
 		return
 	}
