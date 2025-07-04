@@ -1,71 +1,105 @@
-import { useState, useEffect } from 'react';
-import PlayerRow from '../components/PlayerRow';
+// src/pages/NewGamePage.js
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import PlayerInputRow from "../components/PlayerInputRow";
+import factionColors from "../data/factionColors";
+
+const FACTIONS = Object.entries(factionColors).map(([key, data]) => ({
+  key,
+  label: data.label,
+}));
 
 export default function NewGamePage() {
-  const [playerCount, setPlayerCount] = useState(3);
-  const [players, setPlayers] = useState([]);
-  const [factions, setFactions] = useState([]);
+  const navigate = useNavigate();
+
+  const [numPlayers, setNumPlayers] = useState(3);
+  const [players, setPlayers] = useState(
+    Array.from({ length: 3 }, () => ({ name: "", faction: "", color: "" }))
+  );
+  const [useObjectives, setUseObjectives] = useState(true);
   const [winningPoints, setWinningPoints] = useState(10);
-  const [useObjectiveDecks, setUseObjectiveDecks] = useState(true);
-
-  useEffect(() => {
-    fetch('http://localhost:8080/api/factions')
-      .then(res => res.json())
-      .then(data => setFactions(data))
-      .catch(err => console.error("Failed to load factions", err));
-  }, []);
-
-  useEffect(() => {
-    const updated = [...players];
-    while (updated.length < playerCount) {
-      updated.push({ name: "", faction: "", color: "#000000" });
-    }
-    while (updated.length > playerCount) {
-      updated.pop();
-    }
-    setPlayers(updated);
-  }, [playerCount]);
 
   const handlePlayerChange = (index, field, value) => {
-    const updated = [...players];
-    updated[index][field] = value;
-    setPlayers(updated);
-  };
+    const updatedPlayers = [...players];
 
-const startGame = async () => {
-  try {
-    const payload = {
-      winning_points: winningPoints,
-      use_objective_decks: useObjectiveDecks,
-      players: players.map(p => ({
-        name: p.name,
-        faction: p.faction
-      }))
-    };
-console.log("Submitting payload:", JSON.stringify(payload, null, 2));
+    if (field === "faction") {
+      const normalize = (str) =>
+        str.toLowerCase().replace(/^the\s+/, "").trim();
 
-    const res = await fetch('http://localhost:8080/games', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
+      const factionKey = Object.keys(factionColors).find(
+        (k) => normalize(factionColors[k].label) === normalize(value) || k === value
+      );
 
-    if (!res.ok) {
-      const errorText = await res.text();  // <- helpful for debugging
-      throw new Error(`Failed to create game: ${errorText}`);
+      if (factionKey) {
+        updatedPlayers[index].faction = factionKey;
+
+        const usedColors = updatedPlayers
+          .filter((_, i) => i !== index)
+          .map((p) => p.color);
+
+        const colorOptions = factionColors[factionKey]?.colors || [];
+        const firstAvailable = colorOptions.find((c) => !usedColors.includes(c));
+
+        if (firstAvailable) {
+          updatedPlayers[index].color = firstAvailable;
+        }
+      }
+    } else {
+      updatedPlayers[index][field] = value;
     }
 
-    const data = await res.json();
-    const newGameId = data.game.id;
+    setPlayers(updatedPlayers);
+  };
 
-    window.location.href = `/games/${newGameId}`;
-  } catch (error) {
-    console.error("Error starting game:", error);
-    alert("Failed to start game. See console for details.");
-  }
-};
+
+  const startGame = async () => {
+    try {
+    const payload = {
+      winning_points: winningPoints,
+      use_objective_decks: useObjectives,
+      players: players.map((p) => ({
+        name: p.name,
+        faction: p.faction,
+      })),
+    };
+
+      console.log("Submitting payload:", JSON.stringify(payload, null, 2));
+
+      const res = await fetch('http://localhost:8080/games', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Failed to create game: ${errorText}`);
+      }
+
+const data = await res.json();
+console.log("Response data from backend:", data);
+console.log("data.game:", data.game);
+
+const newGameId = data.game.ID; // <- likely fix here
+
+if (!newGameId) {
+  throw new Error("No game ID returned from backend");
+}
+
+console.log("Navigating to new game:", newGameId);
+navigate(`/games/${newGameId}`);
+
+    } catch (error) {
+      console.error("Error starting game:", error);
+      alert("Failed to start game. See console for details.");
+    }
+  };
+
+
+  const selectedFactions = players.map((p) => p.faction).filter(Boolean);
+  const selectedColors = players.map((p) => p.color).filter(Boolean);
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
@@ -83,45 +117,57 @@ console.log("Submitting payload:", JSON.stringify(payload, null, 2));
         </select>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-4">
         <label className="block font-medium mb-1">Use Objective Decks:</label>
         <input
           type="checkbox"
-          checked={useObjectiveDecks}
-          onChange={(e) => setUseObjectiveDecks(e.target.checked)}
-          className="mr-2"
+          checked={useObjectives}
+          onChange={(e) => setUseObjectives(e.target.checked)}
         />
-        <span>{useObjectiveDecks ? "Yes" : "No"}</span>
       </div>
 
-      <label className="block mb-2 font-medium">Number of Players: {playerCount}</label>
-      <input
-        type="range"
-        min={3}
-        max={8}
-        value={playerCount}
-        onChange={(e) => setPlayerCount(Number(e.target.value))}
-        className="w-full mb-6"
-      />
+      <div className="mb-4">
+        <label className="block font-medium mb-1">
+          Number of Players: {numPlayers}
+        </label>
+        <input
+          type="range"
+          min={1}
+          max={10}
+          value={numPlayers}
+          onChange={(e) => {
+            const newCount = Number(e.target.value);
+            setNumPlayers(newCount);
+            setPlayers((prev) =>
+              Array.from({ length: newCount }, (_, i) => prev[i] || { name: "", faction: "", color: "" })
+            );
+          }}
+        />
+      </div>
 
-      {players.map((player, idx) => (
-        <PlayerRow
-          key={idx}
-          index={idx}
-          player={player}
-          factions={factions}
-          onChange={handlePlayerChange}
+      {players.map((player, i) => (
+        <PlayerInputRow
+          key={i}
+          index={i}
+          value={player}
+          onFactionChange={(index, faction) =>
+            handlePlayerChange(index, "faction", faction)
+          }
+          onColorChange={(index, color) =>
+            handlePlayerChange(index, "color", color)
+          }
+          onNameChange={(index, name) =>
+            handlePlayerChange(index, "name", name)
+          }
+          factions={FACTIONS}
+          selectedFactions={selectedFactions}
+          selectedColors={selectedColors}
         />
       ))}
 
-      <div className="mt-6 text-right">
-        <button
-          onClick={startGame}
-          className="bg-blue-600 text-white px-5 py-2 rounded hover:bg-blue-700"
-        >
-          Start Game
-        </button>
-      </div>
+      <button onClick={startGame} className="btn btn-primary mt-4">
+        Start Game
+      </button>
     </div>
   );
 }
