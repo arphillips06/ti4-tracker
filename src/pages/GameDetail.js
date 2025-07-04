@@ -1,84 +1,81 @@
-// GameDetail.js
-
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import factionImageMap from '../data/factionIcons';
-import PlayerRow from "../components/PlayerRow";
-
-
 
 export default function GameDetail() {
   const { gameId } = useParams();
   const [game, setGame] = useState(null);
   const [objectives, setObjectives] = useState([]);
+  const [objectiveScores, setObjectiveScores] = useState({});
+  const [localScored, setLocalScored] = useState({});
   const [scoringMode, setScoringMode] = useState(false);
-  
 
   useEffect(() => {
     fetch(`http://localhost:8080/games/${gameId}`)
-      .then(async (res) => {
-        const text = await res.text();
-        console.log("Raw response from backend:", text);
-        if (!res.ok) throw new Error(`Game not found. Server said: ${text}`);
-
-        try {
-          const data = JSON.parse(text);
-          console.log("Loaded game:", data);
-          setGame(data);
-        } catch (err) {
-          console.error("Failed to parse JSON:", err);
-          throw new Error("Invalid JSON from server");
-        }
-      })
+      .then((res) => res.json())
+      .then(setGame)
       .catch((err) => console.error("Error loading game:", err));
 
     fetch(`http://localhost:8080/games/${gameId}/objectives`)
       .then((res) => res.json())
       .then(setObjectives)
       .catch((err) => console.error("Error loading objectives:", err));
+
+    fetch(`http://localhost:8080/games/${gameId}/objectives/scores`)
+      .then((res) => res.json())
+      .then((data) => {
+        const map = {};
+        (data.value || []).forEach((entry) => {
+          map[entry.objective_id] = (entry.scored_by || []).map((s) =>
+            typeof s === "object" ? s.player_id : s
+          );
+        });
+        setObjectiveScores(map);
+      })
+      .catch((err) => console.error("Error loading objective scores:", err));
   }, [gameId]);
 
-const scoreObjective = async (playerId, objectiveId) => {
-  const payload = {
-    game_id: parseInt(gameId),
-    player_id: playerId,
-    objective_id: objectiveId,
-  };
+  const scoreObjective = async (playerId, objectiveId) => {
+    const payload = {
+      game_id: parseInt(gameId),
+      player_id: playerId,
+      objective_id: objectiveId,
+    };
 
-  console.log("Scoring payload:", payload);
+    try {
+      await fetch("http://localhost:8080/score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-  try {
-    const res = await fetch("http://localhost:8080/score", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+      // update local UI immediately
+      setLocalScored((prev) => {
+        const current = prev[objectiveId] || [];
+        return {
+          ...prev,
+          [objectiveId]: [...new Set([...current, playerId])],
+        };
+      });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(errorText);
+      const updatedGame = await fetch(`http://localhost:8080/games/${gameId}`).then(r => r.json());
+      setGame(updatedGame);
+
+      const updatedObjectives = await fetch(`http://localhost:8080/games/${gameId}/objectives`).then(r => r.json());
+      setObjectives(updatedObjectives);
+
+      const updatedScores = await fetch(`http://localhost:8080/games/${gameId}/objectives/scores`).then(r => r.json());
+      const map = {};
+      (updatedScores.value || []).forEach((entry) => {
+        map[entry.objective_id] = (entry.scored_by || []).map((s) =>
+          typeof s === "object" ? s.player_id : s
+        );
+      });
+      setObjectiveScores(map);
+    } catch (err) {
+      console.error("Scoring failed:", err);
+      alert("Scoring failed. See console.");
     }
-
-    const result = await res.json();
-    console.log("Score response:", result);
-
-    // ✅ Refresh game and objectives after scoring
-    const gameRes = await fetch(`http://localhost:8080/games/${gameId}`);
-    const gameText = await gameRes.text();
-    if (!gameRes.ok) throw new Error(gameText);
-    setGame(JSON.parse(gameText));
-
-    const objRes = await fetch(`http://localhost:8080/games/${gameId}/objectives`);
-    if (!objRes.ok) throw new Error("Failed to fetch objectives");
-    const updatedObjectives = await objRes.json();
-    setObjectives(updatedObjectives);
-  } catch (err) {
-    console.error("Scoring failed:", err);
-    alert("Scoring failed. See console for details.");
-  }
-};
+  };
 
   const advanceRound = async () => {
     try {
@@ -91,70 +88,59 @@ const scoreObjective = async (playerId, objectiveId) => {
         throw new Error(errorText);
       }
 
-      const result = await res.json();
-      console.log("Round advanced:", result);
+const gameRes = await fetch(`http://localhost:8080/games/${gameId}`);
+if (!gameRes.ok) throw new Error("Failed to fetch updated game after advancing");
+const updatedGame = await gameRes.json();
+setGame(updatedGame);
 
-      // Re-fetch game data
-      const gameRes = await fetch(`http://localhost:8080/games/${gameId}`);
-      const gameText = await gameRes.text();
-      if (!gameRes.ok) throw new Error(gameText);
-      setGame(JSON.parse(gameText));
-      console.log("Refetched game after advance:", gameText);
-
-      // Re-fetch objectives
-      const objRes = await fetch(`http://localhost:8080/games/${gameId}/objectives`);
-      if (!objRes.ok) throw new Error("Failed to fetch objectives");
-      const updatedObjectives = await objRes.json();
+      const updatedObjectives = await fetch(`http://localhost:8080/games/${gameId}/objectives`).then(r => r.json());
       setObjectives(updatedObjectives);
-      console.log("Refetched objectives after advance:", updatedObjectives);
 
+      const updatedScores = await fetch(`http://localhost:8080/games/${gameId}/objectives/scores`).then(r => r.json());
+      const map = {};
+      (updatedScores.value || []).forEach((entry) => {
+        map[entry.objective_id] = (entry.scored_by || []).map((s) =>
+          typeof s === "object" ? s.player_id : s
+        );
+      });
+      setObjectiveScores(map);
     } catch (err) {
       console.error("Failed to advance round:", err);
       alert("Could not advance round. See console for details.");
     }
   };
 
-const getMergedPlayerData = () => {
-  
-  const scoreMap = new Map(game.scores?.map(s => [s.player_id, s]) || []);
+  const getMergedPlayerData = (sort = true) => {
+    const scoreMap = new Map(game?.scores?.map((s) => [s.player_id, s]) || []);
 
-  return game.players
-    .map((p) => {
-      const playerId = p.PlayerID;
+    const merged = (game?.players || []).map((p) => {
       const name = p.Player?.Name || "Unknown";
       const faction = p.Faction || "Unknown Faction";
-      const color = p.color || "#000000";
-      const scoreEntry = scoreMap.get(playerId);
-      const points = scoreEntry?.points || 0;
-
-      // Generate a faction icon key from the faction name
-      const factionKey = faction
-        .replace(/^The\s+/i, "")      // remove "The "
-        .replace(/\s+/g, "")          // remove all spaces
-        .replace(/[^a-zA-Z0-9]/g, "") // remove symbols
-        + (faction.toLowerCase().includes("keleres") ? "FactionSymbol" : ""); // handle Keleres oddity
-
+      const factionKey =
+        faction.replace(/^The\s+/i, "")
+          .replace(/\s+/g, "")
+          .replace(/[^a-zA-Z0-9]/g, "") +
+        (faction.toLowerCase().includes("keleres") ? "FactionSymbol" : "");
       return {
-        player_id: playerId,
+        player_id: p.PlayerID,
         name,
         faction,
         factionKey,
-        color,
-        points,
+        color: p.color || "#000",
+        points: scoreMap.get(p.PlayerID)?.points || 0,
       };
-    })
-    .sort((a, b) => b.points - a.points);
-};
+    });
 
+    return sort ? merged.sort((a, b) => b.points - a.points) : merged;
+  };
 
+  if (!game || !game.players) return <div className="p-6">Loading game data...</div>;
 
-  if (!game || !game.players) {
-    return <div className="p-6">Loading game data...</div>;
-  }
+  const playersUnsorted = getMergedPlayerData(false);
+  const playersSorted = getMergedPlayerData(true);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
-      {/* Game Header */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2 className="h4">
           Round {game.current_round} | {game.winning_points} Point Game
@@ -175,78 +161,164 @@ const getMergedPlayerData = () => {
         </div>
       </div>
 
-      <div className="row">
-        {/* Objectives Section */}
-        <div className="col-md-6">
+      <div className="d-flex flex-row align-items-start gap-4 flex-wrap">
+        <div style={{ flex: "1 1 0" }}>
           <h4>Objectives</h4>
-          {objectives.map((obj) => (
+          <div className="d-flex flex-wrap justify-content-start" style={{ gap: "20px" }}>
+            {objectives.map((obj) => {
+              const objId = obj.Objective?.ID;
+              const isStageTwo = obj.Objective?.Stage === "II";
+              const stageColor = isStageTwo ? "#00bfff" : "#ffd700";
+              const glowColor = isStageTwo ? "rgba(0, 191, 255, 0.4)" : "rgba(255, 215, 0, 0.4)";
+              const backgroundImage = isStageTwo
+                ? "/objective-backgrounds/stage2.jpg"
+                : "/objective-backgrounds/stage1.jpg";
+
+              const scoredBy = [
+                ...(objectiveScores[objId] || []),
+                ...(localScored[objId] || []),
+              ];
+
+              return (
+                <div
+                  key={obj.ID}
+                  className="card shadow"
+                  style={{
+                    width: "220px",
+                    height: "330px",
+                    backgroundImage: `url(${backgroundImage})`,
+                    backgroundSize: "contain",
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "center",
+                    border: `2px solid ${stageColor}`,
+                    borderRadius: "12px",
+                    color: "#fff",
+                    fontFamily: "'Orbitron', sans-serif",
+                    boxShadow: `0 0 10px ${glowColor}`,
+                    position: "relative",
+                  }}
+                >
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      backgroundColor: "rgba(0, 0, 0, 0.6)",
+                      padding: "12px",
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <div>
+                      <h5>{obj.Objective?.Name || "Unnamed Objective"}</h5>
+                      <p className="small fst-italic" style={{ color: "#ccc" }}>
+                        {obj.Objective?.description || "No description provided."}
+                      </p>
+                    </div>
+                    <div className="d-flex flex-wrap gap-2 mt-3">
+                      {playersUnsorted.map((p) => {
+                        const hasScored = scoredBy.includes(p.player_id);
+
+                        return (
+                          <div
+                            key={p.player_id}
+                            style={{
+                              width: "32px",
+                              height: "32px",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            {scoringMode ? (
+                              <button
+                                className="btn btn-sm p-1"
+                                style={{
+                                  backgroundColor: p.color,
+                                  borderRadius: "6px",
+                                  width: "100%",
+                                  height: "100%",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                }}
+                                onClick={() => scoreObjective(p.player_id, objId)}
+                              >
+                                <img
+                                  src={`/faction-icons/${p.factionKey}.webp`}
+                                  alt={p.faction}
+                                  style={{ width: "20px", height: "20px", objectFit: "contain" }}
+                                  onError={(e) => (e.target.style.display = "none")}
+                                />
+                              </button>
+                            ) : hasScored ? (
+                              <img
+                                src={`/faction-icons/${p.factionKey}.webp`}
+                                alt={p.faction}
+                                style={{
+                                  width: "24px",
+                                  height: "24px",
+                                  borderRadius: "50%",
+                                  objectFit: "contain",
+                                  backgroundColor: "transparent",
+                                }}
+                                onError={(e) => (e.target.style.display = "none")}
+                              />
+                            ) : (
+                              <div style={{ width: "24px", height: "24px" }} />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="text-end">
+                      <span
+                        className="badge"
+                        style={{
+                          backgroundColor: stageColor,
+                          color: "#000",
+                          fontWeight: "bold",
+                          fontSize: "0.75rem",
+                        }}
+                      >
+                        {obj.Objective?.type?.toUpperCase() || "PUBLIC"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{ flex: "0 1 300px" }}>
+          {playersSorted.map((entry) => (
             <div
-              key={obj.ID}
-              className="card mb-3 border-warning"
-              style={{ backgroundColor: "#fff8dc" }}
+              key={entry.player_id}
+              className="card mb-3 border-start border-5"
+              style={{ borderColor: entry.color }}
             >
               <div className="card-body">
-                <h5 className="card-title">
-                  {obj.Objective?.Name || "Unnamed Objective"}
-                </h5>
-
-                {scoringMode && (
-                  <div className="d-flex flex-wrap gap-2 mt-2">
-                    {(game.players || []).map((p) => {
-                      const name = p.Player?.Name || "Unknown";
-                      const color = p.color || "#000";
-                      const playerId = p.PlayerID;
-                      const objectiveId = obj.Objective?.ID;
-
-                      return (
-                        <button
-                          key={playerId}
-                          className="btn btn-sm text-white"
-                          style={{ backgroundColor: color }}
-                          onClick={() => scoreObjective(playerId, objectiveId)}
-                        >
-                          {name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
+                <div className="fw-semibold small mb-1">{entry.name}</div>
+                <div className="d-flex align-items-center gap-2">
+                  <img
+                    src={`/faction-icons/${entry.factionKey}.webp`}
+                    alt={entry.faction}
+                    style={{
+                      width: "24px",
+                      height: "24px",
+                      borderRadius: "50%",
+                      objectFit: "contain",
+                      backgroundColor: "transparent",
+                    }}
+                    onError={(e) => (e.target.style.display = "none")}
+                  />
+                  <div className="text-muted small fst-italic">{entry.faction}</div>
+                </div>
+                <div className="mt-1 small">Points: {entry.points}</div>
               </div>
             </div>
           ))}
-        </div>
-
-        {/* Players Section */}
-        <div className="col-md-6">
-{getMergedPlayerData().map((entry) => {
-  return (
-    <div
-      key={entry.player_id}
-      className="card mb-3 border-start border-5"
-      style={{ borderColor: entry.color }}
-    >
-      <div className="card-body">
-        <div className="fw-semibold small mb-1">{entry.name}</div>
-        <div className="d-flex align-items-center gap-2">
-          <img
-            src={`/faction-icons/${entry.factionKey}.webp`}
-            alt={entry.faction}
-            style={{
-              width: "24px",
-              height: "24px",
-              borderRadius: "50%",
-              objectFit: "contain",
-              backgroundColor: "transparent",
-            }}
-            onError={(e) => (e.target.style.display = "none")}
-          />
-          <div className="text-muted small fst-italic">{entry.faction}</div>
-        </div>
-        <div className="mt-1 small">Points: {entry.points}</div>
-      </div>
-    </div>
-  );
-})}
         </div>
       </div>
     </div>
