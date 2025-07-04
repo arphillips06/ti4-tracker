@@ -7,7 +7,6 @@ import GameList from './pages/GameList';
 import NewGamePage from './pages/NewGamePage'; // or './pages/GameForm' if that's what you name it
 import GameDetail from './pages/GameDetail';
 
-
 // import GameForm from './GameForm'; // Uncomment when this exists
 // import GameDetail from './GameDetail'; // Uncomment when this exists
 
