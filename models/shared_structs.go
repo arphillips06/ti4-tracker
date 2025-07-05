@@ -32,6 +32,7 @@ type GameDetailResponse struct {
 	FinishedAt    *time.Time           `json:"finished_at"`
 	Players       []GamePlayer         `json:"players"`
 	Scores        []PlayerScoreSummary `json:"scores"`
+	AllScores     []Score
 }
 
 type SelectedPlayersWithFaction struct {
@@ -50,4 +51,11 @@ type ObjectiveScoreSummary struct {
 	Name        string   `json:"name"`
 	Stage       string   `json:"stage"`
 	ScoredBy    []string `json:"scored_by"` // player names
+}
+
+type AgendaResolution struct {
+	GameID   uint   `json:"game_id"`
+	RoundID  uint   `json:"round_id"`
+	Result   string `json:"result"`
+	ForVotes []uint `json:"for_votes"`
 }

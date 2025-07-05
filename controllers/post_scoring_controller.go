@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
@@ -46,11 +47,9 @@ func AddScore(c *gin.Context) {
 		return
 	}
 
-	if objective.Type == "Secret" {
-		if err := services.ValidateSecretScoringRules(input.PlayerID, round.ID, objective.Phase); err != nil {
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-			return
-		}
+	if err := services.ValidateSecretScoringRules(input.PlayerID, round.ID, objective.ID); err != nil {
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+		return
 	}
 
 	exists, err := services.CheckIfScoreExists(game.ID, input.PlayerID, objective.ID)
@@ -69,7 +68,7 @@ func AddScore(c *gin.Context) {
 		ObjectiveID: objective.ID,
 		Points:      objective.Points,
 		RoundID:     round.ID,
-		Type:        "objective",
+		Type:        strings.ToLower(objective.Type),
 	}
 	if err := database.DB.Create(&score).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add score"})
@@ -98,4 +97,75 @@ func AddScore(c *gin.Context) {
 		"round":        game.CurrentRound,
 		"total_points": totalPoints,
 	})
+}
+func ScoreImperialPoint(c *gin.Context) {
+	var input struct {
+		GameID   uint `json:"game_id"`
+		PlayerID uint `json:"player_id"`
+		RoundID  uint `json:"round_id"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := services.ScoreImperialPoint(input.GameID, input.RoundID, input.PlayerID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func ScoreMecatolPoint(c *gin.Context) {
+	var input struct {
+		GameID   uint `json:"game_id"`
+		PlayerID uint `json:"player_id"`
+		RoundID  uint `json:"round_id"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if err := services.ScoreMecatolPoint(input.GameID, input.RoundID, input.PlayerID); err != nil {
+		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func ResolveMutinyAgenda(c *gin.Context) {
+	var input models.AgendaResolution
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	err := services.ApplyMutinyAgenda(input)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+func DeleteScore(c *gin.Context) {
+	var req struct {
+		GameID      int `json:"game_id"`
+		PlayerID    int `json:"player_id"`
+		ObjectiveID int `json:"objective_id"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := services.RemoveScore(req.GameID, req.PlayerID, req.ObjectiveID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status((http.StatusNoContent))
 }

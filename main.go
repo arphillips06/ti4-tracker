@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strings"
+
 	"github.com/arphillips06/TI4-stats/controllers"
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/gin-gonic/gin"
@@ -15,7 +17,14 @@ func main() {
 	r := gin.Default()
 
 	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		origin := c.Request.Header.Get("Origin")
+
+		// Allow local IPs or localhost
+		if strings.HasPrefix(origin, "http://192.168.1.") || origin == "http://localhost:3000" {
+			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+
 		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 
@@ -42,14 +51,20 @@ func main() {
 	r.GET("/games/:id/scores-by-round", controllers.GetScoresByRound)
 	r.GET("/games/:id", controllers.GetGameByID)
 	r.GET("/games/:id/objectives", controllers.GetGameObjectives)
+	r.GET("/objectives/secrets/all", controllers.GetAllSecretObjectives)
+
 	//scoring
 	r.POST("/score", controllers.AddScore)
 	r.POST("/score/imperial", controllers.ScoreImperialPoint)
 	r.POST("/score/mecatol", controllers.ScoreMecatolPoint)
 	r.GET("/games/:id/objectives/scores", controllers.GetObjectiveScoreSummary)
+	r.POST("/unscore", controllers.DeleteScore)
 
 	//expose factions to API
 	r.GET("/api/factions", controllers.GetFactions)
+
+	//agendas
+	r.POST("/agenda/mutiny", controllers.ResolveMutinyAgenda)
 	// Start server on port 8080
-	r.Run("127.0.0.1:8080")
+	r.Run("0.0.0.0:8080")
 }

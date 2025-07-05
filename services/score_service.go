@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -21,6 +22,97 @@ func ScoreImperialPoint(gameID, roundID, playerID uint) error {
 	}
 	return database.DB.Create(&score).Error
 }
+func ScoreAgendaPoint(gameID, roundID, playerID uint, points int, agendaTitle string) error {
+	// Calculate current total score for the player in this game
+	var totalPoints int64
+	err := database.DB.
+		Model(&models.Score{}).
+		Where("game_id = ? AND player_id = ?", gameID, playerID).
+		Select("SUM(points)").
+		Row().
+		Scan(&totalPoints)
+	if err != nil {
+		return fmt.Errorf("failed to calculate current score: %w", err)
+	}
+
+	// Prevent score from dropping below zero
+	if int(totalPoints)+points < 0 {
+		return fmt.Errorf("agenda scoring would reduce points below zero")
+	}
+
+	// Create and insert the agenda score
+	score := models.Score{
+		GameID:      gameID,
+		RoundID:     roundID,
+		PlayerID:    playerID,
+		Points:      points,
+		Type:        "agenda",
+		AgendaTitle: agendaTitle,
+	}
+
+	return database.DB.Create(&score).Error
+}
+
+func ApplyMutinyAgenda(input models.AgendaResolution) error {
+	var count int64
+	if err := database.DB.
+		Model(&models.Score{}).
+		Where("game_id = ? AND agenda_title = ?", input.GameID, "Mutiny").
+		Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return fmt.Errorf("Mutiny has already been resolved for this game")
+	}
+
+	if input.Result == "for" {
+		log.Println("ApplyMutinyAgenda called with:", input)
+		for _, playerID := range input.ForVotes {
+			score := models.Score{
+				GameID:      input.GameID,
+				RoundID:     input.RoundID,
+				PlayerID:    playerID,
+				Points:      1,
+				Type:        "agenda",
+				AgendaTitle: "Mutiny",
+			}
+
+			if err := database.DB.Create(&score).Error; err != nil {
+				return err
+			}
+		}
+	}
+
+	if input.Result == "against" {
+		log.Println("ApplyMutinyAgenda called with:", input)
+		for _, playerID := range input.ForVotes {
+			var total int64
+			err := database.DB.Model(&models.Score{}).
+				Where("game_id = ? AND player_id = ?", input.GameID, playerID).
+				Select("SUM(points)").Scan(&total).Error
+			if err != nil {
+				return err
+			}
+
+			if total > 0 {
+				score := models.Score{
+					GameID:      input.GameID,
+					RoundID:     input.RoundID,
+					PlayerID:    playerID,
+					Points:      -1,
+					Type:        "agenda",
+					AgendaTitle: "Mutiny",
+				}
+
+				if err := database.DB.Create(&score).Error; err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
+}
 
 func ScoreMecatolPoint(gameID, roundID, playerID uint) error {
 	var existing models.Score
@@ -31,7 +123,10 @@ func ScoreMecatolPoint(gameID, roundID, playerID uint) error {
 		// Mecatol point already awarded
 		return fmt.Errorf("Mecatol Rex point already awarded")
 	}
-
+	if err != nil && err != gorm.ErrRecordNotFound {
+		// Some unexpected error occurred
+		return err
+	}
 	score := models.Score{
 		GameID:   gameID,
 		RoundID:  roundID,
@@ -132,20 +227,40 @@ func GetObjectiveScoreSummary(gameID uint) ([]models.ObjectiveScoreSummary, erro
 	return summaries, nil
 }
 
-func ValidateSecretScoringRules(playerID, roundID uint, phase string) error {
+func ValidateSecretScoringRules(playerID, roundID, objectiveID uint) error {
+	var objective models.Objective
+	if err := database.DB.First(&objective, objectiveID).Error; err != nil {
+		log.Printf("[ERROR] Could not find objective %d: %v", objectiveID, err)
+		return errors.New("objective not found")
+	}
+
+	if strings.ToLower(objective.Type) != "secret" {
+		return nil
+	}
+
+	log.Printf("[DEBUG] Validating secret scoring: playerID=%d, objectiveID=%d, roundID=%d, phase=%s", playerID, objectiveID, roundID, objective.Phase)
+
 	var count int64
 	err := database.DB.
 		Model(&models.Score{}).
-		Joins("JOIN objectives ON objectives.id = scores.objective_id").
-		Where("scores.player_id = ? AND scores.round_id = ? AND objectives.type = ? AND objectives.phase = ?",
-			playerID, roundID, "Secret", phase).
+		Where(`
+		player_id = ? AND 
+		round_id = ? AND 
+		LOWER(type) = ? AND 
+		objective_id IN (
+			SELECT id FROM objectives WHERE LOWER(phase) = ?
+		)`,
+			playerID, roundID, "secret", strings.ToLower(objective.Phase)).
 		Count(&count).Error
+	log.Printf("[DEBUG] Secrets scored: %d", count)
+
 	if err != nil {
 		return errors.New("failed to validate secret scoring rules")
 	}
 	if count > 0 {
 		return errors.New("player has already scored a secret objective in this phase this round")
 	}
+
 	return nil
 }
 
@@ -170,7 +285,7 @@ func AddScoreToGame(gameID, playerID uint, objectiveName string) (*models.Score,
 	}
 
 	if obj.Type == "Secret" {
-		if err := ValidateSecretScoringRules(playerID, round.ID, obj.Phase); err != nil {
+		if err := ValidateSecretScoringRules(playerID, round.ID, obj.ID); err != nil {
 			return nil, 0, err
 		}
 	}
@@ -211,16 +326,18 @@ func AddScoreToGame(gameID, playerID uint, objectiveName string) (*models.Score,
 
 func CheckIfScoreExists(gameID, playerID, objectiveID uint) (bool, error) {
 	var existing models.Score
-	err := database.DB.Where("game_id = ? AND player_id = ? AND objective_id = ?",
-		gameID, playerID, objectiveID).First(&existing).Error
+	err := database.DB.
+		Where("game_id = ? AND player_id = ? AND objective_id = ?", gameID, playerID, objectiveID).
+		First(&existing).Error
 
-	if err == nil {
-		return true, nil
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil // ✅ not found = score does not exist
+		}
+		return false, fmt.Errorf("failed to check for existing score: %w", err)
 	}
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return false, nil
-	}
-	return false, err
+
+	return true, nil
 }
 
 func WinnerByScore(game *models.Game) error {
@@ -286,4 +403,11 @@ func MaybeFinishGameFromScore(game *models.Game, scoringPlayerID uint) error {
 	}
 
 	return nil
+}
+
+func RemoveScore(gameID, playerID, objectiveID int) error {
+	return database.DB.
+		Table("scores").
+		Where("game_id = ? AND player_id = ? AND objective_id = ?", gameID, playerID, objectiveID).
+		Delete(nil).Error
 }
