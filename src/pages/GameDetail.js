@@ -326,7 +326,7 @@ console.log("Custodians scored:", custodiansScored);
                   />
                     {custodiansScored && game?.AllScores?.some(s => s.Type === "mecatol" && s.PlayerID === entry.player_id) && (
                       <img
-                        src="MR-point/MR-scored.png"
+                        src="/MR-point/MR-scored.png"
                         alt="Custodians Point"
                         title="Custodians Point"
                         style={{ width: "20px", height: "20px" }}
