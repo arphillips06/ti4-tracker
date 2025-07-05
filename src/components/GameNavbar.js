@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function GameNavbar({ mutinyUsed, setShowAgendaModal }) {
+export default function GameNavbar({ mutinyUsed, setShowAgendaModal, setShowCensureModal, setShowSeedModal }) {
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
       <div className="container-fluid">
@@ -23,6 +23,23 @@ export default function GameNavbar({ mutinyUsed, setShowAgendaModal }) {
                 Mutiny {mutinyUsed ? "(Used)" : ""}
               </button>
             </li>
+            <li>
+              <button
+                className="dropdown-item"
+                onClick={() => setShowCensureModal(true)}
+              >
+                Political Censure
+              </button>
+            </li>
+            <li>
+              <button
+                className="dropdown-item"
+                onClick={() => setShowSeedModal(true)}
+              >
+                Seed of an Empire
+              </button>
+            </li>
+
           </ul>
         </div>
       </div>
