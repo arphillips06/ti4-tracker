@@ -8,6 +8,10 @@ export default function GameDetail() {
   const [objectiveScores, setObjectiveScores] = useState({});
   const [localScored, setLocalScored] = useState({});
   const [scoringMode, setScoringMode] = useState(false);
+  const [expandedPlayers, setExpandedPlayers] = useState({});
+  const custodiansScored = game?.AllScores?.some((s) => s.Type === "mecatol") || false;
+console.log("Custodians scored:", custodiansScored);
+
 
   useEffect(() => {
     fetch(`http://localhost:8080/games/${gameId}`)
@@ -17,24 +21,23 @@ export default function GameDetail() {
 
     fetch(`http://localhost:8080/games/${gameId}/objectives`)
       .then((res) => res.json())
-      .then(setObjectives)
+      .then((data) => setObjectives(Array.isArray(data) ? data : data?.value || []))
       .catch((err) => console.error("Error loading objectives:", err));
 
     fetch(`http://localhost:8080/games/${gameId}/objectives/scores`)
       .then((res) => res.json())
       .then((data) => {
+        const list = Array.isArray(data) ? data : data?.value || [];
         const map = {};
-        (data.value || []).forEach((entry) => {
-          map[entry.objective_id] = (entry.scored_by || []).map((s) =>
-            typeof s === "object" ? s.player_id : s
-          );
+        list.forEach((entry) => {
+          map[entry.objective_id] = entry.scored_by || [];
         });
         setObjectiveScores(map);
       })
       .catch((err) => console.error("Error loading objective scores:", err));
   }, [gameId]);
 
-  const scoreObjective = async (playerId, objectiveId) => {
+  const scoreObjective = async (playerId, objectiveId, playerName) => {
     const payload = {
       game_id: parseInt(gameId),
       player_id: playerId,
@@ -48,27 +51,24 @@ export default function GameDetail() {
         body: JSON.stringify(payload),
       });
 
-      // update local UI immediately
       setLocalScored((prev) => {
         const current = prev[objectiveId] || [];
         return {
           ...prev,
-          [objectiveId]: [...new Set([...current, playerId])],
+          [objectiveId]: [...new Set([...current, playerName])],
         };
       });
 
-      const updatedGame = await fetch(`http://localhost:8080/games/${gameId}`).then(r => r.json());
+      const updatedGame = await fetch(`http://localhost:8080/games/${gameId}`).then((r) => r.json());
       setGame(updatedGame);
 
-      const updatedObjectives = await fetch(`http://localhost:8080/games/${gameId}/objectives`).then(r => r.json());
-      setObjectives(updatedObjectives);
+      const updatedObjectives = await fetch(`http://localhost:8080/games/${gameId}/objectives`).then((r) => r.json());
+      setObjectives(Array.isArray(updatedObjectives) ? updatedObjectives : updatedObjectives?.value || []);
 
-      const updatedScores = await fetch(`http://localhost:8080/games/${gameId}/objectives/scores`).then(r => r.json());
+      const updatedScores = await fetch(`http://localhost:8080/games/${gameId}/objectives/scores`).then((r) => r.json());
       const map = {};
-      (updatedScores.value || []).forEach((entry) => {
-        map[entry.objective_id] = (entry.scored_by || []).map((s) =>
-          typeof s === "object" ? s.player_id : s
-        );
+      (Array.isArray(updatedScores) ? updatedScores : updatedScores?.value || []).forEach((entry) => {
+        map[entry.objective_id] = entry.scored_by || [];
       });
       setObjectiveScores(map);
     } catch (err) {
@@ -88,20 +88,18 @@ export default function GameDetail() {
         throw new Error(errorText);
       }
 
-const gameRes = await fetch(`http://localhost:8080/games/${gameId}`);
-if (!gameRes.ok) throw new Error("Failed to fetch updated game after advancing");
-const updatedGame = await gameRes.json();
-setGame(updatedGame);
+      const gameRes = await fetch(`http://localhost:8080/games/${gameId}`);
+      if (!gameRes.ok) throw new Error("Failed to fetch updated game after advancing");
+      const updatedGame = await gameRes.json();
+      setGame(updatedGame);
 
-      const updatedObjectives = await fetch(`http://localhost:8080/games/${gameId}/objectives`).then(r => r.json());
-      setObjectives(updatedObjectives);
+      const updatedObjectives = await fetch(`http://localhost:8080/games/${gameId}/objectives`).then((r) => r.json());
+      setObjectives(Array.isArray(updatedObjectives) ? updatedObjectives : updatedObjectives?.value || []);
 
-      const updatedScores = await fetch(`http://localhost:8080/games/${gameId}/objectives/scores`).then(r => r.json());
+      const updatedScores = await fetch(`http://localhost:8080/games/${gameId}/objectives/scores`).then((r) => r.json());
       const map = {};
-      (updatedScores.value || []).forEach((entry) => {
-        map[entry.objective_id] = (entry.scored_by || []).map((s) =>
-          typeof s === "object" ? s.player_id : s
-        );
+      (Array.isArray(updatedScores) ? updatedScores : updatedScores?.value || []).forEach((entry) => {
+        map[entry.objective_id] = entry.scored_by || [];
       });
       setObjectiveScores(map);
     } catch (err) {
@@ -167,7 +165,7 @@ setGame(updatedGame);
           <div className="d-flex flex-wrap justify-content-start" style={{ gap: "20px" }}>
             {objectives.map((obj) => {
               const objId = obj.Objective?.ID;
-              const isStageTwo = obj.Objective?.Stage === "II";
+              const isStageTwo = obj.Objective?.stage === "II";
               const stageColor = isStageTwo ? "#00bfff" : "#ffd700";
               const glowColor = isStageTwo ? "rgba(0, 191, 255, 0.4)" : "rgba(255, 215, 0, 0.4)";
               const backgroundImage = isStageTwo
@@ -210,14 +208,14 @@ setGame(updatedGame);
                     }}
                   >
                     <div>
-                      <h5>{obj.Objective?.Name || "Unnamed Objective"}</h5>
+                      <h5>{obj.Objective?.name || "Unnamed Objective"}</h5>
                       <p className="small fst-italic" style={{ color: "#ccc" }}>
                         {obj.Objective?.description || "No description provided."}
                       </p>
                     </div>
                     <div className="d-flex flex-wrap gap-2 mt-3">
                       {playersUnsorted.map((p) => {
-                        const hasScored = scoredBy.includes(p.player_id);
+                        const hasScored = scoredBy.includes(p.name);
 
                         return (
                           <div
@@ -242,7 +240,7 @@ setGame(updatedGame);
                                   alignItems: "center",
                                   justifyContent: "center",
                                 }}
-                                onClick={() => scoreObjective(p.player_id, objId)}
+                                onClick={() => scoreObjective(p.player_id, objId, p.name)}
                               >
                                 <img
                                   src={`/faction-icons/${p.factionKey}.webp`}
@@ -299,8 +297,21 @@ setGame(updatedGame);
               style={{ borderColor: entry.color }}
             >
               <div className="card-body">
-                <div className="fw-semibold small mb-1">{entry.name}</div>
-                <div className="d-flex align-items-center gap-2">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div className="fw-semibold small">{entry.name}</div>
+                  <button
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={() =>
+                      setExpandedPlayers((prev) => ({
+                        ...prev,
+                        [entry.player_id]: !prev[entry.player_id],
+                      }))
+                    }
+                  >
+                    {expandedPlayers[entry.player_id] ? "−" : "+"}
+                  </button>
+                </div>
+                <div className="d-flex align-items-center gap-2 mt-1">
                   <img
                     src={`/faction-icons/${entry.factionKey}.webp`}
                     alt={entry.faction}
@@ -313,9 +324,53 @@ setGame(updatedGame);
                     }}
                     onError={(e) => (e.target.style.display = "none")}
                   />
+                    {custodiansScored && game?.AllScores?.some(s => s.Type === "mecatol" && s.PlayerID === entry.player_id) && (
+                      <img
+                        src="/MR-point/MR-scored.png"
+                        alt="Custodians Point"
+                        title="Custodians Point"
+                        style={{ width: "20px", height: "20px" }}
+                      />
+                    )}
                   <div className="text-muted small fst-italic">{entry.faction}</div>
                 </div>
                 <div className="mt-1 small">Points: {entry.points}</div>
+                {expandedPlayers[entry.player_id] && (
+                  <div className="mt-3 small">
+                    <button
+                      className="btn btn-warning btn-sm"
+                      disabled={custodiansScored}
+                      onClick={async () => {
+                        try {
+                          await fetch("http://localhost:8080/score/mecatol", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              game_id: parseInt(gameId),
+                              player_id: entry.player_id,
+                            }),
+                          });
+
+                          // Refresh game and scores
+                          const updatedGame = await fetch(`http://localhost:8080/games/${gameId}`).then((r) => r.json());
+                          setGame(updatedGame);
+
+                          const updatedScores = await fetch(`http://localhost:8080/games/${gameId}/objectives/scores`).then((r) => r.json());
+                          const map = {};
+                          (Array.isArray(updatedScores) ? updatedScores : updatedScores?.value || []).forEach((entry) => {
+                            map[entry.objective_id ?? entry.name] = entry.scored_by || [];
+                          });
+                          setObjectiveScores(map);
+                        } catch (err) {
+                          console.error("Failed to score Custodians:", err);
+                          alert("Failed to score Custodians. See console.");
+                        }
+                      }}
+                    >
+                      {custodiansScored ? "Custodians Already Scored" : "Score Custodians"}
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           ))}
