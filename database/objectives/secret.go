@@ -278,4 +278,11 @@ var Secret = []models.Objective{
 		Description: "You or a planet you control are elected by an agenda.",
 		Phase:       "agenda",
 	},
+	{
+		Name:        "Cut Supply Lines",
+		Type:        "Secret",
+		Points:      1,
+		Description: "Have 1 of more ships in the same system as another player's space dock.",
+		Phase:       "status",
+	},
 }

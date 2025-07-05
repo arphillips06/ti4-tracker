@@ -59,3 +59,16 @@ type AgendaResolution struct {
 	Result   string `json:"result"`
 	ForVotes []uint `json:"for_votes"`
 }
+
+type PoliticalCensureRequest struct {
+	GameID   uint `json:"game_id"`
+	RoundID  uint `json:"round_id"`
+	PlayerID uint `json:"player_id"`
+	Gained   bool `json:"gained"`
+}
+
+type SeedOfEmpireResolution struct {
+	GameID  uint   `json:"game_id"`
+	RoundID uint   `json:"round_id"`
+	Result  string `json:"result"` // "for" or "against"
+}

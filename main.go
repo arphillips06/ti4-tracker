@@ -65,6 +65,9 @@ func main() {
 
 	//agendas
 	r.POST("/agenda/mutiny", controllers.ResolveMutinyAgenda)
+	r.POST("/agenda/political-censure", controllers.HandlePoliticalCensure)
+	r.POST("/agenda/seed", controllers.HandleSeedOfEmpire)
+
 	// Start server on port 8080
 	r.Run("0.0.0.0:8080")
 }

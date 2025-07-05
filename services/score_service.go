@@ -53,67 +53,6 @@ func ScoreAgendaPoint(gameID, roundID, playerID uint, points int, agendaTitle st
 	return database.DB.Create(&score).Error
 }
 
-func ApplyMutinyAgenda(input models.AgendaResolution) error {
-	var count int64
-	if err := database.DB.
-		Model(&models.Score{}).
-		Where("game_id = ? AND agenda_title = ?", input.GameID, "Mutiny").
-		Count(&count).Error; err != nil {
-		return err
-	}
-	if count > 0 {
-		return fmt.Errorf("Mutiny has already been resolved for this game")
-	}
-
-	if input.Result == "for" {
-		log.Println("ApplyMutinyAgenda called with:", input)
-		for _, playerID := range input.ForVotes {
-			score := models.Score{
-				GameID:      input.GameID,
-				RoundID:     input.RoundID,
-				PlayerID:    playerID,
-				Points:      1,
-				Type:        "agenda",
-				AgendaTitle: "Mutiny",
-			}
-
-			if err := database.DB.Create(&score).Error; err != nil {
-				return err
-			}
-		}
-	}
-
-	if input.Result == "against" {
-		log.Println("ApplyMutinyAgenda called with:", input)
-		for _, playerID := range input.ForVotes {
-			var total int64
-			err := database.DB.Model(&models.Score{}).
-				Where("game_id = ? AND player_id = ?", input.GameID, playerID).
-				Select("SUM(points)").Scan(&total).Error
-			if err != nil {
-				return err
-			}
-
-			if total > 0 {
-				score := models.Score{
-					GameID:      input.GameID,
-					RoundID:     input.RoundID,
-					PlayerID:    playerID,
-					Points:      -1,
-					Type:        "agenda",
-					AgendaTitle: "Mutiny",
-				}
-
-				if err := database.DB.Create(&score).Error; err != nil {
-					return err
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
 func ScoreMecatolPoint(gameID, roundID, playerID uint) error {
 	var existing models.Score
 	err := database.DB.
