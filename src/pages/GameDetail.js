@@ -6,6 +6,9 @@ import GameControls from "../components/GameControls";
 import ObjectivesGrid from "../components/ObjectivesGrid";
 import GameNavbar from "../components/GameNavbar";
 import MutinyModal from "../components/MutinyModal";
+import PoliticalCensureModal from "../components/PoliticalCensureModal";
+import SeedOfEmpireModal from "../components/SeedOfEmpireModal";
+
 
 import useGameData from "../hooks/useGameData";
 const API_URL = "http://localhost:8080";
@@ -26,6 +29,7 @@ export default function GameDetail() {
     setGame,
     setObjectiveScores,
     refreshGameState,
+    censureHolder,
   } = useGameData(gameId);
 
   const [scoringMode, setScoringMode] = useState(false);
@@ -36,6 +40,9 @@ export default function GameDetail() {
   const [mutinyResult, setMutinyResult] = useState("for");
   const [mutinyAbstained, setMutinyAbstained] = useState(false);
   const [custodiansScored, setCustodiansScored] = useState(false);
+  const [showCensureModal, setShowCensureModal] = useState(false);
+  const [showSeedModal, setShowSeedModal] = useState(false);
+
 
   useEffect(() => {
     setCustodiansScored(game?.AllScores?.some((s) => s.Type === "mecatol") || false);
@@ -73,6 +80,24 @@ export default function GameDetail() {
     }
   };
 
+  const handleSeedSubmit = async (result) => {
+    try {
+      await fetch(`${API_URL}/agenda/seed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          game_id: parseInt(gameId),
+          round_id: game.current_round_id || 0,
+          result,
+        }),
+      });
+      await refreshGameState();
+    } catch (err) {
+      console.error("Failed to apply Seed of an Empire:", err);
+      alert("Failed to apply agenda. See console.");
+    }
+  };
+
   const handleMutinySubmit = async () => {
     try {
       await fetch(`${API_URL}/agenda/mutiny`, {
@@ -92,6 +117,25 @@ export default function GameDetail() {
       setMutinyUsed(true);
     } catch (err) {
       console.error("Failed to apply mutiny agenda:", err);
+      alert("Failed to apply agenda. See console.");
+    }
+  };
+  const handlePoliticalCensureSubmit = async ({ playerId, gained }) => {
+    try {
+      await fetch(`${API_URL}/agenda/political-censure`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          game_id: parseInt(gameId),
+          round_id: game.current_round_id || 0,
+          player_id: playerId,
+          gained: gained,
+        }),
+      });
+
+      await refreshGameState();
+    } catch (err) {
+      console.error("Failed to apply political censure:", err);
       alert("Failed to apply agenda. See console.");
     }
   };
@@ -182,7 +226,13 @@ export default function GameDetail() {
 
   return (
     <>
-      <GameNavbar mutinyUsed={mutinyUsed} setShowAgendaModal={setShowAgendaModal} />
+      <GameNavbar
+        mutinyUsed={mutinyUsed}
+        setShowAgendaModal={setShowAgendaModal}
+        setShowCensureModal={setShowCensureModal}
+        setShowSeedModal={setShowSeedModal}
+
+      />
 
 
       <div className="p-6 max-w-7xl mx-auto">
@@ -232,6 +282,24 @@ export default function GameDetail() {
           setMutinyVotes={setMutinyVotes}
           players={playersUnsorted}
         />
+        <SeedOfEmpireModal
+          show={showSeedModal}
+          onClose={() => setShowSeedModal(false)}
+          onSubmit={handleSeedSubmit}
+        />
+
+        <PoliticalCensureModal
+          show={showCensureModal}
+          onClose={() => setShowCensureModal(false)}
+          onSubmit={handlePoliticalCensureSubmit}
+          players={playersUnsorted.map((p) => ({
+            ...p,
+            agendaScores: game.AllScores?.filter(
+              (s) => s.PlayerID === p.player_id && s.Type?.toLowerCase() === "agenda"
+            ) || [],
+          }))}
+        />
+
 
       </div>
     </>

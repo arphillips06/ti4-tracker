@@ -118,21 +118,21 @@ export default function PlayerSidebar({
                     </div>
 
                     <div className="d-flex gap-1">
-                      {[0, 1, 2].map((i) => (
-                        <div
-                          key={i}
-                          style={{
-                            width: "12px",
-                            height: "12px",
-                            borderRadius: "50%",
-                            backgroundColor:
-                              (secretCounts[entry.player_id] || 0) > i
-                                ? "#dc3545"
-                                : "#ccc",
-                            border: "1px solid #999",
-                          }}
-                        />
-                      ))}
+                      {[0, 1, 2].map((i) => {
+                        const scored = (secretCounts[entry.player_id] || 0) > i;
+                        return (
+                          <img
+                            key={i}
+                            src={`/objective-backgrounds/secret-${scored ? "active" : "inactive"}.jpg`}
+                            alt={scored ? "Scored secret" : "Unscored secret"}
+                            style={{
+                              width: "16px",
+                              height: "25px",
+                              opacity: scored ? 1 : 0.4,
+                            }}
+                          />
+                        );
+                      })}
                     </div>
 
                     <select
@@ -186,8 +186,13 @@ export default function PlayerSidebar({
                   s.PlayerID === entry.player_id &&
                   s.AgendaTitle === "Mutiny"
               ) && (
-                <div className="mt-1 small text-success">Bonus: Mutiny</div>
-              )}
+                  <div className="mt-1 small text-success">Bonus: Mutiny</div>
+                )}
+                {game.AllScores?.some(
+  (s) => s.PlayerID === entry.player_id && s.AgendaTitle === "Seed of an Empire"
+) && (
+  <div className="mt-1 small text-success">Bonus: Seed of an Empire</div>
+)}
               {expandedPlayers[entry.player_id] && (
                 <div className="mt-3 small">
                   <button

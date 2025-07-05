@@ -7,6 +7,8 @@ export default function useGameData(gameId) {
   const [secretObjectives, setSecretObjectives] = useState([]);
   const [secretCounts, setSecretCounts] = useState({});
   const [mutinyUsed, setMutinyUsed] = useState(false);
+  const [censureHolder, setCensureHolder] = useState(null);
+
 
   const fetchGame = async () => {
     const res = await fetch(`http://localhost:8080/games/${gameId}`);
@@ -80,6 +82,12 @@ export default function useGameData(gameId) {
       }));
       setSecretObjectives(normalizedSecrets);
     })();
+
+    const match = game?.AllScores?.find(
+      (s) => s.Type === "Agenda" && s.AgendaTitle === "Political Censure"
+    );
+    setCensureHolder(match?.PlayerID || null);
+
   }, [gameId]);
 
   return {
@@ -93,5 +101,6 @@ export default function useGameData(gameId) {
     setGame,
     setObjectiveScores,
     refreshGameState,
+    censureHolder,
   };
 }
