@@ -45,17 +45,18 @@ type Score struct {
 	Round       Round  `gorm:"foreignKey:RoundID"`
 	Player      Player `gorm:"foreignKey:PlayerID"`
 	Type        string `gorm:"type:VARCHAR(20)"` //e.g. objective, imperial, support
+	AgendaTitle string `gorm:"type:VARCHAR(100)"`
 }
 
 //Objective information
 type Objective struct {
-	ID          uint `gorm:"primaryKey"`
-	Name        string
-	Type        string
-	Description string
-	Points      int
-	Stage       string `gorm:"type:VARCHAR(5)"`
-	Phase       string `gorm:"type:VARCHAR(10)"`
+	ID          uint   `gorm:"primaryKey"`
+	Name        string `json:"name"`
+	Type        string `json:"type"`
+	Description string `json:"description"`
+	Points      int    `json:"points"`
+	Stage       string `gorm:"type:VARCHAR(5)" json:"stage"`
+	Phase       string `gorm:"type:VARCHAR(10)" json:"phase"`
 }
 
 //links game and player together into one struct

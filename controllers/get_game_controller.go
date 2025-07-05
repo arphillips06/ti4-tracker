@@ -55,6 +55,7 @@ func GetGameByID(c *gin.Context) {
 		FinishedAt:    game.FinishedAt,
 		Players:       game.GamePlayers,
 		Scores:        summaryList,
+		AllScores:     scores,
 	}
 
 	c.JSON(http.StatusOK, response)

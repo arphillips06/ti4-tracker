@@ -38,19 +38,19 @@ func SeedObjectives() {
 	//add "stage I" && "Stage II to objectives"
 	for _, obj := range objectives.StageOne {
 		obj.Stage = "I"
-		upsertObjective(obj)
+		insertObjective(obj)
 	}
 	for _, obj := range objectives.StageTwo {
 		obj.Stage = "II"
-		upsertObjective(obj)
+		insertObjective(obj)
 	}
 	for _, obj := range objectives.Secret {
 		obj.Stage = "Secret"
-		upsertObjective(obj)
+		insertObjective(obj)
 	}
 }
 
-func upsertObjective(obj models.Objective) {
+func insertObjective(obj models.Objective) {
 	var existing models.Objective
 	if err := DB.Where("name = ?", obj.Name).First(&existing).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -61,6 +61,16 @@ func upsertObjective(obj models.Objective) {
 			}
 		} else {
 			log.Printf("Error checking objective '%s': %v\n", obj.Name, err)
+		}
+	} else {
+		// Update existing record with any missing fields
+		existing.Type = obj.Type
+		existing.Description = obj.Description
+		existing.Points = obj.Points
+		existing.Stage = obj.Stage
+		existing.Phase = obj.Phase
+		if err := DB.Save(&existing).Error; err != nil {
+			log.Printf("Failed to update objective '%s': %v\n", obj.Name, err)
 		}
 	}
 }
