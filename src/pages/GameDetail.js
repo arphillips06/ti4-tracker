@@ -1,5 +1,7 @@
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import Modal from 'react-bootstrap/Modal';
+import Button from 'react-bootstrap/Button';
 
 export default function GameDetail() {
   const { gameId } = useParams();
@@ -10,14 +12,32 @@ export default function GameDetail() {
   const [scoringMode, setScoringMode] = useState(false);
   const [expandedPlayers, setExpandedPlayers] = useState({});
   const custodiansScored = game?.AllScores?.some((s) => s.Type === "mecatol") || false;
-console.log("Custodians scored:", custodiansScored);
+  const [showAgendaModal, setShowAgendaModal] = useState(false);
+  const [mutinyVotes, setMutinyVotes] = useState([]);
+  const [mutinyResult, setMutinyResult] = useState("for");
+  const [mutinyUsed, setMutinyUsed] = useState(false);
+  const [mutinyAbstained, setMutinyAbstained] = useState(false);
+  const [secretCounts, setSecretCounts] = useState({});
+
 
 
   useEffect(() => {
     fetch(`http://localhost:8080/games/${gameId}`)
       .then((res) => res.json())
-      .then(setGame)
-      .catch((err) => console.error("Error loading game:", err));
+      .then((data) => {
+        setGame(data);
+        const mutinyFound = data.AllScores?.some((s) => s.AgendaTitle === "Mutiny");
+        setMutinyUsed(mutinyFound);
+
+        const initialSecrets = {};
+        data.players.forEach((p) => {
+          initialSecrets[p.PlayerID] = 0;
+        });
+        setSecretCounts(initialSecrets);
+      })
+      .catch((err) => console.error("Error loading game:", err)); // ✅ Add this
+
+
 
     fetch(`http://localhost:8080/games/${gameId}/objectives`)
       .then((res) => res.json())
@@ -36,6 +56,33 @@ console.log("Custodians scored:", custodiansScored);
       })
       .catch((err) => console.error("Error loading objective scores:", err));
   }, [gameId]);
+
+  const handleMutinySubmit = async () => {
+    try {
+      await fetch("http://localhost:8080/agenda/mutiny", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          game_id: parseInt(gameId),
+          round_id: game.current_round_id || 0,
+          result: mutinyResult,
+          for_votes: mutinyAbstained ? [] : mutinyVotes,
+        }),
+      });
+
+      const updatedGame = await fetch(`http://localhost:8080/games/${gameId}`).then((r) => r.json());
+      setGame(updatedGame);
+      setShowAgendaModal(false);
+      setMutinyUsed(true); // ✅ Immediately reflect usage in UI
+    } catch (err) {
+      console.error("Failed to apply mutiny agenda:", err);
+      alert("Failed to apply agenda. See console.");
+    }
+  };
+
+  if (!game || !game.players) {
+    return <div className="p-6">Loading game data...</div>;
+  }
 
   const scoreObjective = async (playerId, objectiveId, playerName) => {
     const payload = {
@@ -138,192 +185,216 @@ console.log("Custodians scored:", custodiansScored);
   const playersSorted = getMergedPlayerData(true);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="h4">
-          Round {game.current_round} | {game.winning_points} Point Game
-        </h2>
-        <div className="d-flex gap-3 align-items-center">
-          <div className="form-check form-switch">
-            <input
-              className="form-check-input"
-              type="checkbox"
-              checked={scoringMode}
-              onChange={(e) => setScoringMode(e.target.checked)}
-            />
-            <label className="form-check-label">Score Objectives</label>
-          </div>
-          <button className="btn btn-outline-primary btn-sm" onClick={advanceRound}>
-            Advance Round
-          </button>
-        </div>
-      </div>
-
-      <div className="d-flex flex-row align-items-start gap-4 flex-wrap">
-        <div style={{ flex: "1 1 0" }}>
-          <h4>Objectives</h4>
-          <div className="d-flex flex-wrap justify-content-start" style={{ gap: "20px" }}>
-            {objectives.map((obj) => {
-              const objId = obj.Objective?.ID;
-              const isStageTwo = obj.Objective?.stage === "II";
-              const stageColor = isStageTwo ? "#00bfff" : "#ffd700";
-              const glowColor = isStageTwo ? "rgba(0, 191, 255, 0.4)" : "rgba(255, 215, 0, 0.4)";
-              const backgroundImage = isStageTwo
-                ? "/objective-backgrounds/stage2.jpg"
-                : "/objective-backgrounds/stage1.jpg";
-
-              const scoredBy = [
-                ...(objectiveScores[objId] || []),
-                ...(localScored[objId] || []),
-              ];
-
-              return (
-                <div
-                  key={obj.ID}
-                  className="card shadow"
-                  style={{
-                    width: "220px",
-                    height: "330px",
-                    backgroundImage: `url(${backgroundImage})`,
-                    backgroundSize: "contain",
-                    backgroundRepeat: "no-repeat",
-                    backgroundPosition: "center",
-                    border: `2px solid ${stageColor}`,
-                    borderRadius: "12px",
-                    color: "#fff",
-                    fontFamily: "'Orbitron', sans-serif",
-                    boxShadow: `0 0 10px ${glowColor}`,
-                    position: "relative",
-                  }}
+    <>
+      <nav className="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
+        <div className="container-fluid">
+          <span className="navbar-brand">Game Controls</span>
+          <div className="dropdown">
+            <button className="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+              Agendas
+            </button>
+            <ul className="dropdown-menu">
+              <li>
+                <button
+                  className="dropdown-item"
+                  onClick={() => setShowAgendaModal(true)}
+                  disabled={mutinyUsed}
                 >
+                  Mutiny {mutinyUsed ? "(Used)" : ""}
+                </button>
+
+              </li>
+            </ul>
+          </div>
+        </div>
+      </nav>
+
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h2 className="h4">
+            Round {game.current_round} | {game.winning_points} Point Game
+          </h2>
+          <div className="d-flex gap-3 align-items-center">
+            <div className="form-check form-switch">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                checked={scoringMode}
+                onChange={(e) => setScoringMode(e.target.checked)}
+              />
+              <label className="form-check-label">Score Objectives</label>
+            </div>
+            <button className="btn btn-outline-primary btn-sm" onClick={advanceRound}>
+              Advance Round
+            </button>
+          </div>
+        </div>
+
+        <div className="d-flex flex-row align-items-start gap-4 flex-wrap">
+          <div style={{ flex: "1 1 0" }}>
+            <h4>Objectives</h4>
+            <div className="d-flex flex-wrap justify-content-start" style={{ gap: "20px" }}>
+              {objectives.map((obj) => {
+                const objId = obj.Objective?.ID;
+                const isStageTwo = obj.Objective?.stage === "II";
+                const stageColor = isStageTwo ? "#00bfff" : "#ffd700";
+                const glowColor = isStageTwo ? "rgba(0, 191, 255, 0.4)" : "rgba(255, 215, 0, 0.4)";
+                const backgroundImage = isStageTwo
+                  ? "/objective-backgrounds/stage2.jpg"
+                  : "/objective-backgrounds/stage1.jpg";
+
+                const scoredBy = [
+                  ...(objectiveScores[objId] || []),
+                  ...(localScored[objId] || []),
+                ];
+
+                return (
                   <div
+                    key={obj.ID}
+                    className="card shadow"
                     style={{
-                      position: "absolute",
-                      inset: 0,
-                      backgroundColor: "rgba(0, 0, 0, 0.6)",
-                      padding: "12px",
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
+                      width: "220px",
+                      height: "330px",
+                      backgroundImage: `url(${backgroundImage})`,
+                      backgroundSize: "contain",
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "center",
+                      border: `2px solid ${stageColor}`,
+                      borderRadius: "12px",
+                      color: "#fff",
+                      fontFamily: "'Orbitron', sans-serif",
+                      boxShadow: `0 0 10px ${glowColor}`,
+                      position: "relative",
                     }}
                   >
-                    <div>
-                      <h5>{obj.Objective?.name || "Unnamed Objective"}</h5>
-                      <p className="small fst-italic" style={{ color: "#ccc" }}>
-                        {obj.Objective?.description || "No description provided."}
-                      </p>
-                    </div>
-                    <div className="d-flex flex-wrap gap-2 mt-3">
-                      {playersUnsorted.map((p) => {
-                        const hasScored = scoredBy.includes(p.name);
+                    <div
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        backgroundColor: "rgba(0, 0, 0, 0.6)",
+                        padding: "12px",
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <div>
+                        <h5>{obj.Objective?.name || "Unnamed Objective"}</h5>
+                        <p className="small fst-italic" style={{ color: "#ccc" }}>
+                          {obj.Objective?.description || "No description provided."}
+                        </p>
+                      </div>
+                      <div className="d-flex flex-wrap gap-2 mt-3">
+                        {playersUnsorted.map((p) => {
+                          const hasScored = scoredBy.includes(p.name);
 
-                        return (
-                          <div
-                            key={p.player_id}
-                            style={{
-                              width: "32px",
-                              height: "32px",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                            }}
-                          >
-                            {scoringMode ? (
-                              <button
-                                className="btn btn-sm p-1"
-                                style={{
-                                  backgroundColor: p.color,
-                                  borderRadius: "6px",
-                                  width: "100%",
-                                  height: "100%",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                }}
-                                onClick={() => scoreObjective(p.player_id, objId, p.name)}
-                              >
+                          return (
+                            <div
+                              key={p.player_id}
+                              style={{
+                                width: "32px",
+                                height: "32px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              {scoringMode ? (
+                                <button
+                                  className="btn btn-sm p-1"
+                                  style={{
+                                    backgroundColor: p.color,
+                                    borderRadius: "6px",
+                                    width: "100%",
+                                    height: "100%",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                  }}
+                                  onClick={() => scoreObjective(p.player_id, objId, p.name)}
+                                >
+                                  <img
+                                    src={`/faction-icons/${p.factionKey}.webp`}
+                                    alt={p.faction}
+                                    style={{ width: "20px", height: "20px", objectFit: "contain" }}
+                                    onError={(e) => (e.target.style.display = "none")}
+                                  />
+                                </button>
+                              ) : hasScored ? (
                                 <img
                                   src={`/faction-icons/${p.factionKey}.webp`}
                                   alt={p.faction}
-                                  style={{ width: "20px", height: "20px", objectFit: "contain" }}
+                                  style={{
+                                    width: "24px",
+                                    height: "24px",
+                                    borderRadius: "50%",
+                                    objectFit: "contain",
+                                    backgroundColor: "transparent",
+                                  }}
                                   onError={(e) => (e.target.style.display = "none")}
                                 />
-                              </button>
-                            ) : hasScored ? (
-                              <img
-                                src={`/faction-icons/${p.factionKey}.webp`}
-                                alt={p.faction}
-                                style={{
-                                  width: "24px",
-                                  height: "24px",
-                                  borderRadius: "50%",
-                                  objectFit: "contain",
-                                  backgroundColor: "transparent",
-                                }}
-                                onError={(e) => (e.target.style.display = "none")}
-                              />
-                            ) : (
-                              <div style={{ width: "24px", height: "24px" }} />
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="text-end">
-                      <span
-                        className="badge"
-                        style={{
-                          backgroundColor: stageColor,
-                          color: "#000",
-                          fontWeight: "bold",
-                          fontSize: "0.75rem",
-                        }}
-                      >
-                        {obj.Objective?.type?.toUpperCase() || "PUBLIC"}
-                      </span>
+                              ) : (
+                                <div style={{ width: "24px", height: "24px" }} />
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="text-end">
+                        <span
+                          className="badge"
+                          style={{
+                            backgroundColor: stageColor,
+                            color: "#000",
+                            fontWeight: "bold",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          {obj.Objective?.type?.toUpperCase() || "PUBLIC"}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
 
-        <div style={{ flex: "0 1 300px" }}>
-          {playersSorted.map((entry) => (
-            <div
-              key={entry.player_id}
-              className="card mb-3 border-start border-5"
-              style={{ borderColor: entry.color }}
-            >
-              <div className="card-body">
-                <div className="d-flex justify-content-between align-items-center">
-                  <div className="fw-semibold small">{entry.name}</div>
-                  <button
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={() =>
-                      setExpandedPlayers((prev) => ({
-                        ...prev,
-                        [entry.player_id]: !prev[entry.player_id],
-                      }))
-                    }
-                  >
-                    {expandedPlayers[entry.player_id] ? "−" : "+"}
-                  </button>
-                </div>
-                <div className="d-flex align-items-center gap-2 mt-1">
-                  <img
-                    src={`/faction-icons/${entry.factionKey}.webp`}
-                    alt={entry.faction}
-                    style={{
-                      width: "24px",
-                      height: "24px",
-                      borderRadius: "50%",
-                      objectFit: "contain",
-                      backgroundColor: "transparent",
-                    }}
-                    onError={(e) => (e.target.style.display = "none")}
-                  />
+          <div style={{ flex: "0 1 300px" }}>
+            {playersSorted.map((entry) => (
+              <div
+                key={entry.player_id}
+                className="card mb-3 border-start border-5"
+                style={{ borderColor: entry.color }}
+              >
+                <div className="card-body">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div className="fw-semibold small">{entry.name}</div>
+                    <button
+                      className="btn btn-sm btn-outline-secondary"
+                      onClick={() =>
+                        setExpandedPlayers((prev) => ({
+                          ...prev,
+                          [entry.player_id]: !prev[entry.player_id],
+                        }))
+                      }
+                    >
+                      {expandedPlayers[entry.player_id] ? "−" : "+"}
+                    </button>
+                  </div>
+                  <div className="d-flex align-items-center gap-2 mt-1">
+                    <img
+                      src={`/faction-icons/${entry.factionKey}.webp`}
+                      alt={entry.faction}
+                      style={{
+                        width: "24px",
+                        height: "24px",
+                        borderRadius: "50%",
+                        objectFit: "contain",
+                        backgroundColor: "transparent",
+                      }}
+                      onError={(e) => (e.target.style.display = "none")}
+                    />
                     {custodiansScored && game?.AllScores?.some(s => s.Type === "mecatol" && s.PlayerID === entry.player_id) && (
                       <img
                         src="/MR-point/MR-scored.png"
@@ -332,50 +403,171 @@ console.log("Custodians scored:", custodiansScored);
                         style={{ width: "20px", height: "20px" }}
                       />
                     )}
-                  <div className="text-muted small fst-italic">{entry.faction}</div>
-                </div>
-                <div className="mt-1 small">Points: {entry.points}</div>
-                {expandedPlayers[entry.player_id] && (
-                  <div className="mt-3 small">
-                    <button
-                      className="btn btn-warning btn-sm"
-                      disabled={custodiansScored}
-                      onClick={async () => {
-                        try {
-                          await fetch("http://localhost:8080/score/mecatol", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              game_id: parseInt(gameId),
-                              player_id: entry.player_id,
-                            }),
-                          });
-
-                          // Refresh game and scores
-                          const updatedGame = await fetch(`http://localhost:8080/games/${gameId}`).then((r) => r.json());
-                          setGame(updatedGame);
-
-                          const updatedScores = await fetch(`http://localhost:8080/games/${gameId}/objectives/scores`).then((r) => r.json());
-                          const map = {};
-                          (Array.isArray(updatedScores) ? updatedScores : updatedScores?.value || []).forEach((entry) => {
-                            map[entry.objective_id ?? entry.name] = entry.scored_by || [];
-                          });
-                          setObjectiveScores(map);
-                        } catch (err) {
-                          console.error("Failed to score Custodians:", err);
-                          alert("Failed to score Custodians. See console.");
-                        }
-                      }}
-                    >
-                      {custodiansScored ? "Custodians Already Scored" : "Score Custodians"}
-                    </button>
+                    <div className="text-muted small fst-italic">{entry.faction}</div>
                   </div>
-                )}
+                  <div className="mt-1 small">Points: {entry.points}</div>
+                  <div className="d-flex flex-column gap-2 mt-2">
+                    {expandedPlayers[entry.player_id] && (
+                      <div className="mt-3">
+                        <div className="small fw-semibold mb-1">Secrets</div>
+                        <div className="d-flex align-items-center gap-2">
+                          <button
+                            className="btn btn-sm btn-outline-secondary"
+                            onClick={() => {
+                              setSecretCounts((prev) => ({
+                                ...prev,
+                                [entry.player_id]: Math.max(0, (prev[entry.player_id] || 0) - 1),
+                              }));
+                            }}
+                          >
+                            −
+                          </button>
+
+                          <div className="d-flex gap-1">
+                            {[0, 1, 2].map((i) => (
+                              <div
+                                key={i}
+                                style={{
+                                  width: "12px",
+                                  height: "12px",
+                                  borderRadius: "50%",
+                                  backgroundColor:
+                                    (secretCounts[entry.player_id] || 0) > i ? "#dc3545" : "#ccc",
+                                  border: "1px solid #999",
+                                }}
+                              />
+                            ))}
+                          </div>
+
+                          <button
+                            className="btn btn-sm btn-outline-secondary"
+                            onClick={() => {
+                              setSecretCounts((prev) => ({
+                                ...prev,
+                                [entry.player_id]: Math.min(3, (prev[entry.player_id] || 0) + 1),
+                              }));
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {game.AllScores?.some(s => s.PlayerID === entry.player_id && s.AgendaTitle === "Mutiny") && (
+                      <div className="mt-1 small text-success">
+                        Bonus: Mutiny
+                      </div>
+                    )}
+                    {expandedPlayers[entry.player_id] && (
+                      <div className="mt-3 small">
+                        <button
+                          className="btn btn-warning btn-sm"
+                          disabled={custodiansScored}
+                          onClick={async () => {
+                            try {
+                              await fetch("http://localhost:8080/score/mecatol", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  game_id: parseInt(gameId),
+                                  player_id: entry.player_id,
+                                }),
+                              });
+
+                              // Refresh game and scores
+                              const updatedGame = await fetch(`http://localhost:8080/games/${gameId}`).then((r) => r.json());
+                              setGame(updatedGame);
+
+                              const updatedScores = await fetch(`http://localhost:8080/games/${gameId}/objectives/scores`).then((r) => r.json());
+                              const map = {};
+                              (Array.isArray(updatedScores) ? updatedScores : updatedScores?.value || []).forEach((entry) => {
+                                map[entry.objective_id ?? entry.name] = entry.scored_by || [];
+                              });
+                              setObjectiveScores(map);
+                            } catch (err) {
+                              console.error("Failed to score Custodians:", err);
+                              alert("Failed to score Custodians. See console.");
+                            }
+                          }}
+                        >
+                          {custodiansScored ? "Custodians Already Scored" : "Score Custodians"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+        <Modal show={showAgendaModal} onHide={() => setShowAgendaModal(false)}>
+          <Modal.Header closeButton>
+            <Modal.Title>Resolve Mutiny Agenda</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <div className="mb-3">
+              <label className="form-label">How did the agenda resolve?</label>
+              <select
+                className="form-select"
+                value={mutinyResult}
+                onChange={(e) => setMutinyResult(e.target.value)}
+              >
+                <option value="for">For</option>
+                <option value="against">Against</option>
+              </select>
+            </div>
+
+            <div className="form-check mb-2">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="mutiny-abstain"
+                checked={mutinyAbstained}
+                onChange={() => setMutinyAbstained(!mutinyAbstained)}
+              />
+              <label className="form-check-label" htmlFor="mutiny-abstain">
+                All players abstained
+              </label>
+            </div>
+
+            <div>
+              <label className="form-label">Who voted "For"?</label>
+              {playersUnsorted.map((p) => (
+                <div key={p.player_id} className="form-check">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    value={p.player_id}
+                    id={`mutiny-${p.player_id}`}
+                    checked={mutinyVotes.includes(p.player_id)}
+                    disabled={mutinyAbstained}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setMutinyVotes([...mutinyVotes, p.player_id]);
+                      } else {
+                        setMutinyVotes(mutinyVotes.filter((id) => id !== p.player_id));
+                      }
+                    }}
+                  />
+                  <label className="form-check-label" htmlFor={`mutiny-${p.player_id}`}>
+                    {p.name}
+                  </label>
+                </div>
+              ))}
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowAgendaModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleMutinySubmit}>
+              Submit
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </div>
-    </div>
-  );
+      );
+    </>
+  )
 }
