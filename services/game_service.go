@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -192,7 +193,6 @@ func GetGameAndScores(gameID string) (models.Game, []models.Score, error) {
 		Preload("Rounds").
 		Preload("Winner").
 		Preload("GameObjectives.Objective").
-		Preload("Objectives.Objective").
 		Preload("GameObjectives.Round").
 		First(&game, gameID).Error; err != nil {
 		return game, nil, errors.New("game not found")
@@ -201,9 +201,49 @@ func GetGameAndScores(gameID string) (models.Game, []models.Score, error) {
 	var scores []models.Score
 	if err := database.DB.
 		Preload("Player").
+		Preload("Objective").
 		Where("game_id = ?", game.ID).
 		Find(&scores).Error; err != nil {
 		return game, nil, errors.New("Could not load scores")
+	}
+	cdlObjectiveIDs := map[uint]bool{}
+	for _, score := range scores {
+		// Match CDL record by AgendaTitle (regardless of Type)
+		if score.AgendaTitle == "Classified Document Leaks" {
+			cdlObjectiveIDs[score.ObjectiveID] = true
+		}
+	}
+
+	log.Printf("[CDL] Found %d CDL-converted objective IDs", len(cdlObjectiveIDs))
+
+	for objID := range cdlObjectiveIDs {
+		found := false
+		for _, gobj := range game.GameObjectives {
+			if gobj.ObjectiveID == objID {
+				found = true
+				break
+			}
+		}
+		if !found {
+			var objective models.Objective
+			if err := database.DB.First(&objective, objID).Error; err != nil {
+				log.Printf("[CDL] ❌ Failed to load objective ID %d: %v", objID, err)
+				continue
+			}
+			log.Printf("[CDL] ➕ Injecting CDL objective: %s (ID %d)", objective.Name, objID)
+
+			game.GameObjectives = append(game.GameObjectives, models.GameObjective{
+				ObjectiveID: objID,
+				Objective:   objective,
+				IsCDL:       true,
+			})
+		}
+	}
+
+	for i, gobj := range game.GameObjectives {
+		if cdlObjectiveIDs[gobj.ObjectiveID] {
+			game.GameObjectives[i].IsCDL = true
+		}
 	}
 
 	return game, scores, nil
