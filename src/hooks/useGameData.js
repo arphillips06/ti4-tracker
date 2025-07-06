@@ -9,10 +9,11 @@ export default function useGameData(gameId) {
   const [mutinyUsed, setMutinyUsed] = useState(false);
   const [censureHolder, setCensureHolder] = useState(null);
 
-
   const fetchGame = async () => {
     const res = await fetch(`http://localhost:8080/games/${gameId}`);
-    return res.json();
+    const data = await res.json();
+    console.log("[fetchGame] Raw game data:", data);
+    return data?.game || data; // Support both wrapped and direct response
   };
 
   const fetchObjectives = async () => {
@@ -37,6 +38,7 @@ export default function useGameData(gameId) {
       fetchScores(),
     ]);
 
+    console.log("[useGameData] Setting game state:", gameData);
     setGame(gameData);
 
     const map = {};
@@ -50,6 +52,7 @@ export default function useGameData(gameId) {
 
   useEffect(() => {
     (async () => {
+      console.log("[useEffect] Running initial game load for gameId:", gameId);
       const [gameData, secretData, scoresData, objectiveData] = await Promise.all([
         fetchGame(),
         fetchSecrets(),
@@ -57,22 +60,33 @@ export default function useGameData(gameId) {
         fetchObjectives(),
       ]);
 
+      console.log("[useEffect] All data fetched:");
+      console.log("  Game:", gameData);
+      console.log("  Secrets:", secretData.length);
+      console.log("  Scores:", scoresData);
+      console.log("  Objectives:", objectiveData);
+
       setGame(gameData);
+      console.log("  → use_objective_decks =", gameData?.use_objective_decks);
+
       setMutinyUsed(gameData.AllScores?.some((s) => s.AgendaTitle === "Mutiny"));
 
       const initialSecrets = {};
-      gameData.players.forEach((p) => {
-        initialSecrets[p.PlayerID] = 0;
+      (gameData.players || []).forEach((p) => {
+        initialSecrets[p.PlayerID || p.id] = 0;
       });
       setSecretCounts(initialSecrets);
 
-      const map = {};
+      const scoreMap = {};
       (Array.isArray(scoresData) ? scoresData : scoresData?.value || []).forEach((entry) => {
-        map[entry.objective_id] = entry.scored_by || [];
+        scoreMap[entry.objective_id] = entry.scored_by || [];
       });
+      setObjectiveScores(scoreMap);
 
-      setObjectiveScores(map);
-      setObjectives(Array.isArray(objectiveData) ? objectiveData : objectiveData?.value || []);
+      const normalizedObjectives = Array.isArray(objectiveData)
+        ? objectiveData
+        : objectiveData?.value || [];
+      setObjectives(normalizedObjectives);
 
       const normalizedSecrets = secretData.map((obj) => ({
         id: obj.ID,
@@ -81,6 +95,8 @@ export default function useGameData(gameId) {
         ...obj,
       }));
       setSecretObjectives(normalizedSecrets);
+
+      console.log("[useEffect] Finished setting state.");
     })();
 
     const match = game?.AllScores?.find(
@@ -88,6 +104,7 @@ export default function useGameData(gameId) {
     );
     setCensureHolder(match?.PlayerID || null);
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId]);
 
   return {
