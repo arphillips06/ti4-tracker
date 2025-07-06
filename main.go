@@ -70,6 +70,7 @@ func main() {
 	r.POST("/agenda/political-censure", controllers.HandlePoliticalCensure)
 	r.POST("/agenda/seed", controllers.HandleSeedOfEmpire)
 	r.POST("/agenda/classified-document-leaks", controllers.HandleClassifiedDocumentLeaks)
+	r.POST("/agenda/incentive-program", controllers.HandleIncentiveProgram)
 
 	// Start server on port 8080
 	r.Run("127.0.0.1:8080")

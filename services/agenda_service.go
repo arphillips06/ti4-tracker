@@ -206,3 +206,37 @@ func ApplyClassifiedDocumentLeaks(input models.ClassifiedDocumentLeaksRequest) e
 
 	return nil
 }
+
+func ApplyIncentiveProgramEffect(gameID uint, outcome string) error {
+	var game models.Game
+	if err := database.DB.First(&game, gameID).Error; err != nil {
+		return fmt.Errorf("Game not found")
+	}
+
+	if !game.UseObjectiveDecks {
+		return nil // Manual mode: do nothing, admin will assign
+	}
+
+	var stage string
+	if outcome == "for" {
+		stage = "I"
+	} else if outcome == "against" {
+		stage = "II"
+	} else {
+		return fmt.Errorf("Invalid outcome: must be 'for' or 'against'")
+	}
+
+	// Find the next unrevealed objective in this stage
+	var unrevealed models.GameObjective
+	err := database.DB.
+		Where("game_id = ? AND stage = ? AND round_id = 0 AND revealed = false", gameID, stage).
+		Order("id").
+		First(&unrevealed).Error
+	if err != nil {
+		return fmt.Errorf("No unrevealed objectives remaining in Stage %s", stage)
+	}
+
+	// Reveal it (set revealed = true) and leave RoundID as 0
+	unrevealed.Revealed = true
+	return database.DB.Save(&unrevealed).Error
+}

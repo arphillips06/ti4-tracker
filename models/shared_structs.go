@@ -86,3 +86,13 @@ type ObjectiveWithMetadata struct {
 	Objective Objective `json:"Objective"`
 	IsCDL     bool      `json:"IsCDL"`
 }
+
+type ObjectiveDeck struct {
+	ID          uint `gorm:"primaryKey"`
+	GameID      uint
+	Stage       string // "I" or "II"
+	ObjectiveID uint
+	Assigned    bool
+	Position    int
+	Objective   Objective `gorm:"foreignKey:ObjectiveID"`
+}
