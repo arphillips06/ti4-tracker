@@ -14,9 +14,8 @@ type Game struct {
 	GamePlayers       []GamePlayer    `gorm:"foreignKey:GameID" json:"players"`
 	WinningPoints     int             `json:"winning_points"`
 	CurrentRound      int             `gorm:"default:1" json:"current_round"`
-	GameObjectives    []GameObjective `json:"objectives"`
+	GameObjectives    []GameObjective `json:"game_objectives"`
 	UseObjectiveDecks bool            `json:"use_objective_decks"`
-	Objectives        []GameObjective
 }
 
 //Single player
@@ -80,6 +79,7 @@ type GameObjective struct {
 
 	Objective Objective `gorm:"foreignKey:ObjectiveID;references:ID" json:"Objective"`
 	Round     Round     `gorm:"foreignKey:RoundID;references:ID" json:"Round"`
+	IsCDL     bool      `json:"IsCDL" gorm:"-"`
 }
 
 type PlayerInput struct {

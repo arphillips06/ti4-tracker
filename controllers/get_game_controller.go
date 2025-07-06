@@ -69,17 +69,54 @@ func GetGameByID(c *gin.Context) {
 func GetGameObjectives(c *gin.Context) {
 	gameID := c.Param("id")
 
+	// Step 1: Load normal game objectives
 	var gameObjectives []models.GameObjective
 	err := database.DB.
 		Preload("Objective").
 		Preload("Round").
 		Where("game_id = ? AND round_id > 0", gameID).
 		Find(&gameObjectives).Error
-
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load objectives for game"})
 		return
 	}
 
+	// Step 2: Inject CDL objectives
+	var scores []models.Score
+	err = database.DB.
+		Preload("Objective").
+		Where("game_id = ? AND type = ? AND agenda_title = ?", gameID, "agenda", "Classified Document Leaks").
+		Find(&scores).Error
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load CDL agenda scores"})
+		return
+	}
+
+	for _, s := range scores {
+		// Avoid duplication if objective already present
+		alreadyIncluded := false
+		for _, existing := range gameObjectives {
+			if existing.ObjectiveID == s.ObjectiveID && existing.IsCDL {
+				alreadyIncluded = true
+				break
+			}
+		}
+		if alreadyIncluded {
+			continue
+		}
+
+		// Inject a pseudo-objective
+		cdlObj := models.GameObjective{
+			ID:          0, // placeholder
+			GameID:      s.GameID,
+			ObjectiveID: s.ObjectiveID,
+			Stage:       s.Objective.Stage,
+			Objective:   s.Objective,
+			IsCDL:       true,
+		}
+		gameObjectives = append(gameObjectives, cdlObj)
+	}
+
+	// Step 3: Return combined result
 	c.JSON(http.StatusOK, gameObjectives)
 }

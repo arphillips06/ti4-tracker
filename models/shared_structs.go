@@ -81,3 +81,8 @@ type ClassifiedDocumentLeaksRequest struct {
 	PlayerID    uint `json:"player_id"`
 	ObjectiveID uint `json:"objective_id"`
 }
+
+type ObjectiveWithMetadata struct {
+	Objective Objective `json:"Objective"`
+	IsCDL     bool      `json:"IsCDL"`
+}
