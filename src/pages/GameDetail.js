@@ -39,17 +39,17 @@ export default function GameDetail() {
   const [mutinyVotes, setMutinyVotes] = useState([]);
   const [mutinyResult, setMutinyResult] = useState("for");
   const [mutinyAbstained, setMutinyAbstained] = useState(false);
-  const [custodiansScored, setCustodiansScored] = useState(false);
+  const [custodiansScorerId, setCustodiansScorerId] = useState(null);
   const [showCensureModal, setShowCensureModal] = useState(false);
   const [showSeedModal, setShowSeedModal] = useState(false);
+  const [assigningObjective, setAssigningObjective] = useState(null); // { roundNumber, stage }
+  const [selectedObjectiveId, setSelectedObjectiveId] = useState(null);
 
 
   useEffect(() => {
-    setCustodiansScored(game?.AllScores?.some((s) => s.Type === "mecatol") || false);
+    const scorer = game?.AllScores?.find((s) => s.Type === "mecatol");
+    setCustodiansScorerId(scorer?.PlayerID || null);
   }, [game]);
-  if (!game || !game.players) {
-    return <div className="p-6">Loading game data...</div>;
-  }
 
   const unscoreObjective = async (playerId, objectiveId) => {
     try {
@@ -79,6 +79,29 @@ export default function GameDetail() {
       return false;
     }
   };
+  const assignObjective = async (roundNumber, objectiveId) => {
+    try {
+      const res = await fetch(`http://localhost:8080/rounds/${roundNumber}/objectives`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ objective_id: objectiveId }),
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        throw new Error(errText);
+      }
+
+      console.log(`Assigned objective ${objectiveId} to round ${roundNumber}`);
+      await refreshGameState(); // ← re-fetch objectives after assignment
+    } catch (err) {
+      console.error("Failed to assign objective:", err);
+      alert("Failed to assign objective. See console for details.");
+    }
+  };
+
 
   const handleSeedSubmit = async (result) => {
     try {
@@ -166,7 +189,7 @@ export default function GameDetail() {
         const current = prev[objectiveId] || [];
         return {
           ...prev,
-          [objectiveId]: [...new Set([...current, playerName])],
+          [objectiveId]: [...new Set([...current, playerId])],
         };
       });
 
@@ -244,13 +267,21 @@ export default function GameDetail() {
         />
         <div className="d-flex flex-row align-items-start gap-4 flex-wrap">
           <ObjectivesGrid
+            game={game}
+            refreshGameState={refreshGameState}
             objectives={objectives}
-            playersUnsorted={playersUnsorted}
+            playersUnsorted={game?.players}
             objectiveScores={objectiveScores}
             localScored={localScored}
             scoringMode={scoringMode}
             scoreObjective={scoreObjective}
+            useObjectiveDecks={game?.use_objective_decks}
+            assigningObjective={assigningObjective}
+            setAssigningObjective={setAssigningObjective}
           />
+
+
+
           <div style={{ flex: "0 1 300px" }}>
             <PlayerSidebar
               playersSorted={playersSorted}
@@ -265,8 +296,9 @@ export default function GameDetail() {
               setSecretCounts={setSecretCounts}
               scoreObjective={scoreObjective}
               unscoreObjective={unscoreObjective}
-              custodiansScored={custodiansScored}
               gameId={gameId}
+              refreshGameState={refreshGameState}
+              custodiansScored={!!game?.AllScores?.some((s) => s.Type === "mecatol")}
             />
           </div>
         </div>

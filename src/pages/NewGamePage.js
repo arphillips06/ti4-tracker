@@ -54,14 +54,14 @@ export default function NewGamePage() {
 
   const startGame = async () => {
     try {
-    const payload = {
-      winning_points: winningPoints,
-      use_objective_decks: useObjectives,
-      players: players.map((p) => ({
-        name: p.name,
-        faction: p.faction,
-      })),
-    };
+      const payload = {
+        winning_points: winningPoints,
+        use_objective_decks: useObjectives,
+        players: players.map((p) => ({
+          name: p.name,
+          faction: p.faction,
+        })),
+      };
 
       console.log("Submitting payload:", JSON.stringify(payload, null, 2));
 
@@ -78,18 +78,17 @@ export default function NewGamePage() {
         throw new Error(`Failed to create game: ${errorText}`);
       }
 
-const data = await res.json();
-console.log("Response data from backend:", data);
-console.log("data.game:", data.game);
+      const data = await res.json();
+      console.log("Response data from backend:", data);
+      console.log("data.game:", data.game);
 
-const newGameId = data.game.ID; // <- likely fix here
+      const newGameId = data.game.id; // <- likely fix here
 
-if (!newGameId) {
-  throw new Error("No game ID returned from backend");
-}
+      if (!data.game.id) throw new Error("No game ID returned from backend");
+      navigate(`/game/${data.game.id}`);
 
-console.log("Navigating to new game:", newGameId);
-navigate(`/games/${newGameId}`);
+      console.log("Navigating to new game:", newGameId);
+      navigate(`/games/${newGameId}`);
 
     } catch (error) {
       console.error("Error starting game:", error);

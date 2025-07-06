@@ -5,7 +5,6 @@ export default function PlayerSidebar({
   expandedPlayers,
   setExpandedPlayers,
   game,
-  custodiansScored,
   scoreObjective,
   unscoreObjective,
   secretCounts,
@@ -15,7 +14,11 @@ export default function PlayerSidebar({
   gameId,
   setGame,
   setObjectiveScores,
+  refreshGameState,
+  custodiansScored,
+
 }) {
+  const custodiansScorerId = game?.AllScores?.find((s) => s.Type === "mecatol")?.PlayerID || null;
   return (
     <div style={{ flex: "0 1 300px" }}>
       {(playersSorted || []).map((entry) => (
@@ -52,10 +55,9 @@ export default function PlayerSidebar({
                 }}
                 onError={(e) => (e.target.style.display = "none")}
               />
-              {custodiansScored &&
-                game?.AllScores?.some(
-                  (s) => s.Type === "mecatol" && s.PlayerID === entry.player_id
-                ) && (
+              {game?.AllScores?.some(
+                (s) => s.Type === "mecatol" && s.PlayerID === entry.player_id
+              ) && (
                   <img
                     src="/MR-point/MR-scored.png"
                     alt="Custodians Point"
@@ -89,26 +91,30 @@ export default function PlayerSidebar({
                           const obj = secretObjectives.find(
                             (o) => o.id === s.ObjectiveID
                           );
+                          console.log("🧪 AllScores:", game?.AllScores);
                           return obj ? (
                             <li key={obj.id}>
                               <button
                                 className="dropdown-item"
                                 onClick={async () => {
-                                  const success = await unscoreObjective(
-                                    entry.player_id,
-                                    obj.id
-                                  );
-                                  if (success) {
-                                    setSecretCounts((prev) => ({
-                                      ...prev,
-                                      [entry.player_id]: Math.max(
-                                        0,
-                                        (prev[entry.player_id] || 0) - 1
-                                      ),
-                                    }));
+                                  try {
+                                    await fetch("http://localhost:8080/score/mecatol", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({
+                                        game_id: parseInt(gameId),
+                                        player_id: entry.player_id,
+                                      }),
+                                    });
+                                    console.log("✅ Fetching updated game...");
+
+                                    await refreshGameState(); // ✅ Force a proper re-fetch of all state
+                                    console.log("✅ Finished refreshing.");
+                                  } catch (err) {
+                                    console.error("Failed to score Custodians:", err);
+                                    alert("Failed to score Custodians. See console.");
                                   }
-                                }}
-                              >
+                                }}                              >
                                 {obj.name}
                               </button>
                             </li>
@@ -188,16 +194,16 @@ export default function PlayerSidebar({
               ) && (
                   <div className="mt-1 small text-success">Bonus: Mutiny</div>
                 )}
-                {game.AllScores?.some(
-  (s) => s.PlayerID === entry.player_id && s.AgendaTitle === "Seed of an Empire"
-) && (
-  <div className="mt-1 small text-success">Bonus: Seed of an Empire</div>
-)}
+              {game.AllScores?.some(
+                (s) => s.PlayerID === entry.player_id && s.AgendaTitle === "Seed of an Empire"
+              ) && (
+                  <div className="mt-1 small text-success">Bonus: Seed of an Empire</div>
+                )}
               {expandedPlayers[entry.player_id] && (
                 <div className="mt-3 small">
                   <button
                     className="btn btn-warning btn-sm"
-                    disabled={custodiansScored}
+                    disabled={game?.AllScores?.some((s) => s.Type === "mecatol")}
                     onClick={async () => {
                       try {
                         await fetch("http://localhost:8080/score/mecatol", {
@@ -209,9 +215,8 @@ export default function PlayerSidebar({
                           }),
                         });
 
-                        const updatedGame = await fetch(
-                          `http://localhost:8080/games/${gameId}`
-                        ).then((r) => r.json());
+                        const updatedGame = await fetch(`http://localhost:8080/games/${gameId}`).then((r) => r.json());
+                        updatedGame.AllScores = updatedGame.all_scores || [];
                         setGame(updatedGame);
 
                         const updatedScores = await fetch(
@@ -232,7 +237,7 @@ export default function PlayerSidebar({
                       }
                     }}
                   >
-                    {custodiansScored
+                    {game?.AllScores?.some((s) => s.Type === "mecatol")
                       ? "Custodians Already Scored"
                       : "Score Custodians"}
                   </button>
