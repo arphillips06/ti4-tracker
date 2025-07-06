@@ -52,6 +52,8 @@ func main() {
 	r.GET("/games/:id", controllers.GetGameByID)
 	r.GET("/games/:id/objectives", controllers.GetGameObjectives)
 	r.GET("/objectives/secrets/all", controllers.GetAllSecretObjectives)
+	r.POST("/assign_objective", controllers.AssignObjective)
+	r.GET("/objectives/public/all", controllers.GetAllPublicObjectives)
 
 	//scoring
 	r.POST("/score", controllers.AddScore)
@@ -69,5 +71,5 @@ func main() {
 	r.POST("/agenda/seed", controllers.HandleSeedOfEmpire)
 
 	// Start server on port 8080
-	r.Run("0.0.0.0:8080")
+	r.Run("127.0.0.1:8080")
 }

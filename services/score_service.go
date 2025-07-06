@@ -62,7 +62,7 @@ func ScoreMecatolPoint(gameID, roundID, playerID uint) error {
 		// Mecatol point already awarded
 		return fmt.Errorf("Mecatol Rex point already awarded")
 	}
-	if err != nil && err != gorm.ErrRecordNotFound {
+	if err != gorm.ErrRecordNotFound {
 		// Some unexpected error occurred
 		return err
 	}

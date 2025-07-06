@@ -136,49 +136,6 @@ func ScoreMecatolPoint(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func ResolveMutinyAgenda(c *gin.Context) {
-	var input models.AgendaResolution
-
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	err := services.ApplyMutinyAgenda(input)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.Status(http.StatusNoContent)
-}
-
-func HandlePoliticalCensure(c *gin.Context) {
-	var input models.PoliticalCensureRequest
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	err := services.ApplyPoliticalCensure(input)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.Status(http.StatusNoContent)
-}
-
-func HandleSeedOfEmpire(c *gin.Context) {
-	var input models.SeedOfEmpireResolution
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	err := services.ApplySeedOfEmpire(input)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.Status(http.StatusNoContent)
-}
-
 func DeleteScore(c *gin.Context) {
 	var req struct {
 		GameID      int `json:"game_id"`

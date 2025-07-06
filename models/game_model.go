@@ -5,17 +5,18 @@ import "time"
 //these structs are to be used with the SQL database
 //Game represents a single game
 type Game struct {
-	ID                uint `gorm:"primaryKey"`
-	CreatedAt         time.Time
-	FinishedAt        *time.Time
-	WinnerID          uint
-	Winner            Player       `gorm:"foreignKey:WinnerID"`
-	Rounds            []Round      `gorm:"foreignKey:GameID"`
-	GamePlayers       []GamePlayer `gorm:"foreignKey:GameID"`
-	WinningPoints     int
-	CurrentRound      int `gorm:"default:1"`
-	GameObjectives    []GameObjective
-	UseObjectiveDecks bool `json:"use_objective_decks"`
+	ID                uint            `gorm:"primaryKey" json:"id"`
+	CreatedAt         time.Time       `json:"created_at"`
+	FinishedAt        *time.Time      `json:"finished_at"`
+	WinnerID          uint            `json:"winner_id"`
+	Winner            Player          `gorm:"foreignKey:WinnerID" json:"winner"`
+	Rounds            []Round         `gorm:"foreignKey:GameID" json:"rounds"`
+	GamePlayers       []GamePlayer    `gorm:"foreignKey:GameID" json:"players"`
+	WinningPoints     int             `json:"winning_points"`
+	CurrentRound      int             `gorm:"default:1" json:"current_round"`
+	GameObjectives    []GameObjective `json:"objectives"`
+	UseObjectiveDecks bool            `json:"use_objective_decks"`
+	Objectives        []GameObjective
 }
 
 //Single player
@@ -71,16 +72,24 @@ type GamePlayer struct {
 
 //links game and ovjective into one struct
 type GameObjective struct {
-	ID          uint `gorm:"primaryKey"`
-	GameID      uint
-	ObjectiveID uint
-	RoundID     uint   // null if revealed at game start
-	Stage       string `gorm:"type:VARCHAR(10)"`
-	Objective   Objective
-	Round       Round
+	ID          uint   `json:"ID"`
+	GameID      uint   `json:"GameID"`
+	ObjectiveID uint   `json:"ObjectiveID"`
+	RoundID     uint   `json:"RoundID"`
+	Stage       string `json:"Stage"`
+
+	Objective Objective `gorm:"foreignKey:ObjectiveID;references:ID" json:"Objective"`
+	Round     Round     `gorm:"foreignKey:RoundID;references:ID" json:"Round"`
 }
+
 type PlayerInput struct {
 	ID      string
 	Name    string
 	Faction string
+}
+
+type AssignObjectiveRequest struct {
+	GameID      uint `json:"game_id"`
+	RoundID     int  `json:"round_id"`
+	ObjectiveID uint `json:"objective_id"`
 }

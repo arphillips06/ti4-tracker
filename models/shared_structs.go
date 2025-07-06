@@ -26,13 +26,16 @@ type RoundScoresGroup struct {
 }
 
 type GameDetailResponse struct {
-	ID            uint                 `json:"id"`
-	WinningPoints int                  `json:"winning_points"`
-	CurrentRound  int                  `json:"current_round"`
-	FinishedAt    *time.Time           `json:"finished_at"`
-	Players       []GamePlayer         `json:"players"`
-	Scores        []PlayerScoreSummary `json:"scores"`
-	AllScores     []Score
+	ID                uint                 `json:"id"`
+	WinningPoints     int                  `json:"winning_points"`
+	CurrentRound      int                  `json:"current_round"`
+	FinishedAt        *time.Time           `json:"finished_at"`
+	UseObjectiveDecks bool                 `json:"use_objective_decks"`
+	Players           []GamePlayer         `json:"players"`
+	Rounds            []Round              `json:"rounds"`
+	Objectives        []GameObjective      `json:"objectives"`
+	Scores            []PlayerScoreSummary `json:"scores"`
+	AllScores         []Score              `json:"all_scores"`
 }
 
 type SelectedPlayersWithFaction struct {
@@ -71,4 +74,10 @@ type SeedOfEmpireResolution struct {
 	GameID  uint   `json:"game_id"`
 	RoundID uint   `json:"round_id"`
 	Result  string `json:"result"` // "for" or "against"
+}
+
+type ClassifiedDocumentLeaksRequest struct {
+	GameID      uint `json:"game_id"`
+	PlayerID    uint `json:"player_id"`
+	ObjectiveID uint `json:"objective_id"`
 }
