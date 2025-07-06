@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 export default function ObjectivesGrid({
   game,
   refreshGameState,
+  gameId,
   objectives,
   playersUnsorted,
   objectiveScores,
@@ -12,6 +13,7 @@ export default function ObjectivesGrid({
   useObjectiveDecks,
   setAssigningObjective,
   assigningObjective,
+  assignObjective,
 }) {
   const factionImageMap = {
     "Arborec": "Arborec.webp",
@@ -42,11 +44,13 @@ export default function ObjectivesGrid({
   };
 
   const safeObjectives = objectives || [];
+  console.log("📦 Objectives loaded into grid:", safeObjectives);
+
   const safePlayers = (playersUnsorted || []).map((p) => {
     const faction = p.Faction || p.faction || p.Player?.Faction || p.Player?.faction;
     const name = p.name || p.Player?.name;
     const color = p.color || p.Player?.color;
-    const id = p.player_id || p.Player?.ID;
+    const id = p.PlayerID || p.player_id || p.Player?.ID || p.id;
 
 
     return {
@@ -55,12 +59,10 @@ export default function ObjectivesGrid({
       name,
       color,
       faction,
-      factionKey: factionImageMap[faction] || "fallback.webp",
+      factionKey: factionImageMap[faction] ? factionImageMap[faction] : "fallback.webp"
+
     };
   });
-
-
-  console.log("✅ Computed safePlayers:", safePlayers);
 
   const safeScores = objectiveScores || {};
   const normalizedScores = {};
@@ -74,6 +76,10 @@ export default function ObjectivesGrid({
   const usingDecks = String(useObjectiveDecks).toLowerCase() === "true";
 
   const [publicObjectives, setPublicObjectives] = useState([]);
+  const isManualMode = !usingDecks;
+  const availableStageI = publicObjectives.filter((o) => o.stage === "I");
+  const availableStageII = publicObjectives.filter((o) => o.stage === "II");
+  const currentRoundId = game?.current_round || 0;
 
   useEffect(() => {
     if (!usingDecks) {
@@ -84,21 +90,26 @@ export default function ObjectivesGrid({
     }
   }, [usingDecks]);
 
+  const displayObjectives = safeObjectives;
+
   const renderObjectiveCard = (obj) => {
     const objId = obj.Objective?.ID;
     const isStageTwo = obj.Objective?.stage === "II";
-    const stageColor = isStageTwo ? "#00bfff" : "#ffd700";
-    const glowColor = isStageTwo ? "rgba(0, 191, 255, 0.4)" : "rgba(255, 215, 0, 0.4)";
-    const backgroundImage = isStageTwo
-      ? "/objective-backgrounds/stage2.jpg"
-      : "/objective-backgrounds/stage1.jpg";
+    const isCDL = obj.IsCDL;
+
+    const stageColor = isCDL ? "#d63384" : (isStageTwo ? "#00bfff" : "#ffd700");
+    const glowColor = isCDL ? "rgba(214, 51, 132, 0.4)" : (isStageTwo ? "rgba(0, 191, 255, 0.4)" : "rgba(255, 215, 0, 0.4)");
+
+    const backgroundImage = isCDL
+      ? "/objective-backgrounds/secret-active.jpg"
+      : isStageTwo
+        ? "/objective-backgrounds/stage2.jpg"
+        : "/objective-backgrounds/stage1.jpg";
 
     const scoredBy = [
       ...(normalizedScores[objId] || []),
       ...(safeLocalScored[objId] || []),
     ];
-
-
 
     return (
       <div
@@ -210,7 +221,7 @@ export default function ObjectivesGrid({
                 fontSize: "0.75rem",
               }}
             >
-              {obj.Objective?.type?.toUpperCase() || "PUBLIC"}
+              {obj.IsCDL ? "CDL" : (obj.Objective?.type?.toUpperCase() || "PUBLIC")}
             </span>
           </div>
         </div>
@@ -222,87 +233,60 @@ export default function ObjectivesGrid({
     <div style={{ flex: "1 1 0" }}>
       <h4>Objectives</h4>
 
-      {!usingDecks && (
+      {isManualMode && (
         <>
-          <p className="text-warning mb-3">
+          <div className="mb-3 text-warning small fst-italic">
             Manual mode active (Use Objective Decks disabled).
-          </p>
+          </div>
           <div className="d-flex gap-3 mb-4">
             <button
-              className="btn btn-outline-warning"
+              className="btn btn-warning"
               onClick={() =>
-                setAssigningObjective?.({ roundNumber: 1, stage: "I" })
+                setAssigningObjective({
+                  roundId: currentRoundId,
+                  stage: "I",
+                })
               }
             >
               + Assign Stage I Objective
             </button>
             <button
-              className="btn btn-outline-info"
+              className="btn btn-info"
               onClick={() =>
-                setAssigningObjective?.({ roundNumber: 1, stage: "II" })
+                setAssigningObjective({
+                  roundId: currentRoundId,
+                  stage: "II",
+                })
               }
             >
               + Assign Stage II Objective
             </button>
           </div>
+
           {assigningObjective && (
             <div className="mb-4">
-              <label>
-                Select a Stage {assigningObjective.stage} Objective:
+              <label className="form-label">
+                Select a Stage {assigningObjective.stage} Objective to assign
               </label>
-              <select
-                className="form-select mt-1"
-                value={""}
-                onChange={(e) => {
-                  const selectedId = parseInt(e.target.value);
-                  const selectedObjective = publicObjectives.find(
-                    (obj) => obj.ID === selectedId
-                  );
-                  const roundId = game?.rounds?.find(
-                    (r) => r.Number === game.current_round
-                  )?.ID;
 
-                  if (selectedObjective && roundId) {
-                    fetch("http://localhost:8080/assign_objective", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        game_id: game?.id,
-                        round_id: roundId,
-                        objective_id: selectedObjective.ID,
-                      }),
-                    })
-                      .then((res) => {
-                        if (!res.ok)
-                          throw new Error("Failed to assign objective");
-                        return res.json();
-                      })
-                      .then(() => {
-                        setAssigningObjective(null);
-                        refreshGameState();
-                      })
-                      .catch((err) =>
-                        console.error("Failed to assign objective:", err)
-                      );
+              <select
+                className="form-select"
+                onChange={async (e) => {
+                  const selectedId = parseInt(e.target.value);
+                  if (selectedId) {
+                    await assignObjective(gameId, assigningObjective.roundId, selectedId);
+                    setAssigningObjective(null);
                   }
                 }}
               >
-                <option value="">-- Choose an Objective --</option>
-                {publicObjectives
-                  .filter(
-                    (obj) => obj.stage === assigningObjective.stage
-                  )
-                  .filter(
-                    (obj) =>
-                      !objectives.some(
-                        (o) => o.Objective?.ID === obj.ID
-                      )
-                  )
-                  .map((obj) => (
+                <option value="">-- Select Objective --</option>
+                {(assigningObjective.stage === "I" ? availableStageI : availableStageII).map(
+                  (obj) => (
                     <option key={obj.ID} value={obj.ID}>
-                      {obj.name}
+                      {obj.name} ({obj.description})
                     </option>
-                  ))}
+                  )
+                )}
               </select>
             </div>
           )}
@@ -310,7 +294,7 @@ export default function ObjectivesGrid({
       )}
 
       <div className="d-flex flex-wrap justify-content-start" style={{ gap: "20px" }}>
-        {safeObjectives.map(renderObjectiveCard)}
+        {displayObjectives.map(renderObjectiveCard)}
       </div>
     </div>
   );

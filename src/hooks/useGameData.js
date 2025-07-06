@@ -13,7 +13,7 @@ export default function useGameData(gameId) {
     const res = await fetch(`http://localhost:8080/games/${gameId}`);
     const data = await res.json();
     console.log("[fetchGame] Raw game data:", data);
-    return data?.game || data; // Support both wrapped and direct response
+    return data; // Support both wrapped and direct response
   };
 
   const fetchObjectives = async () => {
@@ -39,6 +39,8 @@ export default function useGameData(gameId) {
     ]);
 
     console.log("[useGameData] Setting game state:", gameData);
+    gameData.AllScores = gameData.all_scores || [];
+    gameData.game_players = gameData.players || [];
     setGame(gameData);
 
     const map = {};
@@ -53,19 +55,22 @@ export default function useGameData(gameId) {
   useEffect(() => {
     (async () => {
       console.log("[useEffect] Running initial game load for gameId:", gameId);
-      const [gameData, secretData, scoresData, objectiveData] = await Promise.all([
+      const [gameData, objectiveData, secretData, scoresData] = await Promise.all([
         fetchGame(),
+        fetchObjectives(),
         fetchSecrets(),
         fetchScores(),
-        fetchObjectives(),
       ]);
 
       console.log("[useEffect] All data fetched:");
       console.log("  Game:", gameData);
       console.log("  Secrets:", secretData.length);
       console.log("  Scores:", scoresData);
-      console.log("  Objectives:", objectiveData);
+      console.log("  Objectives:", gameData.objectives);
 
+      // 🛠 Fix: Normalize AllScores for compatibility
+      gameData.AllScores = gameData.all_scores || [];
+      gameData.game_players = gameData.players || [];
       setGame(gameData);
       console.log("  → use_objective_decks =", gameData?.use_objective_decks);
 
@@ -86,7 +91,18 @@ export default function useGameData(gameId) {
       const normalizedObjectives = Array.isArray(objectiveData)
         ? objectiveData
         : objectiveData?.value || [];
+
+
       setObjectives(normalizedObjectives);
+
+      //     const normalizedObjectives = gameData.use_objective_decks
+      //   ? (gameData.GameObjectives || []).map((entry) => ({
+      //       Objective: entry.Objective,
+      //       IsCDL: entry.IsCDL || false,
+      //     }))
+      //   : (Array.isArray(objectiveData) ? objectiveData : objectiveData?.value || []);
+      // setObjectives(normalizedObjectives);
+
 
       const normalizedSecrets = secretData.map((obj) => ({
         id: obj.ID,
@@ -103,9 +119,8 @@ export default function useGameData(gameId) {
       (s) => s.Type === "Agenda" && s.AgendaTitle === "Political Censure"
     );
     setCensureHolder(match?.PlayerID || null);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameId]);
+
 
   return {
     game,
@@ -119,5 +134,6 @@ export default function useGameData(gameId) {
     setObjectiveScores,
     refreshGameState,
     censureHolder,
+    setMutinyUsed,
   };
 }
