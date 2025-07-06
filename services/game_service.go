@@ -249,10 +249,10 @@ func GetGameAndScores(gameID string) (models.Game, []models.Score, error) {
 	return game, scores, nil
 }
 
-func ManuallyAssignObjective(gameID uint, roundID uint, objectiveID uint) error {
+func ManuallyAssignObjective(gameID uint, roundNumber uint, objectiveID uint) error {
 	var round models.Round
 	if err := database.DB.
-		Where("game_id = ? AND id = ?", gameID, roundID).
+		Where("game_id = ? AND number = ?", gameID, roundNumber).
 		First(&round).Error; err != nil {
 		return errors.New("Round not found")
 	}
@@ -285,4 +285,64 @@ func ManuallyAssignObjective(gameID uint, roundID uint, objectiveID uint) error 
 		RoundID:     round.ID,
 	}
 	return database.DB.Create(&reveal).Error
+}
+
+func SetupObjectiveDeckForGame(game models.Game, round1 models.Round) error {
+	const maxStageI = 6
+	const maxStageII = 6
+
+	var stage1 []models.Objective
+	var stage2 []models.Objective
+
+	// Load all objectives
+	if err := database.DB.Where("stage = ?", "I").Find(&stage1).Error; err != nil {
+		return err
+	}
+	if err := database.DB.Where("stage = ?", "II").Find(&stage2).Error; err != nil {
+		return err
+	}
+
+	// Shuffle them
+	rand.Shuffle(len(stage1), func(i, j int) { stage1[i], stage1[j] = stage1[j], stage1[i] })
+	rand.Shuffle(len(stage2), func(i, j int) { stage2[i], stage2[j] = stage2[j], stage2[i] })
+
+	// Take max 10 of each
+	if len(stage1) > maxStageI {
+		stage1 = stage1[:maxStageI]
+	}
+	if len(stage2) > maxStageII {
+		stage2 = stage2[:maxStageII]
+	}
+
+	// Create GameObjective entries
+	for i, obj := range stage1 {
+		gameObj := models.GameObjective{
+			GameID:      game.ID,
+			ObjectiveID: obj.ID,
+			RoundID:     0,
+			Stage:       "I",
+			Revealed:    i < 2, // only first 2 are revealed at game start
+		}
+		if i < 2 {
+			gameObj.RoundID = round1.ID
+		}
+		if err := database.DB.Create(&gameObj).Error; err != nil {
+			return err
+		}
+	}
+
+	for _, obj := range stage2 {
+		gameObj := models.GameObjective{
+			GameID:      game.ID,
+			ObjectiveID: obj.ID,
+			RoundID:     0,
+			Stage:       "II",
+			Revealed:    false,
+		}
+		if err := database.DB.Create(&gameObj).Error; err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

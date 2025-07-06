@@ -71,15 +71,15 @@ type GamePlayer struct {
 
 //links game and ovjective into one struct
 type GameObjective struct {
-	ID          uint   `json:"ID"`
-	GameID      uint   `json:"GameID"`
-	ObjectiveID uint   `json:"ObjectiveID"`
-	RoundID     uint   `json:"RoundID"`
-	Stage       string `json:"Stage"`
-
-	Objective Objective `gorm:"foreignKey:ObjectiveID;references:ID" json:"Objective"`
-	Round     Round     `gorm:"foreignKey:RoundID;references:ID" json:"Round"`
-	IsCDL     bool      `json:"IsCDL" gorm:"-"`
+	ID          uint      `json:"ID"`
+	GameID      uint      `json:"GameID"`
+	ObjectiveID uint      `json:"ObjectiveID"`
+	RoundID     uint      `json:"RoundID"`
+	Stage       string    `json:"Stage"`
+	Revealed    bool      `gorm:"default:false"`
+	Objective   Objective `gorm:"foreignKey:ObjectiveID;references:ID" json:"Objective"`
+	Round       Round     `gorm:"foreignKey:RoundID;references:ID" json:"Round"`
+	IsCDL       bool      `json:"IsCDL" gorm:"-"`
 }
 
 type PlayerInput struct {

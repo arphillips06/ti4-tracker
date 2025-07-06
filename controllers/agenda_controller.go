@@ -64,3 +64,22 @@ func HandleClassifiedDocumentLeaks(c *gin.Context) {
 	}
 	c.Status(http.StatusNoContent)
 }
+
+func HandleIncentiveProgram(c *gin.Context) {
+	var req struct {
+		GameID  uint   `json:"game_id"`
+		Outcome string `json:"outcome"` // "for" or "against"
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	err := services.ApplyIncentiveProgramEffect(req.GameID, req.Outcome)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Incentive Program applied"})
+}

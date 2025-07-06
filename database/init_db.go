@@ -28,7 +28,7 @@ func InitDatabase() {
 	}
 
 	// Automigrate your models
-	err = DB.AutoMigrate(&models.Game{}, &models.Player{}, &models.Round{}, &models.Score{}, &models.GamePlayer{}, &models.GameObjective{})
+	err = DB.AutoMigrate(&models.Game{}, &models.Player{}, &models.Round{}, &models.Score{}, &models.GamePlayer{}, &models.GameObjective{}, &models.ObjectiveDeck{})
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
 	}
