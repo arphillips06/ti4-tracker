@@ -49,13 +49,16 @@ func GetGameByID(c *gin.Context) {
 	}
 
 	response := models.GameDetailResponse{
-		ID:            game.ID,
-		WinningPoints: game.WinningPoints,
-		CurrentRound:  game.CurrentRound,
-		FinishedAt:    game.FinishedAt,
-		Players:       game.GamePlayers,
-		Scores:        summaryList,
-		AllScores:     scores,
+		ID:                game.ID,
+		WinningPoints:     game.WinningPoints,
+		CurrentRound:      game.CurrentRound,
+		FinishedAt:        game.FinishedAt,
+		UseObjectiveDecks: game.UseObjectiveDecks,
+		Players:           game.GamePlayers,
+		Rounds:            game.Rounds,
+		Objectives:        game.GameObjectives,
+		Scores:            summaryList,
+		AllScores:         scores,
 	}
 
 	c.JSON(http.StatusOK, response)

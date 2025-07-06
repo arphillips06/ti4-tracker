@@ -16,3 +16,12 @@ func GetAllSecretObjectives(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, secrets)
 }
+
+func GetAllPublicObjectives(c *gin.Context) {
+	var publics []models.Objective
+	if err := database.DB.Where("type = ?", "Public").Find(&publics).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load public objectives"})
+		return
+	}
+	c.JSON(http.StatusOK, publics)
+}

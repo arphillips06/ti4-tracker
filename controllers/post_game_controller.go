@@ -80,11 +80,15 @@ func CreateGame(c *gin.Context) {
 		Where("game_objectives.game_id = ?", game.ID).
 		Find(&revealed)
 
-	response := gin.H{
-		"game":     game,
-		"revealed": revealed,
+	type CreateGameResponse struct {
+		Game     models.Game            `json:"game"`
+		Revealed []models.GameObjective `json:"revealed"`
 	}
-	c.JSON(http.StatusOK, response)
+
+	c.JSON(http.StatusOK, CreateGameResponse{
+		Game:     game,
+		Revealed: revealed,
+	})
 }
 
 // POST /games/:game_id/advance-round
@@ -101,17 +105,8 @@ func AdvanceRound(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Game already finished"})
 		return
 	}
-	newRound, err := services.CreateNewRound(game)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new round"})
-		return
-	}
 
-	stage := services.DetermineStageToReveal(game.ID)
-
-	err = services.RevealNextObjective(game.ID, newRound.ID, stage)
-	if err != nil {
-		//No more objectives, call end of game scoring and sort by highest points
+	if game.CurrentRound >= 9 {
 		if err := services.MaybeFinishGameFromExhaustion(game); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to finish game"})
 			return
@@ -124,6 +119,16 @@ func AdvanceRound(c *gin.Context) {
 		})
 		return
 	}
+	newRound, err := services.CreateNewRound(game)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create new round"})
+		return
+	}
+
+	stage := services.DetermineStageToReveal(game.ID)
+
+	_ = services.RevealNextObjective(game.ID, newRound.ID, stage)
+
 	totalRevealed := services.CountRevealedObjectives(game.ID)
 	c.JSON(http.StatusOK, gin.H{
 		"message":       "round_advanced",
@@ -131,4 +136,20 @@ func AdvanceRound(c *gin.Context) {
 		"revealed":      stage,
 		"totalRevealed": totalRevealed,
 	})
+}
+
+func AssignObjective(c *gin.Context) {
+	var req models.AssignObjectiveRequest
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+
+	err := services.ManuallyAssignObjective(req.GameID, uint(req.RoundID), req.ObjectiveID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "objective assigned"})
 }

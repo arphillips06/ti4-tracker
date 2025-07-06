@@ -1,11 +1,13 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
+	"gorm.io/gorm"
 )
 
 func ApplyPoliticalCensure(input models.PoliticalCensureRequest) error {
@@ -152,6 +154,54 @@ func ApplyMutinyAgenda(input models.AgendaResolution) error {
 				}
 			}
 		}
+	}
+
+	return nil
+}
+
+func ApplyClassifiedDocumentLeaks(input models.ClassifiedDocumentLeaksRequest) error {
+	// Prevent duplicate resolution
+	var count int64
+	if err := database.DB.
+		Model(&models.Score{}).
+		Where("game_id = ? AND agenda_title = ?", input.GameID, "Classified Document Leaks").
+		Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return fmt.Errorf("Classified Document Leaks has already been resolved for this game")
+	}
+
+	log.Println("ApplyClassifiedDocumentLeaks called with:", input)
+
+	// Locate the secret score
+	var score models.Score
+	err := database.DB.Where("game_id = ? AND player_id = ? AND objective_id = ? AND type = ?", input.GameID, input.PlayerID, input.ObjectiveID, "secret").
+		First(&score).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fmt.Errorf("Secret objective score not found for that player")
+		}
+		return err
+	}
+
+	// Update the score to public
+	score.Type = "public"
+	if err := database.DB.Save(&score).Error; err != nil {
+		return err
+	}
+
+	// Record the agenda use (0-point marker)
+	agendaScore := models.Score{
+		GameID:      input.GameID,
+		PlayerID:    input.PlayerID,
+		ObjectiveID: input.ObjectiveID,
+		Points:      0,
+		Type:        "agenda",
+		AgendaTitle: "Classified Document Leaks",
+	}
+	if err := database.DB.Create(&agendaScore).Error; err != nil {
+		return err
 	}
 
 	return nil

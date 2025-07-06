@@ -10,6 +10,7 @@ import (
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/database/factions"
 	"github.com/arphillips06/TI4-stats/models"
+	"gorm.io/gorm"
 )
 
 // Validates player input and returns matched players with faction info.
@@ -188,6 +189,11 @@ func GetGameAndScores(gameID string) (models.Game, []models.Score, error) {
 	var game models.Game
 	if err := database.DB.
 		Preload("GamePlayers.Player").
+		Preload("Rounds").
+		Preload("Winner").
+		Preload("GameObjectives.Objective").
+		Preload("Objectives.Objective").
+		Preload("GameObjectives.Round").
 		First(&game, gameID).Error; err != nil {
 		return game, nil, errors.New("game not found")
 	}
@@ -201,4 +207,42 @@ func GetGameAndScores(gameID string) (models.Game, []models.Score, error) {
 	}
 
 	return game, scores, nil
+}
+
+func ManuallyAssignObjective(gameID uint, roundID uint, objectiveID uint) error {
+	var round models.Round
+	if err := database.DB.
+		Where("game_id = ? AND id = ?", gameID, roundID).
+		First(&round).Error; err != nil {
+		return errors.New("Round not found")
+	}
+
+	var obj models.Objective
+	if err := database.DB.
+		First(&obj, objectiveID).Error; err != nil {
+		return errors.New("Objective not found")
+	}
+
+	var existing models.GameObjective
+	err := database.DB.
+		Where("game_id = ? AND objective_id = ?", gameID, obj.ID).
+		First(&existing).Error
+
+	if err == nil {
+		// already exists
+		return errors.New("Objective already assigned to this game")
+	}
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		// some other DB error
+		return err
+	}
+
+	// Not found – go ahead and insert
+	reveal := models.GameObjective{
+		GameID:      gameID,
+		ObjectiveID: obj.ID,
+		RoundID:     round.ID,
+	}
+	return database.DB.Create(&reveal).Error
 }
