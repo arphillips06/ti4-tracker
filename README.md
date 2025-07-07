@@ -1,47 +1,44 @@
-# TI4 Score Tracker — Frontend
+# Twilight Imperium Stats Tracker - Frontend
 
-A web-based interface for tracking player scores, factions, and objectives in **Twilight Imperium: Fourth Edition**.
+This is the frontend for the Twilight Imperium Stats Tracker. It provides a responsive web UI to manage, track, and visualize player progress, objectives, relics, and agendas during a game of Twilight Imperium 4th Edition.
 
-This is the **frontend** portion of the project, built with React and Vite. It connects to a Go-based backend.
+## Features
+- Game setup: players, factions, and points
+- Scoring interface for objectives (public and secret)
+- Agenda and relic effects (e.g., Mutiny, Shard, Crown, Obsidian)
+- Dynamic scoring and real-time UI updates
+- Player sidebar for secret tracking and expansion controls
+- Round advancement and scoring lock toggle
+- Graphs and history features (WIP)
 
----
-## Technologies
+## Tech Stack
+- **React** with **Vite** 
+- **Tailwind CSS** for styling
+- **Bootstrap** components for layout and dropdowns
+- **React Icons** for iconography
+- **Fetch API** for backend communication
 
-- React (via Vite)
-- Bootstrap (for styling)
-- React Router
-- Fetch API (to communicate with the Go backend)
-
----
 ## Requirements
+- Node.js >= 18
+- Backend API (Go) running on `localhost:8080` 
 
-Node.js - 18.x or newer
-NPM
+## Getting Started
 
----
-
-
-### Getting Started
-
-#### 1. Clone the repository
-#### 2. Install Node.js
-#### 3. Install project dependancies
-```
+```bash
+# Clone the repo
+cd frontend
 npm install
+npm run dev
 ```
-This installs everything listed in package.json using npm.
-#### 4. Start the development server
-```
-npm start
-```
-
 ---
-## Project Structure
-```
-src/
-├── components/         # Reusable UI components (e.g. PlayerRow)
-├── pages/              # Page views (Home, GameList, NewGamePage)
-├── App.js              # Main application routes
-└── main.jsx            # Application entry point
-```
 
+## Project Structure
+```bash
+src/
+├── components/         # Reusable UI components (e.g. PlayerSidebar, ObjectivesGrid)
+├── hooks/              # Custom React hooks (e.g. useGameData)
+├── pages/              # Top-level views (GameDetail, Home)
+├── relics/             # Handlers for relic-related logic
+├── App.js              # Main app with routing
+├── index.js            # Entry point
+└── config.js           # Backend API base URL
