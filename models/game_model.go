@@ -42,10 +42,12 @@ type Score struct {
 	ObjectiveID uint `gorm:"not null"`
 	Objective   Objective
 	Points      int
-	Round       Round  `gorm:"foreignKey:RoundID"`
-	Player      Player `gorm:"foreignKey:PlayerID"`
-	Type        string `gorm:"type:VARCHAR(20)"` //e.g. objective, imperial, support
-	AgendaTitle string `gorm:"type:VARCHAR(100)"`
+	Round       Round     `gorm:"foreignKey:RoundID"`
+	Player      Player    `gorm:"foreignKey:PlayerID"`
+	Type        string    `gorm:"type:VARCHAR(20)"` //e.g. objective, imperial, support
+	AgendaTitle string    `gorm:"type:VARCHAR(100)"`
+	RelicTitle  string    `gorm:"type:VARCHAR(20)"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 //Objective information
