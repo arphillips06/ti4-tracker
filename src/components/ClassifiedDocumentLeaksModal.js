@@ -11,7 +11,7 @@ export default function ClassifiedDocumentLeaksModal({
     const [selectedPlayerId, setSelectedPlayerId] = useState("");
     const [selectedObjectiveId, setSelectedObjectiveId] = useState("");
 
-    if (!show) return null; // ⛔️ Don't render if not shown
+    if (!show) return null; 
 
     const handleSubmit = () => {
         if (selectedPlayerId && selectedObjectiveId) {
@@ -57,8 +57,8 @@ export default function ClassifiedDocumentLeaksModal({
                     >
                         <option value="">Select objective</option>
                         {(scoredSecrets[parseInt(selectedPlayerId)] || []).map((obj) => (
-                            <option key={obj.id} value={obj.id}>
-                                {obj.name}
+                            <option key={obj.id ?? obj.ID} value={obj.id ?? obj.ID}>
+                                {obj.name ?? obj.Name}
                             </option>
                         ))}
                     </select>

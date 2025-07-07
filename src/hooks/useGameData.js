@@ -8,6 +8,8 @@ export default function useGameData(gameId) {
   const [secretCounts, setSecretCounts] = useState({});
   const [mutinyUsed, setMutinyUsed] = useState(false);
   const [censureHolder, setCensureHolder] = useState(null);
+  const [cdlUsed, setCdlUsed] = useState(false);
+
 
   const fetchGame = async () => {
     const res = await fetch(`http://localhost:8080/games/${gameId}`);
@@ -75,6 +77,7 @@ export default function useGameData(gameId) {
       console.log("  → use_objective_decks =", gameData?.use_objective_decks);
 
       setMutinyUsed(gameData.AllScores?.some((s) => s.AgendaTitle === "Mutiny"));
+      setCdlUsed(gameData.AllScores?.some((s) => s.AgendaTitle === "Classified Document Leaks"));
 
       const initialSecrets = {};
       (gameData.players || []).forEach((p) => {
@@ -135,5 +138,6 @@ export default function useGameData(gameId) {
     refreshGameState,
     censureHolder,
     setMutinyUsed,
+    setCdlUsed,
   };
 }
