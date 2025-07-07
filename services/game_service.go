@@ -108,6 +108,7 @@ func AssignObjectivesToGame(game models.Game, round1 models.Round) error {
 			ObjectiveID: obj.ID,
 			RoundID:     roundID,
 			Stage:       obj.Stage,
+			Revealed:    i < 2,
 		}
 		if err := database.DB.Create(&gameObj).Error; err != nil {
 			return err
@@ -168,12 +169,14 @@ func DetermineStageToReveal(gameID uint) string {
 func RevealNextObjective(gameID, roundID uint, stage string) error {
 	var obj models.GameObjective
 	err := database.DB.
-		Where("game_id = ? AND round_id = 0 AND stage = ?", gameID, stage).
+		Where("game_id = ? AND round_id = 0 AND stage = ? AND revealed = false", gameID, stage).
 		First(&obj).Error
 	if err != nil {
 		return err
 	}
 	obj.RoundID = roundID
+	obj.Revealed = true
+
 	return database.DB.Save(&obj).Error
 }
 

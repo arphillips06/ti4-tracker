@@ -155,6 +155,20 @@ func ApplyMutinyAgenda(input models.AgendaResolution) error {
 			}
 		}
 	}
+	if input.Result != "for" && input.Result != "against" || len(input.ForVotes) == 0 {
+		err := database.DB.Create(&models.Score{
+			GameID:      input.GameID,
+			RoundID:     input.RoundID,
+			PlayerID:    0, // or nullable if supported
+			ObjectiveID: 0,
+			Points:      0,
+			Type:        "agenda",
+			AgendaTitle: "Mutiny",
+		}).Error
+		if err != nil {
+			return fmt.Errorf("Failed to record Mutiny usage: %w", err)
+		}
+	}
 
 	return nil
 }
@@ -218,25 +232,49 @@ func ApplyIncentiveProgramEffect(gameID uint, outcome string) error {
 	}
 
 	var stage string
-	if outcome == "for" {
+	switch outcome {
+	case "for":
 		stage = "I"
-	} else if outcome == "against" {
+	case "against":
 		stage = "II"
-	} else {
+	default:
 		return fmt.Errorf("Invalid outcome: must be 'for' or 'against'")
+	}
+	var existingObjectiveIDs []uint
+
+	if err := database.DB.
+		Model(&models.GameObjective{}).
+		Where("game_id = ?", gameID).
+		Pluck("objective_id", &existingObjectiveIDs).Error; err != nil {
+		return err
+	}
+
+	var newObjective models.Objective
+	err := database.DB.
+		Where("stage = ? AND id NOT IN ?", stage, existingObjectiveIDs).
+		Order("id").
+		First(&newObjective).Error
+	if err != nil {
+		return fmt.Errorf("No additional objectives remain in Stage %s", stage)
 	}
 
 	// Find the next unrevealed objective in this stage
-	var unrevealed models.GameObjective
-	err := database.DB.
-		Where("game_id = ? AND stage = ? AND round_id = 0 AND revealed = false", gameID, stage).
-		Order("id").
-		First(&unrevealed).Error
-	if err != nil {
-		return fmt.Errorf("No unrevealed objectives remaining in Stage %s", stage)
+	gameObj := models.GameObjective{
+		GameID:      gameID,
+		ObjectiveID: newObjective.ID,
+		Stage:       newObjective.Stage,
+		RoundID:     0,
+		Revealed:    true,
 	}
+	_ = database.DB.Create(&models.Score{
+		GameID:      gameID,
+		PlayerID:    0,
+		RoundID:     0,
+		ObjectiveID: 0,
+		Points:      0,
+		Type:        "agenda",
+		AgendaTitle: "Incentive Program",
+	})
 
-	// Reveal it (set revealed = true) and leave RoundID as 0
-	unrevealed.Revealed = true
-	return database.DB.Save(&unrevealed).Error
+	return database.DB.Create(&gameObj).Error
 }

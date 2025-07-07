@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/arphillips06/TI4-stats/database"
@@ -74,11 +75,16 @@ func GetGameObjectives(c *gin.Context) {
 	err := database.DB.
 		Preload("Objective").
 		Preload("Round").
-		Where("game_id = ? AND round_id > 0", gameID).
+		Where("game_id = ? AND revealed = true", gameID).
 		Find(&gameObjectives).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load objectives for game"})
 		return
+	}
+	fmt.Println("Objectives returned:")
+	for _, obj := range gameObjectives {
+		fmt.Printf("ID: %d | Stage: %s | RoundID: %d | Revealed: %v\n",
+			obj.ObjectiveID, obj.Stage, obj.RoundID, obj.Revealed)
 	}
 
 	// Step 2: Inject CDL objectives
