@@ -19,6 +19,20 @@ export default function PlayerSidebar({
 }) {
   const custodiansScorerId = game?.AllScores?.find((s) => s.Type === "mecatol")?.PlayerID || null;
 
+  // Step 1: Gather all CDL-revealed secret objective IDs across all players
+  const cdlRevealedObjectiveIds = new Set(
+    game?.AllScores
+      ?.filter((s) => s.AgendaTitle === "Classified Document Leaks")
+      .map((s) => s.ObjectiveID)
+  );
+
+  // Utility: Determine if a scored objective is still secret (not publicly revealed)
+  const isStillSecret = (score) => {
+    if ((score.Type || "").toLowerCase() !== "secret") return false;
+    // If this secret objective is not revealed by CDL, it remains secret
+    return !cdlRevealedObjectiveIds.has(score.ObjectiveID);
+  };
+
   return (
     <div style={{ flex: "0 1 300px" }}>
       {(playersSorted || []).map((entry) => (
@@ -59,13 +73,13 @@ export default function PlayerSidebar({
               {game?.AllScores?.some(
                 (s) => s.Type === "mecatol" && s.PlayerID === entry.player_id
               ) && (
-                  <img
-                    src="/MR-point/MR-scored.png"
-                    alt="Custodians Point"
-                    title="Custodians Point"
-                    style={{ width: "20px", height: "20px" }}
-                  />
-                )}
+                <img
+                  src="/MR-point/MR-scored.png"
+                  alt="Custodians Point"
+                  title="Custodians Point"
+                  style={{ width: "20px", height: "20px" }}
+                />
+              )}
               <div className="text-muted small fst-italic">{entry.faction}</div>
             </div>
 
@@ -89,7 +103,7 @@ export default function PlayerSidebar({
                         {game.AllScores?.filter(
                           (s) =>
                             s.PlayerID === entry.player_id &&
-                            (s.Type || "").toLowerCase() === "secret"
+                            isStillSecret(s)
                         ).map((s) => {
                           const obj = secretObjectives.find((o) => o.id === s.ObjectiveID);
                           return obj ? (
@@ -104,41 +118,33 @@ export default function PlayerSidebar({
                     <div className="d-flex gap-1">
                       {(() => {
                         const maxSecrets = 3;
+
+                        // Filter secrets excluding CDL revealed ones (public)
                         const scoredSecrets = game?.AllScores?.filter(
-                          (s) => s.PlayerID === entry.player_id &&
-                            (s.Type || "").toLowerCase() === "secret"
+                          (s) =>
+                            s.PlayerID === entry.player_id &&
+                            (s.Type || "").toLowerCase() === "secret" &&
+                            !cdlRevealedObjectiveIds.has(s.ObjectiveID)
                         ) || [];
 
-                        const cdlObjectiveId = game?.AllScores?.find(
-                          (s) => s.PlayerID === entry.player_id && s.AgendaTitle === "Classified Document Leaks"
-                        )?.ObjectiveID;
-
-                        return [...Array(3)].map((_, i) => {
-                          const scored = i < scoredSecrets.length;
-                          const secret = scoredSecrets[i];
-                          const isCDL = secret?.ObjectiveID === cdlObjectiveId;
-                          const shouldBeGrey = isCDL;
-
+                        return [...Array(maxSecrets)].map((_, i) => {
+                          const secret = scoredSecrets[i]; // might be undefined
+                          const scored = !!secret;
+                          // If secret is scored but revealed public by CDL it won't be here (excluded)
+                          
                           return (
                             <img
                               key={i}
-                              src={`/objective-backgrounds/secret-${scored && !shouldBeGrey ? "active" : "inactive"}.jpg`}
-                              alt={
-                                scored
-                                  ? shouldBeGrey
-                                    ? "Scored secret (greyed by CDL)"
-                                    : "Scored secret"
-                                  : "Unscored secret"
-                              }
+                              src={`/objective-backgrounds/secret-${scored ? "active" : "inactive"}.jpg`}
+                              alt={scored ? "Scored secret" : "Unscored secret"}
                               style={{
                                 width: "16px",
                                 height: "25px",
-                                opacity: scored ? (shouldBeGrey ? 0.4 : 1) : 0.4,
+                                opacity: scored ? 1 : 0.4,
                               }}
                             />
                           );
                         });
-
                       })()}
                     </div>
                   </div>
@@ -189,15 +195,15 @@ export default function PlayerSidebar({
                       s.PlayerID === entry.player_id &&
                       s.AgendaTitle === "Mutiny"
                   ) && (
-                      <div className="mt-1 small text-success">Bonus: Mutiny</div>
-                    )}
+                    <div className="mt-1 small text-success">Bonus: Mutiny</div>
+                  )}
                   {game.AllScores?.some(
                     (s) =>
                       s.PlayerID === entry.player_id &&
                       s.AgendaTitle === "Seed of an Empire"
                   ) && (
-                      <div className="mt-1 small text-success">Bonus: Seed of an Empire</div>
-                    )}
+                    <div className="mt-1 small text-success">Bonus: Seed of an Empire</div>
+                  )}
 
                   <div className="mt-3 small">
                     <button

@@ -13,8 +13,13 @@ export default function MutinyModal({
   setMutinyVotes,
   players
 }) {
+  const handleSubmit = async () => {
+    await onSubmit(); // wait in case it's async
+    onClose();        // then close the modal
+  };
+
   return (
-    <Modal show={show} onHide={onClose}>
+    <Modal show={show} onHide={onClose} backdrop="static" centered>
       <Modal.Header closeButton>
         <Modal.Title>Resolve Mutiny Agenda</Modal.Title>
       </Modal.Header>
@@ -74,7 +79,7 @@ export default function MutinyModal({
         <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>
-        <Button variant="primary" onClick={onSubmit}>
+        <Button variant="primary" onClick={handleSubmit}>
           Submit
         </Button>
       </Modal.Footer>
