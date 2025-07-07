@@ -1,6 +1,5 @@
 import { useCallback } from "react";
-
-const API_URL = "http://localhost:8080";
+import API_BASE_URL from "../config"
 
 export default function useObjectiveActions(gameId, refreshGameState, setLocalScored) {
   const scoreObjective = useCallback(
@@ -12,7 +11,7 @@ export default function useObjectiveActions(gameId, refreshGameState, setLocalSc
       };
 
       try {
-        const res = await fetch(`${API_URL}/score`, {
+        const res = await fetch(`${API_BASE_URL}/score`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -47,7 +46,7 @@ export default function useObjectiveActions(gameId, refreshGameState, setLocalSc
   const unscoreObjective = useCallback(
     async (playerId, objectiveId) => {
       try {
-        const res = await fetch(`${API_URL}/unscore`, {
+        const res = await fetch(`${API_BASE_URL}/unscore`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -78,7 +77,7 @@ export default function useObjectiveActions(gameId, refreshGameState, setLocalSc
   const assignObjective = useCallback(
     async (roundId, objectiveId) => {
       try {
-        const res = await fetch(`${API_URL}/assign_objective`, {
+        const res = await fetch(`${API_BASE_URL}/assign_objective`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -105,7 +104,7 @@ export default function useObjectiveActions(gameId, refreshGameState, setLocalSc
 
   const advanceRound = useCallback(async () => {
     try {
-      const res = await fetch(`${API_URL}/games/${gameId}/advance-round`, {
+      const res = await fetch(`${API_BASE_URL}/games/${gameId}/advance-round`, {
         method: "POST",
       });
 

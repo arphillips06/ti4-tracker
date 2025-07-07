@@ -1,8 +1,7 @@
 // src/utils/agendaHandlers.js
-const API_URL = "http://localhost:8080";
-
+import API_BASE_URL from "../config";
 export async function handleMutinySubmit({ gameId, game, mutinyResult, mutinyAbstained, mutinyVotes, refreshGameState }) {
-  await fetch(`${API_URL}/agenda/mutiny`, {
+  await fetch(`${API_BASE_URL}/agenda/mutiny`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -17,7 +16,7 @@ export async function handleMutinySubmit({ gameId, game, mutinyResult, mutinyAbs
 }
 
 export async function handleSeedSubmit({ gameId, game, result, refreshGameState }) {
-  await fetch(`${API_URL}/agenda/seed`, {
+  await fetch(`${API_BASE_URL}/agenda/seed`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -31,7 +30,7 @@ export async function handleSeedSubmit({ gameId, game, result, refreshGameState 
 }
 
 export async function handleIncentiveSubmit({ gameId, result, refreshGameState, setAgendaModal }) {
-  await fetch(`${API_URL}/agenda/incentive-program`, {
+  await fetch(`${API_BASE_URL}/agenda/incentive-program`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -45,7 +44,7 @@ export async function handleIncentiveSubmit({ gameId, result, refreshGameState, 
 }
 
 export async function handlePoliticalCensureSubmit({ gameId, game, playerId, gained, refreshGameState }) {
-  await fetch(`${API_URL}/agenda/political-censure`, {
+  await fetch(`${API_BASE_URL}/agenda/political-censure`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -60,7 +59,7 @@ export async function handlePoliticalCensureSubmit({ gameId, game, playerId, gai
 }
 
 export async function handleClassifiedSubmit({ gameId, playerId, objectiveId, refreshGameState, setAgendaModal }) {
-  await fetch(`${API_URL}/agenda/classified-document-leaks`, {
+  await fetch(`${API_BASE_URL}/agenda/classified-document-leaks`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-
+import API_BASE_URL from "../config"
 export default function useGameData(gameId) {
   const [game, setGame] = useState(null);
   const [objectives, setObjectives] = useState([]);
@@ -9,27 +9,30 @@ export default function useGameData(gameId) {
   const [mutinyUsed, setMutinyUsed] = useState(false);
   const [censureHolder, setCensureHolder] = useState(null);
   const [cdlUsed, setCdlUsed] = useState(false);
+  const [crownUsed, setCrownUsed] = useState(false);
+const [obsidianHolder, setObsidianHolder] = useState(null);
+
 
 
   const fetchGame = async () => {
-    const res = await fetch(`http://localhost:8080/games/${gameId}`);
+    const res = await fetch(`${API_BASE_URL}/games/${gameId}`);
     const data = await res.json();
     console.log("[fetchGame] Raw game data:", data);
     return data; // Support both wrapped and direct response
   };
 
   const fetchObjectives = async () => {
-    const res = await fetch(`http://localhost:8080/games/${gameId}/objectives`);
+    const res = await fetch(`${API_BASE_URL}/games/${gameId}/objectives`);
     return res.json();
   };
 
   const fetchScores = async () => {
-    const res = await fetch(`http://localhost:8080/games/${gameId}/objectives/scores`);
+    const res = await fetch(`${API_BASE_URL}/games/${gameId}/objectives/scores`);
     return res.json();
   };
 
   const fetchSecrets = async () => {
-    const res = await fetch("http://localhost:8080/objectives/secrets/all");
+    const res = await fetch(`${API_BASE_URL}/objectives/secrets/all`);
     return res.json();
   };
 
@@ -78,6 +81,14 @@ export default function useGameData(gameId) {
 
       setMutinyUsed(gameData.AllScores?.some((s) => s.AgendaTitle === "Mutiny"));
       setCdlUsed(gameData.AllScores?.some((s) => s.AgendaTitle === "Classified Document Leaks"));
+      setCrownUsed(gameData.AllScores?.some((s) => s.Type?.toLowerCase() === "relic" && s.RelicTitle === "The Crown of Emphidia"));
+      const obsidianScore = gameData.AllScores?.find(
+        (s) => s.Type?.toLowerCase() === "relic" && s.RelicTitle === "The Obsidian"
+      );
+      if (obsidianScore) {
+        setObsidianHolder(obsidianScore.PlayerID);
+      }
+
 
       const initialSecrets = {};
       (gameData.players || []).forEach((p) => {
@@ -139,5 +150,7 @@ export default function useGameData(gameId) {
     censureHolder,
     setMutinyUsed,
     setCdlUsed,
+    crownUsed,
+    obsidianHolder,
   };
 }

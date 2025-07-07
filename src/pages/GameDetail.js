@@ -9,6 +9,12 @@ import AgendaModals from "../components/AgendaModals";
 import useGroupedScoredSecrets from "../hooks/useGroupedScoredSecrets";
 import useMergedPlayerData from "../hooks/useMergedPlayerData";
 import useObjectiveActions from "../hooks/useObjectiveActions";
+import ImperialRiderModal from "../components/ImperialRiderModal";
+import { handleScoreImperialRider } from "../utils/imperialRiderHandler";
+import RelicModal from "../components/RelicModal";
+import { handleScoreCrown } from "../utils/relicHandler";
+import { handleShardSubmit } from "../utils/relicHandlers";
+
 
 import {
   handleMutinySubmit,
@@ -19,8 +25,22 @@ import {
 } from "../utils/agendaHandlers";
 import useGameData from "../hooks/useGameData";
 
+
 export default function GameDetail() {
   const { gameId } = useParams();
+  const scoreImperialRider = (playerId) => {
+    return handleScoreImperialRider(
+      playerId,
+      gameId,
+      refreshGameState,
+      setShowImperialModal
+    );
+  };
+  const [showCrownModal, setShowCrownModal] = useState(false);
+
+  const scoreCrown = (playerId) =>
+    handleScoreCrown(playerId, gameId, refreshGameState);
+
 
   const {
     game,
@@ -32,12 +52,19 @@ export default function GameDetail() {
     setGame,
     setObjectiveScores,
     refreshGameState,
+    crownUsed,
+    obsidianHolder,
   } = useGameData(gameId);
 
   const isAgendaUsed = (title) =>
-    game?.all_scores?.some(
+    game?.AllScores?.some(
       (s) => s.Type?.toLowerCase() === "agenda" && s.AgendaTitle === title
     );
+  const isRelicUsed = (title) =>
+    game?.AllScores?.some(
+      (s) => s.Type?.toLowerCase() === "relic" && s.RelicTitle === title
+    );
+
 
   const mutinyUsed = isAgendaUsed("Mutiny");
   const incentiveUsed = isAgendaUsed("Incentive Program");
@@ -55,10 +82,14 @@ export default function GameDetail() {
   const [showSeedModal, setShowSeedModal] = useState(false);
   const [assigningObjective, setAssigningObjective] = useState(null);
   const [agendaModal, setAgendaModal] = useState(null);
-
+  const [showImperialModal, setShowImperialModal] = useState(false);
   const playersUnsorted = useMergedPlayerData(game, false);
   const playersSorted = useMergedPlayerData(game, true);
   const groupedScoredSecrets = useGroupedScoredSecrets(game?.all_scores, secretObjectives);
+  const [showShardModal, setShowShardModal] = useState(false);
+  const [showObsidianModal, setShowObsidianModal] = useState(false);
+  const obsidianUsed = isRelicUsed("The Obsidian");
+const [obsidianHolderId, setObsidianHolderId] = useState(null);
 
   const {
     scoreObjective,
@@ -84,6 +115,12 @@ export default function GameDetail() {
         setShowCensureModal={setShowCensureModal}
         setShowSeedModal={setShowSeedModal}
         setAgendaModal={setAgendaModal}
+        setShowImperialModal={setShowImperialModal}
+        setShowShardModal={setShowShardModal}
+        setShowCrownModal={setShowCrownModal}
+        crownUsed={crownUsed}
+        obsidianUsed={obsidianUsed}
+        setShowObsidianModal={setShowObsidianModal}
       />
 
       <div className="p-6 max-w-7xl mx-auto">
@@ -178,6 +215,44 @@ export default function GameDetail() {
               })
             }
           />
+          <ImperialRiderModal
+            show={showImperialModal}
+            onClose={() => setShowImperialModal(false)}
+            players={playersSorted}
+            onSubmit={scoreImperialRider}
+          />
+          <RelicModal
+            show={showCrownModal}
+            onClose={() => setShowCrownModal(false)}
+            title="The Crown of Emphidia"
+            players={playersSorted}
+            onSubmit={scoreCrown}
+            description="Choose a player to gain 1 point from The Crown of Emphidia"
+          />
+          <RelicModal
+            show={showShardModal}
+            onClose={() => setShowShardModal(false)}
+            title="Shard of the Throne"
+            players={playersSorted}
+            onSubmit={(playerId) =>
+              handleShardSubmit(playerId, gameId, refreshGameState, () => setShowShardModal(false))
+            }
+            description="Choose a player to gain control of Shard of the Throne (gain 1 point)"
+          />
+          <RelicModal
+            show={showObsidianModal}
+            onClose={() => setShowObsidianModal(false)}
+            title="The Obsidian"
+            players={playersSorted}
+            onSubmit={(playerId) => {
+              setObsidianHolderId(parseInt(playerId));
+              setShowObsidianModal(false);
+              console.log("🧿 Obsidian given to player ID:", playerId);
+            }}
+
+            description="Choose a player to gain The Obsidian (gain 1 extra secret objective slot)"
+          />
+
 
           <div style={{ flex: "0 1 300px" }}>
             <PlayerSidebar
@@ -196,6 +271,7 @@ export default function GameDetail() {
               setObjectiveScores={setObjectiveScores}
               refreshGameState={refreshGameState}
               custodiansScored={!!game?.all_scores?.some((s) => s.Type === "mecatol")}
+              obsidianHolderId={obsidianHolderId}
             />
           </div>
         </div>

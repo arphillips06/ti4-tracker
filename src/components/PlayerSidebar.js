@@ -1,5 +1,5 @@
 import React from "react";
-
+import API_BASE_URL from "../config"
 export default function PlayerSidebar({
   playersSorted,
   expandedPlayers,
@@ -16,7 +16,10 @@ export default function PlayerSidebar({
   setObjectiveScores,
   refreshGameState,
   custodiansScored,
+  obsidianHolderId, 
 }) {
+
+
   const custodiansScorerId = game?.AllScores?.find((s) => s.Type === "mecatol")?.PlayerID || null;
 
   // Step 1: Gather all CDL-revealed secret objective IDs across all players
@@ -73,13 +76,13 @@ export default function PlayerSidebar({
               {game?.AllScores?.some(
                 (s) => s.Type === "mecatol" && s.PlayerID === entry.player_id
               ) && (
-                <img
-                  src="/MR-point/MR-scored.png"
-                  alt="Custodians Point"
-                  title="Custodians Point"
-                  style={{ width: "20px", height: "20px" }}
-                />
-              )}
+                  <img
+                    src="/MR-point/MR-scored.png"
+                    alt="Custodians Point"
+                    title="Custodians Point"
+                    style={{ width: "20px", height: "20px" }}
+                  />
+                )}
               <div className="text-muted small fst-italic">{entry.faction}</div>
             </div>
 
@@ -117,7 +120,14 @@ export default function PlayerSidebar({
 
                     <div className="d-flex gap-1">
                       {(() => {
-                        const maxSecrets = 3;
+                        console.log("🔍 Comparing player to obsidianHolderId:", {
+  playerId: entry.player_id,
+  obsidianHolderId: obsidianHolderId,
+  match: parseInt(entry.player_id) === parseInt(obsidianHolderId),
+});
+                        const extraSecret = parseInt(entry.player_id) === parseInt(obsidianHolderId) ? 1 : 0;
+                        const baseSecrets = 3;
+                        const maxSecrets = baseSecrets + extraSecret;
 
                         // Filter secrets excluding CDL revealed ones (public)
                         const scoredSecrets = game?.AllScores?.filter(
@@ -131,7 +141,7 @@ export default function PlayerSidebar({
                           const secret = scoredSecrets[i]; // might be undefined
                           const scored = !!secret;
                           // If secret is scored but revealed public by CDL it won't be here (excluded)
-                          
+
                           return (
                             <img
                               key={i}
@@ -195,15 +205,15 @@ export default function PlayerSidebar({
                       s.PlayerID === entry.player_id &&
                       s.AgendaTitle === "Mutiny"
                   ) && (
-                    <div className="mt-1 small text-success">Bonus: Mutiny</div>
-                  )}
+                      <div className="mt-1 small text-success">Bonus: Mutiny</div>
+                    )}
                   {game.AllScores?.some(
                     (s) =>
                       s.PlayerID === entry.player_id &&
                       s.AgendaTitle === "Seed of an Empire"
                   ) && (
-                    <div className="mt-1 small text-success">Bonus: Seed of an Empire</div>
-                  )}
+                      <div className="mt-1 small text-success">Bonus: Seed of an Empire</div>
+                    )}
 
                   <div className="mt-3 small">
                     <button
@@ -211,7 +221,7 @@ export default function PlayerSidebar({
                       disabled={game?.AllScores?.some((s) => s.Type === "mecatol")}
                       onClick={async () => {
                         try {
-                          await fetch("http://localhost:8080/score/mecatol", {
+                          await fetch(`${API_BASE_URL}/score/mecatol`, {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({
@@ -221,13 +231,13 @@ export default function PlayerSidebar({
                           });
                           await refreshGameState();
 
-                          const updatedGame = await fetch(`http://localhost:8080/games/${gameId}`).then((r) => r.json());
+                          const updatedGame = await fetch(`${API_BASE_URL}/games/${gameId}`).then((r) => r.json());
                           updatedGame.AllScores = updatedGame.all_scores || [];
                           updatedGame.game_players = updatedGame.players || [];
                           setGame(updatedGame);
 
                           const updatedScores = await fetch(
-                            `http://localhost:8080/games/${gameId}/objectives/scores`
+                            `${API_BASE_URL}/games/${gameId}/objectives/scores`
                           ).then((r) => r.json());
 
                           const map = {};

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-
+import API_BASE_URL from "../config";
 export default function ObjectivesGrid({
   game,
   refreshGameState,
@@ -83,7 +83,7 @@ export default function ObjectivesGrid({
 
   useEffect(() => {
     if (!usingDecks) {
-      fetch("http://localhost:8080/objectives/public/all")
+      fetch(`${API_BASE_URL}/objectives/public/all`)
         .then((res) => res.json())
         .then((data) => setPublicObjectives(data))
         .catch((err) => console.error("Failed to load public objectives:", err));
