@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http"
 	"strings"
 
 	"github.com/arphillips06/TI4-stats/controllers"
@@ -72,6 +73,29 @@ func main() {
 	r.POST("/agenda/classified-document-leaks", controllers.HandleClassifiedDocumentLeaks)
 	r.POST("/agenda/incentive-program", controllers.HandleIncentiveProgram)
 
+	//relics
+	r.POST("/relic/shard", controllers.HandleShardRelic)
+	r.POST("/relic/crown", controllers.HandleCrownRelic)
+	r.POST("/relic/obsidian", controllers.HandleObsidianRelic)
+
+	// Serve static frontend files from /build
+	r.Static("/static", "./build/static") // serve JS/CSS etc.
+
+	// Serve index.html on root and fallback for SPA routing
+	r.GET("/", func(c *gin.Context) {
+		c.File("./build/index.html")
+	})
+
+	// For any unmatched route (client side routing), serve index.html
+	r.NoRoute(func(c *gin.Context) {
+		// Only serve index.html for paths that are not API routes
+		if !strings.HasPrefix(c.Request.URL.Path, "/api") && !strings.HasPrefix(c.Request.URL.Path, "/games") && !strings.HasPrefix(c.Request.URL.Path, "/players") {
+			c.File("./build/index.html")
+		} else {
+			c.JSON(http.StatusNotFound, gin.H{"message": "Not Found"})
+		}
+	})
+
 	// Start server on port 8080
-	r.Run("127.0.0.1:8080")
+	r.Run("0.0.0.0:8080")
 }
