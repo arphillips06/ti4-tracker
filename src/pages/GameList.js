@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import API_BASE_URL from "../config";
 
 function GameList() {
   const [games, setGames] = useState([]);
@@ -17,7 +18,7 @@ function GameList() {
 
   async function fetchScoresForGame(id) {
     try {
-      const res = await axios.get(`http://localhost:8080/games/${id}/score-summary`);
+      const res = await axios.get(`${API_BASE_URL}/games/${id}/score-summary`);
       return res.data;
     } catch (e) {
       console.error("Error fetching scores for game", id, e);
@@ -28,7 +29,7 @@ function GameList() {
   useEffect(() => {
     async function loadGames() {
       try {
-        const res = await axios.get('http://localhost:8080/games');
+        const res = await axios.get(`${API_BASE_URL}/games`);
         const gamesData = res.data;
 
         const withScores = await Promise.all(

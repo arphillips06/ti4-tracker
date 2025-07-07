@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PlayerInputRow from "../components/PlayerInputRow";
 import factionColors from "../data/factionColors";
+import API_BASE_URL from "../config";
 
 const FACTIONS = Object.entries(factionColors).map(([key, data]) => ({
   key,
@@ -65,7 +66,7 @@ export default function NewGamePage() {
 
       console.log("Submitting payload:", JSON.stringify(payload, null, 2));
 
-      const res = await fetch('http://localhost:8080/games', {
+      const res = await fetch(`${API_BASE_URL}/games`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
