@@ -10,7 +10,7 @@ export default function useGameData(gameId) {
   const [censureHolder, setCensureHolder] = useState(null);
   const [cdlUsed, setCdlUsed] = useState(false);
   const [crownUsed, setCrownUsed] = useState(false);
-const [obsidianHolder, setObsidianHolder] = useState(null);
+const [obsidianHolderId, setObsidianHolderId] = useState(null);
 
 
 
@@ -36,27 +36,31 @@ const [obsidianHolder, setObsidianHolder] = useState(null);
     return res.json();
   };
 
-  const refreshGameState = async () => {
-    const [gameData, objectivesData, scoresData] = await Promise.all([
-      fetchGame(),
-      fetchObjectives(),
-      fetchScores(),
-    ]);
+const refreshGameState = async () => {
+  const [gameData, objectivesData, scoresData] = await Promise.all([
+    fetchGame(),
+    fetchObjectives(),
+    fetchScores(),
+  ]);
 
-    console.log("[useGameData] Setting game state:", gameData);
-    gameData.AllScores = gameData.all_scores || [];
-    gameData.game_players = gameData.players || [];
-    setGame(gameData);
+  console.log("[useGameData] Setting game state:", gameData);
+  gameData.AllScores = gameData.all_scores || [];
+  gameData.game_players = gameData.players || [];
+  setGame(gameData);
 
-    const map = {};
-    (Array.isArray(scoresData) ? scoresData : scoresData?.value || []).forEach((entry) => {
-      map[entry.objective_id] = entry.scored_by || [];
-    });
-    setObjectiveScores(map);
+  const obsidianScore = gameData.AllScores?.find(
+    (s) => s.Type === "relic" && s.RelicTitle === "The Obsidian"
+  );
+  setObsidianHolderId(obsidianScore?.PlayerID || null);
 
-    setObjectives(Array.isArray(objectivesData) ? objectivesData : objectivesData?.value || []);
-  };
+  const map = {};
+  (Array.isArray(scoresData) ? scoresData : scoresData?.value || []).forEach((entry) => {
+    map[entry.objective_id] = entry.scored_by || [];
+  });
+  setObjectiveScores(map);
 
+  setObjectives(Array.isArray(objectivesData) ? objectivesData : objectivesData?.value || []);
+};
   useEffect(() => {
     (async () => {
       console.log("[useEffect] Running initial game load for gameId:", gameId);
@@ -83,11 +87,11 @@ const [obsidianHolder, setObsidianHolder] = useState(null);
       setCdlUsed(gameData.AllScores?.some((s) => s.AgendaTitle === "Classified Document Leaks"));
       setCrownUsed(gameData.AllScores?.some((s) => s.Type?.toLowerCase() === "relic" && s.RelicTitle === "The Crown of Emphidia"));
       const obsidianScore = gameData.AllScores?.find(
-        (s) => s.Type?.toLowerCase() === "relic" && s.RelicTitle === "The Obsidian"
+        (s) => s.Type === "relic" && s.RelicTitle === "The Obsidian"
       );
-      if (obsidianScore) {
-        setObsidianHolder(obsidianScore.PlayerID);
-      }
+      setObsidianHolderId(obsidianScore?.PlayerID || null);
+      console.log("🔮 Obsidian holder set to:", obsidianScore?.PlayerID); // ✅ ADD THIS
+
 
 
       const initialSecrets = {};
@@ -151,6 +155,7 @@ const [obsidianHolder, setObsidianHolder] = useState(null);
     setMutinyUsed,
     setCdlUsed,
     crownUsed,
-    obsidianHolder,
+    obsidianHolderId,
+    setObsidianHolderId,
   };
 }

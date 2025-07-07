@@ -14,6 +14,7 @@ import { handleScoreImperialRider } from "../utils/imperialRiderHandler";
 import RelicModal from "../components/RelicModal";
 import { handleScoreCrown } from "../utils/relicHandler";
 import { handleShardSubmit } from "../utils/relicHandlers";
+import { handleAssignObsidian } from "../utils/obsidianhandler";
 
 
 import {
@@ -53,7 +54,7 @@ export default function GameDetail() {
     setObjectiveScores,
     refreshGameState,
     crownUsed,
-    obsidianHolder,
+    obsidianHolderId,
   } = useGameData(gameId);
 
   const isAgendaUsed = (title) =>
@@ -89,7 +90,6 @@ export default function GameDetail() {
   const [showShardModal, setShowShardModal] = useState(false);
   const [showObsidianModal, setShowObsidianModal] = useState(false);
   const obsidianUsed = isRelicUsed("The Obsidian");
-const [obsidianHolderId, setObsidianHolderId] = useState(null);
 
   const {
     scoreObjective,
@@ -244,12 +244,7 @@ const [obsidianHolderId, setObsidianHolderId] = useState(null);
             onClose={() => setShowObsidianModal(false)}
             title="The Obsidian"
             players={playersSorted}
-            onSubmit={(playerId) => {
-              setObsidianHolderId(parseInt(playerId));
-              setShowObsidianModal(false);
-              console.log("🧿 Obsidian given to player ID:", playerId);
-            }}
-
+            onSubmit={(playerId) => handleAssignObsidian(playerId, gameId, refreshGameState, () => setShowObsidianModal(false))}
             description="Choose a player to gain The Obsidian (gain 1 extra secret objective slot)"
           />
 

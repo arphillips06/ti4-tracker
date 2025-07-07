@@ -16,7 +16,7 @@ export default function PlayerSidebar({
   setObjectiveScores,
   refreshGameState,
   custodiansScored,
-  obsidianHolderId, 
+  obsidianHolderId,
 }) {
 
 
@@ -121,10 +121,10 @@ export default function PlayerSidebar({
                     <div className="d-flex gap-1">
                       {(() => {
                         console.log("🔍 Comparing player to obsidianHolderId:", {
-  playerId: entry.player_id,
-  obsidianHolderId: obsidianHolderId,
-  match: parseInt(entry.player_id) === parseInt(obsidianHolderId),
-});
+                          playerId: entry.player_id,
+                          obsidianHolderId: obsidianHolderId,
+                          match: parseInt(entry.player_id) === parseInt(obsidianHolderId),
+                        });
                         const extraSecret = parseInt(entry.player_id) === parseInt(obsidianHolderId) ? 1 : 0;
                         const baseSecrets = 3;
                         const maxSecrets = baseSecrets + extraSecret;
