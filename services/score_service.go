@@ -8,11 +8,25 @@ import (
 	"time"
 
 	"github.com/arphillips06/TI4-stats/database"
+	"github.com/arphillips06/TI4-stats/database/helpers"
 	"github.com/arphillips06/TI4-stats/models"
 	"gorm.io/gorm"
 )
 
 func ScoreImperialPoint(gameID, roundID, playerID uint) error {
+	roundID, err := helpers.GetCurrentRoundID(gameID)
+	if err != nil {
+		return err
+	}
+
+	var game models.Game
+	if err := database.DB.First(&game, gameID).Error; err != nil {
+		return err
+	}
+	if game.FinishedAt != nil {
+		return fmt.Errorf("game is already finished")
+	}
+
 	score := models.Score{
 		GameID:   gameID,
 		RoundID:  roundID,
@@ -20,12 +34,24 @@ func ScoreImperialPoint(gameID, roundID, playerID uint) error {
 		Points:   1,
 		Type:     "imperial",
 	}
-	return database.DB.Create(&score).Error
+	if err := database.DB.Create(&score).Error; err != nil {
+		return err
+	}
+	return MaybeFinishGameFromScore(&game, playerID)
 }
-func ScoreAgendaPoint(gameID, roundID, playerID uint, points int, agendaTitle string) error {
-	// Calculate current total score for the player in this game
+func ScoreAgendaPoint(gameID, playerID uint, points int, agendaTitle string) error {
+	roundID, err := helpers.GetCurrentRoundID(gameID)
+	if err != nil {
+		return fmt.Errorf("failed to get current round: %w", err)
+	}
+
+	var game models.Game
+	if err := database.DB.First(&game, gameID).Error; err != nil {
+		return fmt.Errorf("failed to load game: %w", err)
+	}
+
 	var totalPoints int64
-	err := database.DB.
+	err = database.DB.
 		Model(&models.Score{}).
 		Where("game_id = ? AND player_id = ?", gameID, playerID).
 		Select("SUM(points)").
@@ -35,12 +61,10 @@ func ScoreAgendaPoint(gameID, roundID, playerID uint, points int, agendaTitle st
 		return fmt.Errorf("failed to calculate current score: %w", err)
 	}
 
-	// Prevent score from dropping below zero
 	if int(totalPoints)+points < 0 {
 		return fmt.Errorf("agenda scoring would reduce points below zero")
 	}
 
-	// Create and insert the agenda score
 	score := models.Score{
 		GameID:      gameID,
 		RoundID:     roundID,
@@ -49,23 +73,35 @@ func ScoreAgendaPoint(gameID, roundID, playerID uint, points int, agendaTitle st
 		Type:        "agenda",
 		AgendaTitle: agendaTitle,
 	}
+	if err := database.DB.Create(&score).Error; err != nil {
+		return err
+	}
 
-	return database.DB.Create(&score).Error
+	return MaybeFinishGameFromScore(&game, playerID)
 }
 
-func ScoreMecatolPoint(gameID, roundID, playerID uint) error {
+func ScoreMecatolPoint(gameID, playerID uint) error {
+	roundID, err := helpers.GetCurrentRoundID(gameID)
+	if err != nil {
+		return err
+	}
+
 	var existing models.Score
-	err := database.DB.
+	err = database.DB.
 		Where("game_id = ? AND type = ?", gameID, "mecatol").
 		First(&existing).Error
 	if err == nil {
-		// Mecatol point already awarded
 		return fmt.Errorf("Mecatol Rex point already awarded")
 	}
 	if err != gorm.ErrRecordNotFound {
-		// Some unexpected error occurred
 		return err
 	}
+
+	var game models.Game
+	if err := database.DB.First(&game, gameID).Error; err != nil {
+		return err
+	}
+
 	score := models.Score{
 		GameID:   gameID,
 		RoundID:  roundID,
@@ -73,12 +109,29 @@ func ScoreMecatolPoint(gameID, roundID, playerID uint) error {
 		Points:   1,
 		Type:     "mecatol",
 	}
-	return database.DB.Create(&score).Error
+	if err := database.DB.Create(&score).Error; err != nil {
+		return err
+	}
+
+	return MaybeFinishGameFromScore(&game, playerID)
 }
 
-func ScoreSupportPoint(gameID, roundID, playerID uint) error {
+func ScoreSupportPoint(gameID, playerID uint) error {
+	roundID, err := helpers.GetCurrentRoundID(gameID)
+	if err != nil {
+		return err
+	}
+
+	var game models.Game
+	if err := database.DB.First(&game, gameID).Error; err != nil {
+		return err
+	}
+	if game.FinishedAt != nil {
+		return fmt.Errorf("game is already finished")
+	}
+
 	var playerCount int64
-	err := database.DB.
+	err = database.DB.
 		Model(&models.GamePlayer{}).
 		Where("game_id = ?", gameID).
 		Count(&playerCount).Error
@@ -90,8 +143,10 @@ func ScoreSupportPoint(gameID, roundID, playerID uint) error {
 	err = database.DB.
 		Model(&models.Score{}).
 		Where("game_id = ? AND type = ?", gameID, "Support").
-		Distinct("player_id").
-		Count(&supportCount).Error
+		Select("COALESCE(SUM(points), 0)").
+		Row().
+		Scan(&supportCount)
+
 	if err != nil {
 		return err
 	}
@@ -107,22 +162,41 @@ func ScoreSupportPoint(gameID, roundID, playerID uint) error {
 		Points:   1,
 		Type:     "Support",
 	}
-	return database.DB.Create(&score).Error
+	if err := database.DB.Create(&score).Error; err != nil {
+		return err
+	}
+
+	return MaybeFinishGameFromScore(&game, playerID)
 }
 
 func LoseOneSupportPoint(gameID, playerID uint) error {
-	var score models.Score
-
-	err := database.DB.
-		Where("game_id = ? AND player_id = ? AND type = ?", gameID, playerID, "Support").
-		Order("id ASC").
-		First(&score).Error
-
+	roundID, err := helpers.GetCurrentRoundID(gameID)
 	if err != nil {
 		return err
 	}
 
-	return database.DB.Delete(&score).Error
+	var game models.Game
+	if err := database.DB.First(&game, gameID).Error; err != nil {
+		return err
+	}
+	if game.FinishedAt != nil {
+		return fmt.Errorf("game is already finished")
+	}
+
+	// Create a negative support score record
+	score := models.Score{
+		GameID:   gameID,
+		RoundID:  roundID,
+		PlayerID: playerID,
+		Points:   -1,
+		Type:     "Support",
+	}
+
+	if err := database.DB.Create(&score).Error; err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func GetObjectiveScoreSummary(gameID uint) ([]models.ObjectiveScoreSummary, error) {
@@ -140,7 +214,6 @@ func GetObjectiveScoreSummary(gameID uint) ([]models.ObjectiveScoreSummary, erro
 	if err != nil {
 		return nil, err
 	}
-
 	for _, obj := range objectives {
 		var playerNames []string
 
@@ -166,40 +239,66 @@ func GetObjectiveScoreSummary(gameID uint) ([]models.ObjectiveScoreSummary, erro
 	return summaries, nil
 }
 
-func ValidateSecretScoringRules(playerID, roundID, objectiveID uint) error {
+func ValidateSecretScoringRules(gameID, playerID, roundID, objectiveID uint) error {
 	var objective models.Objective
 	if err := database.DB.First(&objective, objectiveID).Error; err != nil {
 		log.Printf("[ERROR] Could not find objective %d: %v", objectiveID, err)
-		return errors.New("objective not found")
+		return errors.New("Objective not found")
 	}
 
 	if strings.ToLower(objective.Type) != "secret" {
 		return nil
 	}
 
-	log.Printf("[DEBUG] Validating secret scoring: playerID=%d, objectiveID=%d, roundID=%d, phase=%s", playerID, objectiveID, roundID, objective.Phase)
-
-	var count int64
-	err := database.DB.
+	// Phase-specific limit check
+	var countThisPhase int64
+	if err := database.DB.
 		Model(&models.Score{}).
 		Where(`
-		player_id = ? AND 
-		round_id = ? AND 
-		LOWER(type) = ? AND 
-		objective_id IN (
-			SELECT id FROM objectives WHERE LOWER(phase) = ?
-		)`,
-			playerID, roundID, "secret", strings.ToLower(objective.Phase)).
-		Count(&count).Error
-	log.Printf("[DEBUG] Secrets scored: %d", count)
-
-	if err != nil {
-		return errors.New("failed to validate secret scoring rules")
-	}
-	if count > 0 {
-		return errors.New("player has already scored a secret objective in this phase this round")
+			player_id = ? AND 
+			round_id = ? AND 
+			LOWER(type) = 'secret' AND 
+			objective_id IN (
+				SELECT id FROM objectives WHERE LOWER(phase) = ?
+			)`,
+			playerID, roundID, strings.ToLower(objective.Phase)).
+		Count(&countThisPhase).Error; err != nil {
+		return errors.New("Failed to validate secret scoring rules")
 	}
 
+	if countThisPhase > 0 {
+		return errors.New("Player has already scored a secret objective in this phase this round")
+	}
+
+	// Total secret scoring cap
+	var totalSecrets int64
+	if err := database.DB.
+		Model(&models.Score{}).
+		Joins("JOIN objectives ON objectives.id = scores.objective_id").
+		Where("scores.player_id = ? AND scores.game_id = ? AND LOWER(scores.type) = 'secret'", playerID, gameID).
+		Count(&totalSecrets).Error; err != nil {
+		return errors.New("Failed to count total secret objectives")
+	}
+
+	// Obsidian check
+	var obsidianUsed int64
+	if err := database.DB.
+		Model(&models.Score{}).
+		Where("game_id = ? AND player_id = ? AND LOWER(type) = 'relic' AND LOWER(relic_title) = 'the obsidian'", gameID, playerID).
+		Count(&obsidianUsed).Error; err != nil {
+		return errors.New("Failed to check Obsidian use")
+	}
+
+	maxSecrets := int64(3)
+	if obsidianUsed > 0 {
+		maxSecrets = 4
+	}
+
+	if totalSecrets >= maxSecrets {
+		return fmt.Errorf("Player has already scored the maximum of %d secret objectives", maxSecrets)
+	}
+
+	log.Printf("[DEBUG] Player has scored %d/%d secret objectives", totalSecrets, maxSecrets)
 	return nil
 }
 
@@ -224,7 +323,7 @@ func AddScoreToGame(gameID, playerID uint, objectiveName string) (*models.Score,
 	}
 
 	if obj.Type == "Secret" {
-		if err := ValidateSecretScoringRules(playerID, round.ID, obj.ID); err != nil {
+		if err := ValidateSecretScoringRules(gameID, playerID, round.ID, obj.ID); err != nil {
 			return nil, 0, err
 		}
 	}
@@ -271,7 +370,7 @@ func CheckIfScoreExists(gameID, playerID, objectiveID uint) (bool, error) {
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return false, nil // ✅ not found = score does not exist
+			return false, nil
 		}
 		return false, fmt.Errorf("failed to check for existing score: %w", err)
 	}
@@ -299,7 +398,7 @@ func WinnerByScore(game *models.Game) error {
 	}
 
 	if topScore.PlayerID != 0 {
-		game.WinnerID = topScore.PlayerID
+		game.WinnerID = &topScore.PlayerID
 		return nil
 	}
 
@@ -337,7 +436,7 @@ func MaybeFinishGameFromScore(game *models.Game, scoringPlayerID uint) error {
 	if totalPoints >= game.WinningPoints {
 		now := time.Now()
 		game.FinishedAt = &now
-		game.WinnerID = scoringPlayerID
+		game.WinnerID = &scoringPlayerID
 		return database.DB.Save(game).Error
 	}
 

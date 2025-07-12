@@ -78,6 +78,8 @@ func main() {
 	r.POST("/relic/crown", controllers.HandleCrownRelic)
 	r.POST("/relic/obsidian", controllers.HandleObsidianRelic)
 
+	r.POST("/games/:game_id/support/:player_id", controllers.SFTT)
+
 	// Serve static frontend files from /build
 	r.Static("/static", "./build/static") // serve JS/CSS etc.
 

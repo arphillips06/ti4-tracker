@@ -40,46 +40,61 @@ func GetScoreSummary(c *gin.Context) {
 
 func GetScoresByRound(c *gin.Context) {
 	gameID := c.Param("id")
+
 	type rawScore struct {
-		RoundNumber int
-		PlayerName  string
-		Objective   string
-		Points      int
+		Round  int    `json:"round"`
+		Player string `json:"player"`
+		Source string `json:"source"`
+		Points int    `json:"points"`
 	}
 
 	var results []rawScore
 
 	err := database.DB.
 		Table("scores").
-		Select("rounds.number as round_number, players.name as player_name, objectives.name as objective, scores.points").
+		Select(`
+			COALESCE(rounds.number, 0) AS round,
+			players.name AS player,
+			COALESCE(objectives.name, scores.agenda_title, scores.relic_title,
+				CASE
+					WHEN scores.type = 'imperial' THEN 'Imperial Point'
+					WHEN scores.type = 'mecatol' THEN 'Custodians'
+					WHEN scores.type = 'Support' THEN 'Support for the Throne'
+					ELSE 'Unknown'
+				END
+			) AS source,
+			scores.points
+		`).
 		Joins("JOIN players ON scores.player_id = players.id").
-		Joins("JOIN objectives ON scores.objective_id = objectives.id").
-		Joins("JOIN rounds ON scores.round_id = rounds.id").
+		Joins("LEFT JOIN rounds ON scores.round_id = rounds.id").
+		Joins("LEFT JOIN objectives ON scores.objective_id = objectives.id").
 		Where("scores.game_id = ?", gameID).
-		Order("rounds.number, players.name").
+		Order("round, players.name").
 		Scan(&results).Error
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not load scores"})
 		return
 	}
 
-	grouped := make(map[int][]models.RoundScore)
-
+	grouped := make(map[int][]rawScore)
 	for _, r := range results {
-		grouped[r.RoundNumber] = append(grouped[r.RoundNumber], models.RoundScore{
-			Player:    r.PlayerName,
-			Objective: r.Objective,
-			Points:    r.Points,
-		})
+		grouped[r.Round] = append(grouped[r.Round], r)
 	}
 
-	var response []models.RoundScoresGroup
+	type RoundScoresGroup struct {
+		Round  int        `json:"round"`
+		Scores []rawScore `json:"scores"`
+	}
+
+	var response []RoundScoresGroup
 	for round, scores := range grouped {
-		response = append(response, models.RoundScoresGroup{
+		response = append(response, RoundScoresGroup{
 			Round:  round,
 			Scores: scores,
 		})
 	}
+
 	c.JSON(http.StatusOK, response)
 }
 

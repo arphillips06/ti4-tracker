@@ -229,11 +229,6 @@ func GetGameAndScores(gameID string) (models.Game, []models.Score, error) {
 		}
 		if !found {
 			var objective models.Objective
-			if err := database.DB.First(&objective, objID).Error; err != nil {
-				log.Printf("[CDL] ❌ Failed to load objective ID %d: %v", objID, err)
-				continue
-			}
-			log.Printf("[CDL] ➕ Injecting CDL objective: %s (ID %d)", objective.Name, objID)
 
 			game.GameObjectives = append(game.GameObjectives, models.GameObjective{
 				ObjectiveID: objID,
