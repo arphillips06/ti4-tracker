@@ -100,5 +100,5 @@ func main() {
 	})
 
 	// Start server on port 8080
-	r.Run("0.0.0.0:8080")
+	r.Run("127.0.0.1:8080")
 }
