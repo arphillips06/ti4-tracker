@@ -1,7 +1,7 @@
 // src/pages/NewGamePage.js
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import PlayerInputRow from "../components/PlayerInputRow";
+import PlayerInputRow from "../components/players/PlayerInputRow";
 import factionColors from "../data/factionColors";
 import API_BASE_URL from "../config";
 

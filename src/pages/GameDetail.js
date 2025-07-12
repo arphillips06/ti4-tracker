@@ -1,53 +1,42 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 
-import PlayerSidebar from "../components/PlayerSidebar";
-import GameControls from "../components/GameControls";
-import ObjectivesGrid from "../components/ObjectivesGrid";
-import GameNavbar from "../components/GameNavbar";
-import AgendaModals from "../components/AgendaModals";
+import PlayerSidebar from "../components/players/PlayerSidebar";
+import GameControls from "../components/layout/GameControls";
+import ObjectivesGrid from "../components/objectives/ObjectivesGrid";
+import GameNavbar from "../components/layout/GameNavbar";
 import useGroupedScoredSecrets from "../hooks/useGroupedScoredSecrets";
 import useMergedPlayerData from "../hooks/useMergedPlayerData";
 import useObjectiveActions from "../hooks/useObjectiveActions";
-import ImperialRiderModal from "../components/ImperialRiderModal";
+import useModalControls from "../hooks/useModalControls";
 import { handleScoreImperialRider } from "../utils/imperialRiderHandler";
-import RelicModal from "../components/RelicModal";
 import { handleScoreCrown } from "../utils/relicHandler";
-import { handleShardSubmit } from "../utils/relicHandlers";
-import { handleAssignObsidian } from "../utils/obsidianhandler";
 import '../GameDetail.css';
-import ScoreGraph from '../components/ScoreGraph';
-
-
-import {
-  handleMutinySubmit,
-  handleSeedSubmit,
-  handleIncentiveSubmit,
-  handlePoliticalCensureSubmit,
-  handleClassifiedSubmit,
-} from "../utils/agendaHandlers";
+import ScoreGraph from '../components/graphs/ScoreGraph';
+import VictoryBanner from "../components/layout/VictoryBanner";
+import GameModals from "../components/modals/GameModals";
 import useGameData from "../hooks/useGameData";
-
 
 export default function GameDetail() {
   const { gameId } = useParams();
+  const { modals, toggleModal } = useModalControls();
+
   const scoreImperialRider = (playerId) => {
     return handleScoreImperialRider(
       playerId,
       gameId,
       refreshGameState,
-      setShowImperialModal
+      () => toggleModal("imperial", false)
     );
   };
-  const [showCrownModal, setShowCrownModal] = useState(false);
 
   const scoreCrown = (playerId) =>
     handleScoreCrown(playerId, gameId, refreshGameState);
+
   const [graphRefreshKey, setGraphRefreshKey] = useState(0);
   const triggerGraphUpdate = () => {
     setGraphRefreshKey((prev) => prev + 1);
   };
-
 
   const {
     game,
@@ -72,7 +61,6 @@ export default function GameDetail() {
       (s) => s.Type?.toLowerCase() === "relic" && s.RelicTitle === title
     );
 
-
   const mutinyUsed = isAgendaUsed("Mutiny");
   const incentiveUsed = isAgendaUsed("Incentive Program");
   const seedUsed = isAgendaUsed("Seed of an Empire");
@@ -80,21 +68,16 @@ export default function GameDetail() {
   const [scoringMode, setScoringMode] = useState(false);
   const [expandedPlayers, setExpandedPlayers] = useState({});
   const [localScored, setLocalScored] = useState({});
-  const [showAgendaModal, setShowAgendaModal] = useState(false);
   const [mutinyVotes, setMutinyVotes] = useState([]);
   const [mutinyResult, setMutinyResult] = useState("for");
   const [mutinyAbstained, setMutinyAbstained] = useState(false);
   const [custodiansScorerId, setCustodiansScorerId] = useState(null);
-  const [showCensureModal, setShowCensureModal] = useState(false);
-  const [showSeedModal, setShowSeedModal] = useState(false);
   const [assigningObjective, setAssigningObjective] = useState(null);
   const [agendaModal, setAgendaModal] = useState(null);
-  const [showImperialModal, setShowImperialModal] = useState(false);
+
   const playersUnsorted = useMergedPlayerData(game, false);
   const playersSorted = useMergedPlayerData(game, true);
   const groupedScoredSecrets = useGroupedScoredSecrets(game?.all_scores, secretObjectives);
-  const [showShardModal, setShowShardModal] = useState(false);
-  const [showObsidianModal, setShowObsidianModal] = useState(false);
   const obsidianUsed = isRelicUsed("The Obsidian");
   const [showScoreGraph, setShowScoreGraph] = useState(false);
 
@@ -111,7 +94,6 @@ export default function GameDetail() {
   }, [game]);
 
   if (!game) return <div className="p-4 text-warning">Loading game data...</div>;
-  // Check if the game is finished and find the winner
   const winner_id = game.winner_id || game.winner_id;
   const winnerPlayer = game.players?.find(p => p.PlayerID === winner_id || p.player_id === winner_id);
 
@@ -124,27 +106,20 @@ export default function GameDetail() {
         mutinyUsed={mutinyUsed}
         incentiveUsed={incentiveUsed}
         seedUsed={seedUsed}
-        setShowAgendaModal={setShowAgendaModal}
-        setShowCensureModal={setShowCensureModal}
-        setShowSeedModal={setShowSeedModal}
+        setShowAgendaModal={(val) => toggleModal("agenda", val)}
+        setShowCensureModal={(val) => toggleModal("censure", val)}
+        setShowSeedModal={(val) => toggleModal("seed", val)}
         setAgendaModal={setAgendaModal}
-        setShowImperialModal={setShowImperialModal}
-        setShowShardModal={setShowShardModal}
-        setShowCrownModal={setShowCrownModal}
+        setShowImperialModal={(val) => toggleModal("imperial", val)}
+        setShowShardModal={(val) => toggleModal("shard", val)}
+        setShowCrownModal={(val) => toggleModal("crown", val)}
         crownUsed={crownUsed}
         obsidianUsed={obsidianUsed}
-        setShowObsidianModal={setShowObsidianModal}
+        setShowObsidianModal={(val) => toggleModal("obsidian", val)}
       />
-      {/* Winner announcement */}
-      {game?.finished_at && game?.winner && (
-        <div className="victory-banner">
-          <div className="glow-bg" />
-          <div className="victory-content">
-            <h2 className="victory-text">{game.winner.Name.toUpperCase()} CLAIMS THE THRONE!</h2>
-            <p className="victory-subtext">Their dominion over the galaxy is undisputed.</p>
-          </div>
-        </div>
-      )}
+      <VictoryBanner winner={game?.winner} finished={game?.finished_at} />
+
+
       <div className="p-6 max-w-7xl mx-auto">
         <GameControls
           game={game}
@@ -175,106 +150,27 @@ export default function GameDetail() {
             />
           )}
 
-
-          <AgendaModals
+          <GameModals
+            modals={modals}
+            toggleModal={toggleModal}
+            gameId={gameId}
+            game={game}
+            refreshGameState={refreshGameState}
+            playersSorted={playersSorted}
+            playersUnsorted={playersUnsorted}
+            scoreImperialRider={scoreImperialRider}
+            scoreCrown={scoreCrown}
+            setGame={setGame}
             agendaModal={agendaModal}
             setAgendaModal={setAgendaModal}
-            showAgendaModal={showAgendaModal}
-            setShowAgendaModal={setShowAgendaModal}
-            showSeedModal={showSeedModal}
-            setShowSeedModal={setShowSeedModal}
-            showCensureModal={showCensureModal}
-            setShowCensureModal={setShowCensureModal}
+            secretObjectives={secretObjectives}
+            groupedScoredSecrets={groupedScoredSecrets}
             mutinyVotes={mutinyVotes}
             setMutinyVotes={setMutinyVotes}
             mutinyResult={mutinyResult}
             setMutinyResult={setMutinyResult}
             mutinyAbstained={mutinyAbstained}
             setMutinyAbstained={setMutinyAbstained}
-            playersUnsorted={playersUnsorted}
-            gameId={gameId}
-            game={game}
-            refreshGameState={refreshGameState}
-            setGame={setGame}
-            secretObjectives={secretObjectives}
-            groupedScoredSecrets={groupedScoredSecrets}
-            handleMutinySubmit={() =>
-              handleMutinySubmit({
-                gameId,
-                game,
-                mutinyResult,
-                mutinyVotes,
-                mutinyAbstained,
-                refreshGameState,
-                setGame,
-                setShowAgendaModal,
-              })
-            }
-            handleSeedSubmit={(result) =>
-              handleSeedSubmit({
-                gameId,
-                result,
-                game,
-                refreshGameState,
-              })
-            }
-            handlePoliticalCensureSubmit={(data) =>
-              handlePoliticalCensureSubmit({
-                ...data,
-                gameId,
-                game,
-                refreshGameState,
-              })
-            }
-            handleClassifiedSubmit={(playerId, objectiveId) =>
-              handleClassifiedSubmit({
-                gameId,
-                playerId,
-                objectiveId,
-                refreshGameState,
-                setAgendaModal,
-              })
-            }
-            handleIncentiveSubmit={(result) =>
-              handleIncentiveSubmit({
-                gameId,
-                result,
-                refreshGameState,
-                setAgendaModal,
-              })
-            }
-          />
-          <ImperialRiderModal
-            show={showImperialModal}
-            onClose={() => setShowImperialModal(false)}
-            players={playersSorted}
-            onSubmit={scoreImperialRider}
-          />
-          <RelicModal
-            show={showCrownModal}
-            onClose={() => setShowCrownModal(false)}
-            title="The Crown of Emphidia"
-            players={playersSorted}
-            onSubmit={scoreCrown}
-            description="Choose a player to gain 1 point from The Crown of Emphidia"
-          />
-          <RelicModal
-            show={showShardModal}
-            onClose={() => setShowShardModal(false)}
-            title="Shard of the Throne"
-            players={playersSorted}
-            onSubmit={(playerId) =>
-              handleShardSubmit(playerId, gameId, refreshGameState, () => setShowShardModal(false))
-            }
-            description="Choose a player to gain control of Shard of the Throne (gain 1 point)"
-          />
-          <RelicModal
-            show={showObsidianModal}
-            onClose={() => setShowObsidianModal(false)}
-            title="The Obsidian"
-            players={playersSorted}
-            onSubmit={(playerId) => handleAssignObsidian(playerId, gameId, refreshGameState, () => setShowObsidianModal(false))}
-            description="Choose a player to gain The Obsidian (gain 1 extra secret objective slot)"
           />
 
 
