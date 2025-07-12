@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"database/sql"
 	"errors"
 	"math"
 
@@ -281,7 +282,8 @@ func DetermineMostPlayedAndVictoriousFactions(plays, wins map[string]int) (strin
 }
 
 func CalculateAverageRounds() (float64, error) {
-	var avg float64
+	var avg sql.NullFloat64
+
 	subQuery := database.DB.
 		Table("rounds").
 		Select("game_id, MAX(number) as round_count").
@@ -290,16 +292,33 @@ func CalculateAverageRounds() (float64, error) {
 	err := database.DB.
 		Table("(?) as game_rounds", subQuery).
 		Select("AVG(round_count)").
+		Joins("JOIN games ON games.id = game_rounds.game_id").
+		Where("games.partial = false").
 		Scan(&avg).Error
-	return avg, err
+
+	if err != nil {
+		return 0, err
+	}
+	if !avg.Valid {
+		// No valid data to average from
+		return 0, nil
+	}
+
+	return avg.Float64, nil
 }
 
 func CalculateAveragePlayerPoints() (float64, error) {
 	var avg float64
-	err := database.DB.
+	subQuery := database.DB.
 		Model(&models.Score{}).
-		Select("AVG(points)").
+		Select("SUM(points) as total").
+		Group("game_id, player_id")
+
+	err := database.DB.
+		Table("(?) as sub", subQuery).
+		Select("AVG(total)").
 		Scan(&avg).Error
+
 	return avg, err
 }
 
@@ -320,6 +339,8 @@ func CalculateObjectiveAppearanceStats(totalGames int64) (map[string]models.Obje
 		Table("game_objectives").
 		Select("objectives.name, COUNT(DISTINCT game_objectives.game_id) as game_count").
 		Joins("JOIN objectives ON game_objectives.objective_id = objectives.id").
+		Joins("JOIN games ON game_objectives.game_id = games.id").
+		Where("games.partial = false").
 		Group("objectives.name").
 		Scan(&appearances).Error
 	if err != nil {
@@ -329,6 +350,8 @@ func CalculateObjectiveAppearanceStats(totalGames int64) (map[string]models.Obje
 		Model(&models.Score{}).
 		Select("objectives.name, COUNT(DISTINCT scores.game_id) as game_count").
 		Joins("JOIN objectives ON scores.objective_id = objectives.id").
+		Joins("JOIN games ON scores.game_id = games.id").
+		Where("games.partial = false").
 		Group("objectives.name").
 		Scan(&scored).Error
 	if err != nil {
@@ -442,14 +465,17 @@ func CalculateSecretObjectiveRates() ([]models.SecretObjectiveRate, error) {
 	// Subquery: games played per player
 	subGamesPlayed := database.DB.
 		Table("game_players").
+		Joins("JOIN games ON games.id = game_players.game_id").
+		Where("games.partial = false").
 		Select("player_id, COUNT(DISTINCT game_id) AS games_played").
 		Group("player_id")
 
-	// Subquery: secret scored per player
+		// Subquery: secret scored per player
 	subSecrets := database.DB.
 		Table("scores").
-		Select("player_id, COUNT(DISTINCT id) AS secret_scored").
-		Where("type = ?", "secret").
+		Joins("JOIN games ON games.id = scores.game_id").
+		Where("games.partial = false AND type = ?", "secret").
+		Select("player_id, COUNT(DISTINCT scores.id) AS secret_scored").
 		Group("player_id")
 
 	// Join both subqueries on player_id
