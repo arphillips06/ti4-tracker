@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import PlayerInputRow from "../components/players/PlayerInputRow";
 import factionColors from "../data/factionColors";
 import API_BASE_URL from "../config";
-
+import '../NewGamePage.css';
 const FACTIONS = Object.entries(factionColors).map(([key, data]) => ({
   key,
   label: data.label,
@@ -99,14 +99,19 @@ export default function NewGamePage() {
 
   return (
     <div className="p-6 max-w-3xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Start a New Game</h2>
+      <h1 className="ti-header">Start a New Game</h1>
 
       <div className="mb-4">
         <label className="block font-medium mb-1">Winning Points:</label>
         <select
           value={winningPoints}
           onChange={(e) => setWinningPoints(Number(e.target.value))}
-          className="border rounded px-3 py-2"
+          style={{
+            width: "60px",
+            padding: "4px 6px",
+            fontSize: "0.9rem",
+            borderRadius: "4px",
+          }}
         >
           <option value={10}>10</option>
           <option value={14}>14</option>
@@ -141,25 +146,44 @@ export default function NewGamePage() {
         />
       </div>
 
-      {players.map((player, i) => (
-        <PlayerInputRow
-          key={i}
-          index={i}
-          value={player}
-          onFactionChange={(index, faction) =>
-            handlePlayerChange(index, "faction", faction)
-          }
-          onColorChange={(index, color) =>
-            handlePlayerChange(index, "color", color)
-          }
-          onNameChange={(index, name) =>
-            handlePlayerChange(index, "name", name)
-          }
-          factions={FACTIONS}
-          selectedFactions={selectedFactions}
-          selectedColors={selectedColors}
-        />
-      ))}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(350px, 1fr))",
+          gap: "12px",
+          marginBottom: "20px",
+        }}
+      >
+        {players.map((player, i) => (
+          <div
+            key={i}
+            style={{
+              backgroundColor: "#0d0d1a",
+              border: "1px solid #e0c87344",
+              borderRadius: "8px",
+              padding: "10px",
+            }}
+          >
+            <PlayerInputRow
+              index={i}
+              value={player}
+              onFactionChange={(index, faction) =>
+                handlePlayerChange(index, "faction", faction)
+              }
+              onColorChange={(index, color) =>
+                handlePlayerChange(index, "color", color)
+              }
+              onNameChange={(index, name) =>
+                handlePlayerChange(index, "name", name)
+              }
+              factions={FACTIONS}
+              selectedFactions={selectedFactions}
+              selectedColors={selectedColors}
+            />
+          </div>
+        ))}
+      </div>
+
 
       <button onClick={startGame} className="btn btn-primary mt-4">
         Start Game
