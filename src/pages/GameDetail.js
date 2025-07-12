@@ -14,6 +14,9 @@ import { handleScoreImperialRider } from "../utils/imperialRiderHandler";
 import RelicModal from "../components/RelicModal";
 import { handleScoreCrown } from "../utils/relicHandler";
 import { handleShardSubmit } from "../utils/relicHandlers";
+import { handleAssignObsidian } from "../utils/obsidianhandler";
+import '../GameDetail.css';
+import ScoreGraph from '../components/ScoreGraph';
 
 
 import {
@@ -40,6 +43,10 @@ export default function GameDetail() {
 
   const scoreCrown = (playerId) =>
     handleScoreCrown(playerId, gameId, refreshGameState);
+  const [graphRefreshKey, setGraphRefreshKey] = useState(0);
+  const triggerGraphUpdate = () => {
+    setGraphRefreshKey((prev) => prev + 1);
+  };
 
 
   const {
@@ -53,7 +60,7 @@ export default function GameDetail() {
     setObjectiveScores,
     refreshGameState,
     crownUsed,
-    obsidianHolder,
+    obsidianHolderId,
   } = useGameData(gameId);
 
   const isAgendaUsed = (title) =>
@@ -89,7 +96,7 @@ export default function GameDetail() {
   const [showShardModal, setShowShardModal] = useState(false);
   const [showObsidianModal, setShowObsidianModal] = useState(false);
   const obsidianUsed = isRelicUsed("The Obsidian");
-const [obsidianHolderId, setObsidianHolderId] = useState(null);
+  const [showScoreGraph, setShowScoreGraph] = useState(false);
 
   const {
     scoreObjective,
@@ -104,10 +111,16 @@ const [obsidianHolderId, setObsidianHolderId] = useState(null);
   }, [game]);
 
   if (!game) return <div className="p-4 text-warning">Loading game data...</div>;
+  // Check if the game is finished and find the winner
+  const winner_id = game.winner_id || game.winner_id;
+  const winnerPlayer = game.players?.find(p => p.PlayerID === winner_id || p.player_id === winner_id);
 
   return (
     <>
       <GameNavbar
+        gameId={gameId}
+        showScoreGraph={showScoreGraph}
+        setShowScoreGraph={setShowScoreGraph}
         mutinyUsed={mutinyUsed}
         incentiveUsed={incentiveUsed}
         seedUsed={seedUsed}
@@ -122,7 +135,16 @@ const [obsidianHolderId, setObsidianHolderId] = useState(null);
         obsidianUsed={obsidianUsed}
         setShowObsidianModal={setShowObsidianModal}
       />
-
+      {/* Winner announcement */}
+      {game?.finished_at && game?.winner && (
+        <div className="victory-banner">
+          <div className="glow-bg" />
+          <div className="victory-content">
+            <h2 className="victory-text">{game.winner.Name.toUpperCase()} CLAIMS THE THRONE!</h2>
+            <p className="victory-subtext">Their dominion over the galaxy is undisputed.</p>
+          </div>
+        </div>
+      )}
       <div className="p-6 max-w-7xl mx-auto">
         <GameControls
           game={game}
@@ -131,21 +153,28 @@ const [obsidianHolderId, setObsidianHolderId] = useState(null);
           onAdvanceRound={advanceRound}
         />
         <div className="d-flex flex-row align-items-start gap-4 flex-wrap">
-          <ObjectivesGrid
-            game={game}
-            refreshGameState={refreshGameState}
-            objectives={objectives}
-            playersUnsorted={playersUnsorted}
-            gameId={game.id || game.ID}
-            objectiveScores={objectiveScores}
-            localScored={localScored}
-            scoringMode={scoringMode}
-            scoreObjective={scoreObjective}
-            useObjectiveDecks={game?.use_objective_decks}
-            assigningObjective={assigningObjective}
-            setAssigningObjective={setAssigningObjective}
-            assignObjective={assignObjective}
-          />
+          {showScoreGraph ? (
+            <div style={{ flex: 1 }}>
+              <ScoreGraph gameId={gameId} refreshSignal={graphRefreshKey} />
+            </div>
+          ) : (
+            <ObjectivesGrid
+              game={game}
+              refreshGameState={refreshGameState}
+              objectives={objectives}
+              playersUnsorted={playersUnsorted}
+              gameId={game.id || game.ID}
+              objectiveScores={objectiveScores}
+              localScored={localScored}
+              scoringMode={scoringMode}
+              scoreObjective={scoreObjective}
+              useObjectiveDecks={game?.use_objective_decks}
+              assigningObjective={assigningObjective}
+              setAssigningObjective={setAssigningObjective}
+              assignObjective={assignObjective}
+            />
+          )}
+
 
           <AgendaModals
             agendaModal={agendaModal}
@@ -244,12 +273,7 @@ const [obsidianHolderId, setObsidianHolderId] = useState(null);
             onClose={() => setShowObsidianModal(false)}
             title="The Obsidian"
             players={playersSorted}
-            onSubmit={(playerId) => {
-              setObsidianHolderId(parseInt(playerId));
-              setShowObsidianModal(false);
-              console.log("🧿 Obsidian given to player ID:", playerId);
-            }}
-
+            onSubmit={(playerId) => handleAssignObsidian(playerId, gameId, refreshGameState, () => setShowObsidianModal(false))}
             description="Choose a player to gain The Obsidian (gain 1 extra secret objective slot)"
           />
 
@@ -272,6 +296,7 @@ const [obsidianHolderId, setObsidianHolderId] = useState(null);
               refreshGameState={refreshGameState}
               custodiansScored={!!game?.all_scores?.some((s) => s.Type === "mecatol")}
               obsidianHolderId={obsidianHolderId}
+              triggerGraphUpdate={triggerGraphUpdate}
             />
           </div>
         </div>

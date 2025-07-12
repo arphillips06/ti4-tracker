@@ -10,14 +10,13 @@ export default function useGameData(gameId) {
   const [censureHolder, setCensureHolder] = useState(null);
   const [cdlUsed, setCdlUsed] = useState(false);
   const [crownUsed, setCrownUsed] = useState(false);
-const [obsidianHolder, setObsidianHolder] = useState(null);
+const [obsidianHolderId, setObsidianHolderId] = useState(null);
 
 
 
   const fetchGame = async () => {
     const res = await fetch(`${API_BASE_URL}/games/${gameId}`);
     const data = await res.json();
-    console.log("[fetchGame] Raw game data:", data);
     return data; // Support both wrapped and direct response
   };
 
@@ -36,30 +35,34 @@ const [obsidianHolder, setObsidianHolder] = useState(null);
     return res.json();
   };
 
-  const refreshGameState = async () => {
-    const [gameData, objectivesData, scoresData] = await Promise.all([
-      fetchGame(),
-      fetchObjectives(),
-      fetchScores(),
-    ]);
+const refreshGameState = async () => {
+  const [gameData, objectivesData, scoresData] = await Promise.all([
+    fetchGame(),
+    fetchObjectives(),
+    fetchScores(),
+  ]);
 
-    console.log("[useGameData] Setting game state:", gameData);
-    gameData.AllScores = gameData.all_scores || [];
-    gameData.game_players = gameData.players || [];
-    setGame(gameData);
+  gameData.AllScores = gameData.all_scores || [];
+  gameData.game_players = gameData.players || [];
+  gameData.winner_id = gameData.winner_id ?? gameData.WinnerID;
 
-    const map = {};
-    (Array.isArray(scoresData) ? scoresData : scoresData?.value || []).forEach((entry) => {
-      map[entry.objective_id] = entry.scored_by || [];
-    });
-    setObjectiveScores(map);
+  setGame(gameData);
 
-    setObjectives(Array.isArray(objectivesData) ? objectivesData : objectivesData?.value || []);
-  };
+  const obsidianScore = gameData.AllScores?.find(
+    (s) => s.Type === "relic" && s.RelicTitle === "The Obsidian"
+  );
+  setObsidianHolderId(obsidianScore?.PlayerID || null);
 
+  const map = {};
+  (Array.isArray(scoresData) ? scoresData : scoresData?.value || []).forEach((entry) => {
+    map[entry.objective_id] = entry.scored_by || [];
+  });
+  setObjectiveScores(map);
+
+  setObjectives(Array.isArray(objectivesData) ? objectivesData : objectivesData?.value || []);
+};
   useEffect(() => {
     (async () => {
-      console.log("[useEffect] Running initial game load for gameId:", gameId);
       const [gameData, objectiveData, secretData, scoresData] = await Promise.all([
         fetchGame(),
         fetchObjectives(),
@@ -67,29 +70,19 @@ const [obsidianHolder, setObsidianHolder] = useState(null);
         fetchScores(),
       ]);
 
-      console.log("[useEffect] All data fetched:");
-      console.log("  Game:", gameData);
-      console.log("  Secrets:", secretData.length);
-      console.log("  Scores:", scoresData);
-      console.log("  Objectives:", gameData.objectives);
 
       // 🛠 Fix: Normalize AllScores for compatibility
       gameData.AllScores = gameData.all_scores || [];
       gameData.game_players = gameData.players || [];
       setGame(gameData);
-      console.log("  → use_objective_decks =", gameData?.use_objective_decks);
 
       setMutinyUsed(gameData.AllScores?.some((s) => s.AgendaTitle === "Mutiny"));
       setCdlUsed(gameData.AllScores?.some((s) => s.AgendaTitle === "Classified Document Leaks"));
       setCrownUsed(gameData.AllScores?.some((s) => s.Type?.toLowerCase() === "relic" && s.RelicTitle === "The Crown of Emphidia"));
       const obsidianScore = gameData.AllScores?.find(
-        (s) => s.Type?.toLowerCase() === "relic" && s.RelicTitle === "The Obsidian"
+        (s) => s.Type === "relic" && s.RelicTitle === "The Obsidian"
       );
-      if (obsidianScore) {
-        setObsidianHolder(obsidianScore.PlayerID);
-      }
-
-
+      setObsidianHolderId(obsidianScore?.PlayerID || null);
       const initialSecrets = {};
       (gameData.players || []).forEach((p) => {
         initialSecrets[p.PlayerID || p.id] = 0;
@@ -126,7 +119,6 @@ const [obsidianHolder, setObsidianHolder] = useState(null);
       }));
       setSecretObjectives(normalizedSecrets);
 
-      console.log("[useEffect] Finished setting state.");
     })();
 
     const match = game?.AllScores?.find(
@@ -151,6 +143,7 @@ const [obsidianHolder, setObsidianHolder] = useState(null);
     setMutinyUsed,
     setCdlUsed,
     crownUsed,
-    obsidianHolder,
+    obsidianHolderId,
+    setObsidianHolderId,
   };
 }

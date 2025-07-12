@@ -64,7 +64,6 @@ export default function NewGamePage() {
         })),
       };
 
-      console.log("Submitting payload:", JSON.stringify(payload, null, 2));
 
       const res = await fetch(`${API_BASE_URL}/games`, {
         method: 'POST',
@@ -80,15 +79,12 @@ export default function NewGamePage() {
       }
 
       const data = await res.json();
-      console.log("Response data from backend:", data);
-      console.log("data.game:", data.game);
 
       const newGameId = data.game.id; // <- likely fix here
 
       if (!data.game.id) throw new Error("No game ID returned from backend");
       navigate(`/game/${data.game.id}`);
 
-      console.log("Navigating to new game:", newGameId);
       navigate(`/games/${newGameId}`);
 
     } catch (error) {

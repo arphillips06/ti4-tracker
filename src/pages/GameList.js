@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 import API_BASE_URL from "../config";
 
 function GameList() {
@@ -30,11 +31,12 @@ function GameList() {
     async function loadGames() {
       try {
         const res = await axios.get(`${API_BASE_URL}/games`);
+
         const gamesData = res.data;
 
         const withScores = await Promise.all(
           gamesData.map(async (game) => {
-            const scores = await fetchScoresForGame(game.ID);
+            const scores = await fetchScoresForGame(game.id);
             return { ...game, Scores: scores };
           })
         );
@@ -56,17 +58,17 @@ function GameList() {
       ) : (
         <ul className="list-group">
           {games.map((game) => {
-            const start = new Date(game.CreatedAt);
-            const end = game.FinishedAt ? new Date(game.FinishedAt) : null;
+            const start = new Date(game.created_at);
+            const end = game.finished_at ? new Date(game.finished_at) : null;
             const durationText = formatDuration(start, end);
-            const winner = game.Winner?.Name;
+            const winner = game.winner?.Name;
 
             return (
-              <li className="list-group-item" key={game.ID}>
+              <li className="list-group-item" key={game.id}>
                 <div className="mb-2">
-                  <strong>Game #{game.ID}</strong> –{" "}
-                  <span>{game.GamePlayers?.length || 0} players</span> –{" "}
-                  <span>Round {game.CurrentRound || "?"}</span>
+                  <strong>Game #{game.id}</strong> –{" "}
+                  <span>{game.players?.length || 0} players</span> –{" "}
+                  <span>Round {game.current_round ?? "?"}</span>
                 </div>
 
                 <div className="text-muted mb-2">Length: {durationText}</div>
@@ -91,11 +93,11 @@ function GameList() {
                   </div>
                 )}
 
-                {game.GamePlayers && (
+                {game.players && (
                   <div className="mb-2">
                     <strong>Players:</strong>
                     <ul className="list-unstyled ms-3">
-                      {game.GamePlayers.map((gp) => (
+                      {game.players.map((gp) => (
                         <li key={gp.ID}>
                           {gp.Player?.Name || "Unnamed"} <em>({gp.Faction})</em>
                         </li>
@@ -103,6 +105,12 @@ function GameList() {
                     </ul>
                   </div>
                 )}
+
+                <div className="text-end">
+                  <Link to={`/games/${game.id}`} className="btn btn-sm btn-primary">
+                    View Game
+                  </Link>
+                </div>
               </li>
             );
           })}

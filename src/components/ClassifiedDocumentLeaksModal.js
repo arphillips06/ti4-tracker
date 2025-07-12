@@ -46,8 +46,6 @@ export default function ClassifiedDocumentLeaksModal({
 
                 <div className="mb-3">
                     <label className="form-label">Secret Objective</label>
-                    {console.log("Selected Player ID:", selectedPlayerId)}
-                    {console.log("Secrets for player:", scoredSecrets?.[parseInt(selectedPlayerId)])}
 
                     <select
                         className="form-select"
