@@ -36,3 +36,92 @@
     transform: rotate(360deg);
   }
 }
+
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.button-group button {
+  padding: 6px 12px;
+  border: 1px solid #ccc;
+  background-color: #eee;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.button-group button.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.stats-section h3 {
+  margin-top: 1.5rem;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.stats-table th,
+.stats-table td {
+  border: 1px solid #ccc;
+  padding: 6px 10px;
+  text-align: left;
+}
+.stats-section {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.stats-table th,
+.stats-table td {
+  border: 1px solid #ccc;
+  padding: 8px;
+  text-align: center;
+}
+
+.button-group button {
+  margin-right: 1rem;
+  padding: 0.5rem 1rem;
+}
+
+.button-group button.active {
+  background-color: #007bff;
+  color: white;
+}
+.btn {
+  padding: 4px 8px;
+  font-size: 0.875rem;
+  border: 1px solid #ccc;
+  background: #f9f9f9;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.btn:hover {
+  background: #eee;
+}
+
+.btn-outline-secondary {
+  color: #333;
+  border-color: #aaa;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.mb-2 {
+  margin-bottom: 0.5rem;
+}

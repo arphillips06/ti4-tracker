@@ -29,6 +29,9 @@ export default function Home() {
         <Link to="/games" className="btn btn-secondary btn-lg">
           View Past Games
         </Link>
+        <Link to="/stats" className="btn btn-primary">
+          View Game Stats
+        </Link>
       </div>
 
       {/* New section for quick game jump */}
