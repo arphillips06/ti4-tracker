@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import OverviewStats from "../components/stats/OverviewStats";
 import PlayerStats from "../components/stats/PlayerStats";
-
+import FactionStats from "../components/stats/FactionStats";
+import ObjectiveStats from "../components/stats/ObjectiveStats";
 export default function StatsPage() {
   const [stats, setStats] = useState(null);
   const [view, setView] = useState("overview");
@@ -32,10 +33,26 @@ export default function StatsPage() {
         >
           Players
         </button>
+        <button
+          className={view === "factions" ? "active" : ""}
+          onClick={() => setView("factions")}
+        >
+          Factions
+        </button>
+        <button
+          className={view === "objectives" ? "active" : ""}
+          onClick={() => setView("objectives")}
+        >
+          Objectives
+        </button>
+
       </div>
 
       {view === "overview" && <OverviewStats stats={stats} />}
       {view === "players" && <PlayerStats stats={stats} />}
+      {view === "factions" && <FactionStats stats={stats} />}
+      {view === "objectives" && <ObjectiveStats stats={stats} />}
+
     </div>
   );
 }

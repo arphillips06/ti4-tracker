@@ -115,7 +115,7 @@ export default function ObjectiveAppearanceChart({ stats }) {
                     {showAll ? "Show Top 10 Only" : "Show All"}
                 </button>
                 <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowTable(!showTable)}>
-                    {showTable ? "Hide Raw Data" : "Show Raw Data"}
+                    {showTable ? "Hide Objective Raw Data" : "Show Objective Raw Data"}
                 </button>
             </div>
 
