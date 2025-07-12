@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import StatsOverview from './pages/StatsOverview';
 
 
 import Home from './pages/Home';
@@ -20,10 +21,7 @@ function App() {
         <Route path="/games" element={<GameList />} />
         <Route path="/new-game" element={<NewGamePage />} />
         <Route path="/games/:gameId" element={<GameDetail />} />
-
-        {/* Add more routes as you build them */}
-        {/* <Route path="/new-game" element={<GameForm />} /> */}
-        {/* <Route path="/games/:id" element={<GameDetail />} /> */}
+        <Route path="/stats" element={<StatsOverview />} />
       </Routes>
     </Router>
   );
