@@ -92,7 +92,6 @@ export default function useObjectiveActions(gameId, refreshGameState, setLocalSc
           throw new Error(errText);
         }
 
-        console.log(`Assigned objective ${objectiveId} to round ${roundId}`);
         await refreshGameState();
       } catch (err) {
         console.error("Failed to assign objective:", err);

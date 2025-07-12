@@ -17,7 +17,6 @@ const [obsidianHolderId, setObsidianHolderId] = useState(null);
   const fetchGame = async () => {
     const res = await fetch(`${API_BASE_URL}/games/${gameId}`);
     const data = await res.json();
-    console.log("[fetchGame] Raw game data:", data);
     return data; // Support both wrapped and direct response
   };
 
@@ -43,9 +42,10 @@ const refreshGameState = async () => {
     fetchScores(),
   ]);
 
-  console.log("[useGameData] Setting game state:", gameData);
   gameData.AllScores = gameData.all_scores || [];
   gameData.game_players = gameData.players || [];
+  gameData.winner_id = gameData.winner_id ?? gameData.WinnerID;
+
   setGame(gameData);
 
   const obsidianScore = gameData.AllScores?.find(
@@ -63,7 +63,6 @@ const refreshGameState = async () => {
 };
   useEffect(() => {
     (async () => {
-      console.log("[useEffect] Running initial game load for gameId:", gameId);
       const [gameData, objectiveData, secretData, scoresData] = await Promise.all([
         fetchGame(),
         fetchObjectives(),
@@ -71,17 +70,11 @@ const refreshGameState = async () => {
         fetchScores(),
       ]);
 
-      console.log("[useEffect] All data fetched:");
-      console.log("  Game:", gameData);
-      console.log("  Secrets:", secretData.length);
-      console.log("  Scores:", scoresData);
-      console.log("  Objectives:", gameData.objectives);
 
       // 🛠 Fix: Normalize AllScores for compatibility
       gameData.AllScores = gameData.all_scores || [];
       gameData.game_players = gameData.players || [];
       setGame(gameData);
-      console.log("  → use_objective_decks =", gameData?.use_objective_decks);
 
       setMutinyUsed(gameData.AllScores?.some((s) => s.AgendaTitle === "Mutiny"));
       setCdlUsed(gameData.AllScores?.some((s) => s.AgendaTitle === "Classified Document Leaks"));
@@ -90,10 +83,6 @@ const refreshGameState = async () => {
         (s) => s.Type === "relic" && s.RelicTitle === "The Obsidian"
       );
       setObsidianHolderId(obsidianScore?.PlayerID || null);
-      console.log("🔮 Obsidian holder set to:", obsidianScore?.PlayerID); // ✅ ADD THIS
-
-
-
       const initialSecrets = {};
       (gameData.players || []).forEach((p) => {
         initialSecrets[p.PlayerID || p.id] = 0;
@@ -130,7 +119,6 @@ const refreshGameState = async () => {
       }));
       setSecretObjectives(normalizedSecrets);
 
-      console.log("[useEffect] Finished setting state.");
     })();
 
     const match = game?.AllScores?.find(

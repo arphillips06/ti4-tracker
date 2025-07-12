@@ -44,7 +44,6 @@ export default function ObjectivesGrid({
   };
 
   const safeObjectives = objectives || [];
-  console.log("📦 Objectives loaded into grid:", safeObjectives);
 
   const safePlayers = (playersUnsorted || []).map((p) => {
     const faction = p.Faction || p.faction || p.Player?.Faction || p.Player?.faction;
