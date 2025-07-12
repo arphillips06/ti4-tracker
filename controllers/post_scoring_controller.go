@@ -47,7 +47,7 @@ func AddScore(c *gin.Context) {
 		return
 	}
 
-	if err := services.ValidateSecretScoringRules(input.PlayerID, round.ID, objective.ID); err != nil {
+	if err := services.ValidateSecretScoringRules(input.GameID, input.PlayerID, round.ID, objective.ID); err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
@@ -128,7 +128,7 @@ func ScoreMecatolPoint(c *gin.Context) {
 		return
 	}
 
-	if err := services.ScoreMecatolPoint(input.GameID, input.RoundID, input.PlayerID); err != nil {
+	if err := services.ScoreMecatolPoint(input.GameID, input.PlayerID); err != nil {
 		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 		return
 	}

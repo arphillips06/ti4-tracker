@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/arphillips06/TI4-stats/database"
@@ -54,4 +55,39 @@ func AssignPlayerToGame(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gp)
+}
+
+func SFTT(c *gin.Context) {
+	gameID, _ := strconv.ParseUint(c.Param("game_id"), 10, 64)
+	playerID, _ := strconv.ParseUint(c.Param("player_id"), 10, 64)
+
+	var req struct {
+		RoundID uint   `json:"round_id"`
+		Action  string `json:"action"` // "score or "unscore"
+	}
+
+	if err := c.BindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request bosy"})
+		return
+	}
+
+	switch req.Action {
+	case "score":
+		err := services.ScoreSupportPoint(uint(gameID), uint(playerID))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.Status(http.StatusOK)
+	case "unscore":
+		err := services.LoseOneSupportPoint(uint(gameID), uint(playerID))
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		c.Status(http.StatusOK)
+
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid actions"})
+	}
 }

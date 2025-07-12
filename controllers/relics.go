@@ -6,6 +6,7 @@ import (
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
+	"github.com/arphillips06/TI4-stats/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,6 +24,11 @@ func HandleShardRelic(c *gin.Context) {
 	var req ShardRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+	var game models.Game
+	if err := database.DB.First(&game, req.GameID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load game"})
 		return
 	}
 
@@ -62,6 +68,10 @@ func HandleShardRelic(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to assign Shard"})
 		return
 	}
+	if err := services.MaybeFinishGameFromScore(&game, req.NewHolderID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for end of game"})
+		return
+	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Shard of the Throne updated"})
 }
@@ -73,6 +83,12 @@ func HandleCrownRelic(c *gin.Context) {
 		return
 	}
 
+	var game models.Game
+	if err := database.DB.First(&game, req.GameID).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load game"})
+		return
+	}
+
 	score := models.Score{
 		GameID:     req.GameID,
 		PlayerID:   req.PlayerID,
@@ -81,9 +97,13 @@ func HandleCrownRelic(c *gin.Context) {
 		RelicTitle: "The Crown of Emphidia",
 		CreatedAt:  time.Now(),
 	}
-
 	if err := database.DB.Create(&score).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to record Crown of Emphidia score"})
+		return
+	}
+
+	if err := services.MaybeFinishGameFromScore(&game, req.PlayerID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for end of game"})
 		return
 	}
 

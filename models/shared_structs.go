@@ -36,6 +36,7 @@ type GameDetailResponse struct {
 	Objectives        []GameObjective      `json:"objectives"`
 	Scores            []PlayerScoreSummary `json:"scores"`
 	AllScores         []Score              `json:"all_scores"`
+	Winner            *Player              `json:"winner"`
 }
 
 type SelectedPlayersWithFaction struct {

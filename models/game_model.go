@@ -8,7 +8,7 @@ type Game struct {
 	ID                uint            `gorm:"primaryKey" json:"id"`
 	CreatedAt         time.Time       `json:"created_at"`
 	FinishedAt        *time.Time      `json:"finished_at"`
-	WinnerID          uint            `json:"winner_id"`
+	WinnerID          *uint           `json:"winner_id"`
 	Winner            Player          `gorm:"foreignKey:WinnerID" json:"winner"`
 	Rounds            []Round         `gorm:"foreignKey:GameID" json:"rounds"`
 	GamePlayers       []GamePlayer    `gorm:"foreignKey:GameID" json:"players"`
