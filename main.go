@@ -79,6 +79,7 @@ func main() {
 	r.POST("/relic/obsidian", controllers.HandleObsidianRelic)
 
 	r.POST("/games/:game_id/support/:player_id", controllers.SFTT)
+	r.GET("/stats/overview", controllers.GetStatsOverview)
 
 	// Serve static frontend files from /build
 	r.Static("/static", "./build/static") // serve JS/CSS etc.
