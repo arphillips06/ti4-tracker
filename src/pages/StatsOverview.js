@@ -3,12 +3,13 @@ import OverviewStats from "../components/stats/OverviewStats";
 import PlayerStats from "../components/stats/PlayerStats";
 import FactionStats from "../components/stats/FactionStats";
 import ObjectiveStats from "../components/stats/ObjectiveStats";
+import API_BASE_URL from "../config";
 export default function StatsPage() {
   const [stats, setStats] = useState(null);
   const [view, setView] = useState("overview");
 
   useEffect(() => {
-    fetch("http://localhost:8080/stats/overview")
+    fetch(`${API_BASE_URL}/stats/overview`)
       .then((res) => res.json())
       .then(setStats)
       .catch((err) => console.error("Failed to load stats:", err));
