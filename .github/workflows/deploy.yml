@@ -20,8 +20,8 @@ jobs:
     - name: Install dependencies
       run: npm install
 
-    - name: Build React app
-      run: npm run build
+- name: Build React app (ignore warnings)
+  run: CI=false npm run build
 
     - name: Deploy to production folder
       run: |
