@@ -16,6 +16,7 @@ type Game struct {
 	CurrentRound      int             `gorm:"default:1" json:"current_round"`
 	GameObjectives    []GameObjective `json:"game_objectives"`
 	UseObjectiveDecks bool            `json:"use_objective_decks"`
+	Partial           bool            `gorm:"default:false"`
 }
 
 //Single player

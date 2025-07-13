@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/arphillips06/TI4-stats/database"
-	"github.com/arphillips06/TI4-stats/database/helpers"
+	"github.com/arphillips06/TI4-stats/helpers"
 	"github.com/arphillips06/TI4-stats/models"
 	"gorm.io/gorm"
 )
