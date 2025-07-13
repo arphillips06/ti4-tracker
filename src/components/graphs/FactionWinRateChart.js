@@ -35,6 +35,7 @@ export default function FactionWinRateChart({ dataMap }) {
     plugins: {
       legend: { position: "top" },
       title: { display: true, text: "Faction Win Rate" },
+      tooltip: { mode: "nearest", intersect: true },
     },
     scales: {
       y: {

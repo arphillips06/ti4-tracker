@@ -4,10 +4,10 @@ export default function PlayerStats({ stats }) {
   const avgPoints = stats.playerAveragePoints || [];
   const factionData = stats.topFactionsPerPlayer || [];
   const finishes = stats.playerMostCommonFinishes || [];
-const stdevMap = {};
-(stats.playerPointStdevs || []).forEach((entry) => {
-  stdevMap[entry.player] = entry.stdev;
-});
+  const stdevMap = {};
+  (stats.playerPointStdevs || []).forEach((entry) => {
+    stdevMap[entry.player] = entry.stdev;
+  });
 
   // Map for faction data
   const factionMap = {};
@@ -31,7 +31,8 @@ const stdevMap = {};
     <div className="stats-section">
       <h2>Player Average Points per Game</h2>
 
-      <table className="table table-sm table-bordered mt-3">
+      <table className="stats-table">
+
         <thead>
           <tr>
             <th>Player</th>
@@ -76,10 +77,8 @@ const stdevMap = {};
           })}
         </tbody>
       </table>
-
       <h2 className="mt-5">Secret Objective Scoring Rate</h2>
-
-      <table className="table table-sm table-bordered mt-3">
+      <table className="stats-table">
         <thead>
           <tr>
             <th>Player</th>

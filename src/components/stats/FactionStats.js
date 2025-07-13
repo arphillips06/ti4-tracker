@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import FactionPlayWinChart from "../graphs/FactionPlayWinChart";
 import FactionWinRateChart from "../graphs/FactionWinRateChart";
+import '../../pages/stats.css';
 
 
 export default function FactionStats({ stats }) {
@@ -12,35 +13,35 @@ export default function FactionStats({ stats }) {
     const entries = Object.entries(stats.factionPlayWinDistribution);
     const sorted = [...entries].sort((a, b) => b[1].winRate - a[1].winRate); // sort by win rate descending
 
-    return (
-        <div className="stats-section">
-            <h3>Faction Win Rates</h3>
-            <FactionWinRateChart dataMap={stats.winRateByFaction} />
+return (
+  <>
+    {/* Faction Win Rate Chart */}
+    <div className="chart-glass-container">
+      <h3 className="chart-title">Faction Win Rates</h3>
+      <FactionWinRateChart dataMap={stats.winRateByFaction} />
+      <button
+        onClick={() => setShowFactionData(!showFactionData)}
+        className="btn btn-sm btn-outline-secondary mt-2"
+      >
+        {showFactionData ? "Hide Raw Data" : "Show Raw Data"}
+      </button>
+      {showFactionData && (
+        <ul className="raw-data-list mt-2 mb-2">
+          {Object.entries(stats.winRateByFaction).map(([faction, rate]) => (
+            <li key={faction}>
+              {faction}: {rate.toFixed(2)}%
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
 
-            <button
-                onClick={() => setShowFactionData(!showFactionData)}
-                className="btn btn-sm btn-outline-secondary mt-2"
-            >
-                {showFactionData ? "Hide Raw Data" : "Show Raw Data"}
-            </button>
+    {/* Faction Play vs Win Rates */}
+    <div className="chart-glass-container">
+      <h3 className="chart-title">Faction Play vs Win Rates</h3>
+      <FactionPlayWinChart data={stats.factionPlayWinDistribution} />
+    </div>
+  </>
+);
 
-            {showFactionData && (
-                <ul className="mt-2 mb-3">
-                    {Object.entries(stats.winRateByFaction).map(([faction, rate]) => (
-                        <li key={faction}>
-                            {faction}: {rate.toFixed(2)}%
-                        </li>
-                    ))}
-                </ul>
-            )}
-
-
-
-            <h3>Faction Play vs Win Rates</h3>
-            <FactionPlayWinChart data={stats.factionPlayWinDistribution} />
-
-
-        </div>
-
-    );
 }
