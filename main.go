@@ -20,8 +20,11 @@ func main() {
 	r.Use(func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
 
-		// Allow local IPs or localhost
-		if strings.HasPrefix(origin, "http://192.168.1.") || origin == "http://localhost:3000" {
+		if strings.HasPrefix(origin, "http://192.168.1.") ||
+			strings.HasPrefix(origin, "http://100.") ||
+			origin == "http://localhost:3000" ||
+			strings.HasSuffix(origin, ".ts.net:3000") {
+
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 		}
@@ -100,5 +103,5 @@ func main() {
 	})
 
 	// Start server on port 8080
-	r.Run("127.0.0.1:8080")
+	r.Run("0.0.0.0:8080")
 }
