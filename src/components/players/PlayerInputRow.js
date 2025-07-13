@@ -1,92 +1,97 @@
-// src/components/PlayerRow.js
 import React from "react";
+import "./PlayerInputRow.css";
+import colorNames from "../../data/colourNames";
+import factionImageMap from "../../data/factionIcons";
 
-
-const COLORS = [
-  "#ff3333", // Red
-  "#3333ff", // Blue
-  "#008000", // Green
-  "#ffff00", // Yellow
-  "#b300b3", // Purple
-  "#000000", // Black
-  "#ffa500", // Orange
-  "#ff00ff", // Pink
-  "#ffffff", // White
-];
-
-const colorName = (hex) => {
-  const names = {
-    "#ff3333": "Red",
-    "#3333ff": "Blue",
-    "#008000": "Green",
-    "#ffff00": "Yellow",
-    "#b300b3": "Purple",
-    "#000000": "Black",
-    "#ffa500": "Orange",
-    "#ff00ff": "Pink",
-    "#ffffff": "White",
-  };
-  return names[hex] || hex;
-};
-
-export default function PlayerRow({
+export default function PlayerInputRow({
   index,
   value,
+  onNameChange,
   onFactionChange,
   onColorChange,
-  onNameChange,
   factions,
   selectedFactions,
   selectedColors,
 }) {
+  const availableFactions = factions.filter(
+    (f) => !selectedFactions.includes(f.key) || f.key === value.faction
+  );
+  const factionIcon = value.faction
+    ? `/faction-icons/${factionImageMap[value.faction] || "default.webp"}`
+    : null;
+
+  const glowColor = value.color || "transparent";
+
+console.log("DEBUG:", {
+  selectedFaction: value.faction,
+  imageFile: factionImageMap[value.faction],
+});
+
   return (
-    <div className="flex space-x-4 mb-2 items-center">
-      <input
-        type="text"
-        placeholder={`Player ${index + 1}`}
-        className="border p-2 rounded w-1/4"
-        value={value.name}
-        onChange={(e) => onNameChange(index, e.target.value)}
-      />
-      <select
-        className="border p-2 rounded w-1/2"
-        value={value.faction || ""}
-        onChange={(e) => onFactionChange(index, e.target.value)}
+    <div
+      className="player-card"
+      style={{ "--glow-color": glowColor }}
+    >
+      <div className="player-info">
+        <input
+          type="text"
+          placeholder="Player Name"
+          value={value.name}
+          onChange={(e) => onNameChange(index, e.target.value)}
+          className="player-input top"
+        />
+        <select
+          value={value.faction}
+          onChange={(e) => onFactionChange(index, e.target.value)}
+          className="player-input bottom"
+        >
+          <option value="">Select Faction</option>
+          {availableFactions.map((f) => (
+            <option key={f.key} value={f.key}>
+              {f.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div
+        className="player-color"
+        style={{ backgroundColor: value.color || "#2e2e38" }}
       >
-        <option value="">Select Faction</option>
-        {factions.map((faction) => (
-          <option
-            key={faction.key}
-            value={faction.key}
-            disabled={
-              selectedFactions.includes(faction.key) &&
-              faction.key !== value.faction
-            }
-          >
-            {faction.label}
-          </option>
-        ))}
-      </select>
-      <select
-        className="border p-2 rounded w-1/4"
-        value={value.color || ""}
-        onChange={(e) => onColorChange(index, e.target.value)}
-      >
-        <option value="">Color</option>
-        {COLORS.map((color) => (
-          <option
-            key={color}
-            value={color}
-            disabled={selectedColors.includes(color) && color !== value.color}
-            style={{
-              backgroundColor: color,
-              color: color === "#ffffff" ? "#000000" : "#ffffff",
-            }}
-          >
-            {colorName(color)}
-          </option>
-        ))}
-      </select>
+        <select
+          value={value.color}
+          onChange={(e) => onColorChange(index, e.target.value)}
+          className="color-select"
+          style={{
+            color: value.color === "#ffff00" ? "#000" : "#fff",
+            backgroundColor: "transparent",
+          }}
+        >
+          <option value="">Colour</option>
+          {[
+            "#ff3333", "#008000", "#3333ff", "#000000", "#ffff00",
+            "#ffa500", "#b300b3", "#ff00ff", "#ffffff"
+          ].map((color) => (
+            <option
+              key={color}
+              value={color}
+              disabled={selectedColors.includes(color) && color !== value.color}
+            >
+              {colorNames[color] || color}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="faction-icon-wrapper">
+        {factionIcon && (
+          <img
+            src={factionIcon}
+            alt={value.faction}
+            className="faction-icon"
+          />
+        )}
+      </div>
     </div>
   );
 }
