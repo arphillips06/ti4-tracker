@@ -70,8 +70,8 @@ export default function ObjectiveAppearanceChart({ stats }) {
         maintainAspectRatio: false,
         plugins: {
             tooltip: {
-                mode: "index",
-                intersect: false,
+                mode: "nearest",
+                intersect: true,
                 callbacks: {
                     afterLabel: function (context) {
                         const stat = appearanceStats[context.label];

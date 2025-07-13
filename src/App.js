@@ -4,6 +4,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 import StatsOverview from './pages/StatsOverview';
 //import './App.css';
+import './pages/stats.css';
 
 
 import Home from './pages/Home';

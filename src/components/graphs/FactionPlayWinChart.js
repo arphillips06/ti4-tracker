@@ -63,7 +63,7 @@ export default function FactionPlayWinChart({ data }) {
     maintainAspectRatio: false,
     plugins: {
       legend: { position: "top" },
-      tooltip: { mode: "index", intersect: false },
+      tooltip: { mode: "nearest", intersect: true },
     },
     scales: {
       x: {
