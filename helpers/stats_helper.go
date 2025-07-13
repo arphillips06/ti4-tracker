@@ -118,33 +118,61 @@ func CalculatePlayerWinRates() ([]models.PlayerWinRate, error) {
 func CalculateObjectiveCounts() (map[string]int, error) {
 	result := make(map[string]int)
 
-	var publicCount, secretCount, stage1Count, stage2Count int64
+	var publicCount, secretCount, stage1Count, stage2Count, cdlCount int64
 
-	if err := database.DB.Model(&models.Score{}).Where("type = ?", "public").Count(&publicCount).Error; err != nil {
+	// Count unique (game_id, objective_id) pairs for each category
+
+	err := database.DB.
+		Table("scores").
+		Select("COUNT(DISTINCT game_id || '-' || objective_id)").
+		Where("type = ?", "public").
+		Scan(&publicCount).Error
+	if err != nil {
 		return nil, err
 	}
 	result["publicScored"] = int(publicCount)
 
-	if err := database.DB.Model(&models.Score{}).Where("type = ?", "secret").Count(&secretCount).Error; err != nil {
+	err = database.DB.
+		Table("scores").
+		Select("COUNT(DISTINCT game_id || '-' || objective_id)").
+		Where("type = ?", "secret").
+		Scan(&secretCount).Error
+	if err != nil {
 		return nil, err
 	}
 	result["secretScored"] = int(secretCount)
 
-	if err := database.DB.Model(&models.Score{}).
+	err = database.DB.
+		Table("scores").
 		Joins("JOIN objectives ON scores.objective_id = objectives.id").
+		Select("COUNT(DISTINCT scores.game_id || '-' || scores.objective_id)").
 		Where("objectives.stage = ?", "I").
-		Count(&stage1Count).Error; err != nil {
+		Scan(&stage1Count).Error
+	if err != nil {
 		return nil, err
 	}
 	result["stage1Scored"] = int(stage1Count)
 
-	if err := database.DB.Model(&models.Score{}).
+	err = database.DB.
+		Table("scores").
 		Joins("JOIN objectives ON scores.objective_id = objectives.id").
+		Select("COUNT(DISTINCT scores.game_id || '-' || scores.objective_id)").
 		Where("objectives.stage = ?", "II").
-		Count(&stage2Count).Error; err != nil {
+		Scan(&stage2Count).Error
+	if err != nil {
 		return nil, err
 	}
 	result["stage2Scored"] = int(stage2Count)
+
+	// CDL tracking (if applicable)
+	err = database.DB.
+		Table("scores").
+		Where("agenda_title = ?", "Classified Document Leaks").
+		Count(&cdlCount).Error
+	if err != nil {
+		return nil, err
+	}
+	result["cdlPromoted"] = int(cdlCount)
 
 	return result, nil
 }
@@ -167,7 +195,7 @@ func CalculateObjectiveFrequencies() (map[string]int, error) {
 	}
 
 	err := database.DB.Table("scores").
-		Select("objectives.name, COUNT(*) as count").
+		Select("objectives.name, COUNT(DISTINCT scores.game_id) as count").
 		Joins("JOIN objectives ON scores.objective_id = objectives.id").
 		Group("objectives.name").
 		Scan(&rows).Error

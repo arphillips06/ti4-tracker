@@ -201,6 +201,7 @@ func ApplyClassifiedDocumentLeaks(input models.ClassifiedDocumentLeaksRequest) e
 
 	// Update the score to public
 	score.Type = "public"
+	score.OriginallySecret = true
 	if err := database.DB.Save(&score).Error; err != nil {
 		return err
 	}
@@ -214,6 +215,8 @@ func ApplyClassifiedDocumentLeaks(input models.ClassifiedDocumentLeaksRequest) e
 		Type:        "agenda",
 		AgendaTitle: "Classified Document Leaks",
 	}
+	log.Printf("CDL: Updating score %d from type=%s to public", score.ID, score.Type)
+
 	if err := database.DB.Create(&agendaScore).Error; err != nil {
 		return err
 	}
