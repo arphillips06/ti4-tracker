@@ -36,19 +36,20 @@ type Round struct {
 
 //Scoring information
 type Score struct {
-	ID          uint `gorm:"primaryKey"`
-	RoundID     uint
-	PlayerID    uint
-	GameID      uint
-	ObjectiveID uint `gorm:"not null"`
-	Objective   Objective
-	Points      int
-	Round       Round     `gorm:"foreignKey:RoundID"`
-	Player      Player    `gorm:"foreignKey:PlayerID"`
-	Type        string    `gorm:"type:VARCHAR(20)"` //e.g. objective, imperial, support
-	AgendaTitle string    `gorm:"type:VARCHAR(100)"`
-	RelicTitle  string    `gorm:"type:VARCHAR(20)"`
-	CreatedAt   time.Time `json:"created_at"`
+	ID               uint `gorm:"primaryKey"`
+	RoundID          uint
+	PlayerID         uint
+	GameID           uint
+	ObjectiveID      uint `gorm:"not null"`
+	Objective        Objective
+	Points           int
+	Round            Round     `gorm:"foreignKey:RoundID"`
+	Player           Player    `gorm:"foreignKey:PlayerID"`
+	Type             string    `gorm:"type:VARCHAR(20)"` //e.g. objective, imperial, support
+	AgendaTitle      string    `gorm:"type:VARCHAR(100)"`
+	RelicTitle       string    `gorm:"type:VARCHAR(20)"`
+	CreatedAt        time.Time `json:"created_at"`
+	OriginallySecret bool      `gorm:"default:false"`
 }
 
 //Objective information

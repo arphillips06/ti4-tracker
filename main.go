@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/arphillips06/TI4-stats/controllers"
@@ -103,5 +104,11 @@ func main() {
 	})
 
 	// Start server on port 8080
-	r.Run("0.0.0.0:8080")
+	bindAddr := os.Getenv("BIND_ADDRESS")
+	if bindAddr == "" {
+		bindAddr = "127.0.0.1:8080" // default for dev
+	}
+
+	r.Run(bindAddr)
+
 }
