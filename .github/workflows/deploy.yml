@@ -23,9 +23,9 @@ jobs:
 
       - name: Deploy to backend folder
         run: |
-          rm -f /projects/TI4-backend/server
-          cp server /projects/TI4-backend/server
-          chmod +x /projects/TI4-backend/server
+          rm -f /projects/TI4-stats/server
+          cp server /projects/TI4-stats/server
+          chmod +x /projects/TI4-stats/server
 
       - name: Restart backend service
         run: |
