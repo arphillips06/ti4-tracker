@@ -1,0 +1,32 @@
+name: Deploy Backend
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+
+      - name: Build Go backend
+        run: |
+          go build -o server
+
+      - name: Deploy to backend folder
+        run: |
+          rm -f /projects/TI4-backend/server
+          cp server /projects/TI4-backend/server
+          chmod +x /projects/TI4-backend/server
+
+      - name: Restart backend service
+        run: |
+          sudo systemctl restart ti4-backend
