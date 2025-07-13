@@ -1,5 +1,6 @@
 import React from "react";
 import API_BASE_URL from "../../config";
+import './playersidebar.css';
 export default function PlayerSidebar({
   playersSorted,
   expandedPlayers,
@@ -46,7 +47,7 @@ export default function PlayerSidebar({
       {(playersSorted || []).map((entry) => (
         <div
           key={entry.player_id}
-          className="card mb-3 border-start border-5"
+          className="card mb-3 border-start border-5 glass-box"
           style={{ borderColor: entry.color }}
         >
           <div className="card-body">
@@ -88,7 +89,7 @@ export default function PlayerSidebar({
                     style={{ width: "20px", height: "20px" }}
                   />
                 )}
-              <div className="text-muted small fst-italic">{entry.faction}</div>
+              <div className="small fst-italic faction-name">{entry.faction}</div>
             </div>
 
             <div className="mt-1 small">Points: {entry.points}</div>
@@ -343,58 +344,55 @@ export default function PlayerSidebar({
                       </button>
                     </div>
                   </div>
-                  {/* Imperial Objective */}
-                  <div className="mt-3 small">
-                    <div className="fw-semibold mb-1">Imperial Objective</div>
+                  {custodiansScored && (
+                    <div className="mt-3 small">
+                      <div className="fw-semibold mb-1">Imperial Objective</div>
 
-                    <div className="d-flex align-items-center gap-2 flex-wrap">
-                      {/* Render all scored imperial points as images */}
-                      {game?.AllScores?.filter(
-                        (s) => s.Type === "imperial" && s.PlayerID === entry.player_id
-                      ).map((_, i) => (
-                        <img
-                          key={i}
-                          src="/imperial/imperial8.png"
-                          alt="Imperial Point"
-                          title="Imperial Point"
-                          style={{ width: "32px", height: "48px" }}
-                        />
-                      ))}
+                      <div className="d-flex align-items-center gap-2 flex-wrap">
+                        {game?.AllScores?.filter(
+                          (s) => s.Type === "imperial" && s.PlayerID === entry.player_id
+                        ).map((_, i) => (
+                          <img
+                            key={i}
+                            src="/imperial/imperial8.png"
+                            alt="Imperial Point"
+                            title="Imperial Point"
+                            style={{ width: "32px", height: "48px" }}
+                          />
+                        ))}
 
-                      {/* Score Button */}
-                      <button
-                        className="btn btn-sm btn-outline-primary"
-                        onClick={async () => {
-                          try {
-                            const res = await fetch(`${API_BASE_URL}/score/imperial`, {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({
-                                game_id: parseInt(gameId),
-                                player_id: entry.player_id,
-                                round_id: game?.current_round_id,
-                              }),
-                            });
+                        <button
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={async () => {
+                            try {
+                              const res = await fetch(`${API_BASE_URL}/score/imperial`, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  game_id: parseInt(gameId),
+                                  player_id: entry.player_id,
+                                  round_id: game?.current_round_id,
+                                }),
+                              });
 
-                            if (res.ok) {
-                              await refreshGameState();
-                              triggerGraphUpdate?.();
-
-                            } else {
-                              const err = await res.json();
-                              alert(err.error || "Failed to score Imperial");
+                              if (res.ok) {
+                                await refreshGameState();
+                                triggerGraphUpdate?.();
+                              } else {
+                                const err = await res.json();
+                                alert(err.error || "Failed to score Imperial");
+                              }
+                            } catch (err) {
+                              console.error("Failed to score Imperial:", err);
+                              alert("Failed to score Imperial. See console.");
                             }
-                          } catch (err) {
-                            console.error("Failed to score Imperial:", err);
-                            alert("Failed to score Imperial. See console.");
-                          }
-                        }}
-                      >
-                        +
-                      </button>
+                          }}
+                        >
+                          +
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  )}</div>
               )}</div>
           </div>
         </div>

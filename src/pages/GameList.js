@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import API_BASE_URL from "../config";
+import './gamelist.css';
 
 function GameList() {
   const [games, setGames] = useState([]);
@@ -53,6 +54,11 @@ function GameList() {
   return (
     <div className="container mt-4">
       <h1 className="mb-4">TI4 Games</h1>
+      <div className="d-flex justify-content-end gap-3 mb-4">
+        <Link to="/" className="btn btn-outline-light">Home</Link>
+        <Link to="/stats" className="btn btn-outline-light">Stats</Link>
+      </div>
+
       {games.length === 0 ? (
         <p>No games found.</p>
       ) : (
@@ -64,14 +70,15 @@ function GameList() {
             const winner = game.winner?.Name;
 
             return (
-              <li className="list-group-item" key={game.id}>
+              <li className="card-glass mb-4 p-3" key={game.id}>
                 <div className="mb-2">
                   <strong>Game #{game.id}</strong> –{" "}
                   <span>{game.players?.length || 0} players</span> –{" "}
                   <span>Round {game.current_round ?? "?"}</span>
                 </div>
 
-                <div className="text-muted mb-2">Length: {durationText}</div>
+                <div className="mb-2"><strong>Length:</strong> {durationText}</div>
+
 
                 {winner && (
                   <div className="mb-2">

@@ -1,6 +1,6 @@
 import Modal from 'react-bootstrap/Modal';
 import Button from 'react-bootstrap/Button';
-
+import './modal.css'
 export default function MutinyModal({
   show,
   onClose,
@@ -14,8 +14,8 @@ export default function MutinyModal({
   players
 }) {
   const handleSubmit = async () => {
-    await onSubmit(); // wait in case it's async
-    onClose();        // then close the modal
+    await onSubmit();
+    onClose();
   };
 
   return (
@@ -36,7 +36,7 @@ export default function MutinyModal({
           </select>
         </div>
 
-        <div className="form-check mb-2">
+        <div className="form-check mb-3">
           <input
             className="form-check-input"
             type="checkbox"
@@ -49,31 +49,32 @@ export default function MutinyModal({
           </label>
         </div>
 
-        <div>
-          <label className="form-label">Who voted "For"?</label>
-          {players.map((p) => (
-            <div key={p.player_id} className="form-check">
-              <input
-                className="form-check-input"
-                type="checkbox"
-                value={p.player_id}
-                id={`mutiny-${p.player_id}`}
-                checked={mutinyVotes.includes(p.player_id)}
-                disabled={mutinyAbstained}
-                onChange={(e) => {
-                  if (e.target.checked) {
-                    setMutinyVotes([...mutinyVotes, p.player_id]);
-                  } else {
-                    setMutinyVotes(mutinyVotes.filter((id) => id !== p.player_id));
-                  }
-                }}
-              />
-              <label className="form-check-label" htmlFor={`mutiny-${p.player_id}`}>
-                {p.name}
-              </label>
-            </div>
-          ))}
-        </div>
+        {!mutinyAbstained && (
+          <fieldset className="mt-3">
+            <legend className="form-label">Who voted "For"?</legend>
+            {players.map((p) => (
+              <div key={p.player_id} className="form-check mb-2">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  value={p.player_id}
+                  id={`mutiny-${p.player_id}`}
+                  checked={mutinyVotes.includes(p.player_id)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setMutinyVotes([...mutinyVotes, p.player_id]);
+                    } else {
+                      setMutinyVotes(mutinyVotes.filter((id) => id !== p.player_id));
+                    }
+                  }}
+                />
+                <label className="form-check-label" htmlFor={`mutiny-${p.player_id}`}>
+                  {p.name}
+                </label>
+              </div>
+            ))}
+          </fieldset>
+        )}
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onClose}>
