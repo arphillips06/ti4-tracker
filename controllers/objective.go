@@ -3,25 +3,23 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/arphillips06/TI4-stats/database"
-	"github.com/arphillips06/TI4-stats/models"
+	"github.com/arphillips06/TI4-stats/services"
 	"github.com/gin-gonic/gin"
 )
 
-func GetAllSecretObjectives(c *gin.Context) {
-	var secrets []models.Objective
-	if err := database.DB.Where("type = ?", "Secret").Find(&secrets).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load secret objectives"})
+func ServeObjectives(c *gin.Context, objType string) {
+	objs, err := services.GetObjectivesByType(objType)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load " + objType + " objectives"})
 		return
 	}
-	c.JSON(http.StatusOK, secrets)
+	c.JSON(http.StatusOK, objs)
+}
+
+func GetAllSecretObjectives(c *gin.Context) {
+	ServeObjectives(c, "Secret")
 }
 
 func GetAllPublicObjectives(c *gin.Context) {
-	var publics []models.Objective
-	if err := database.DB.Where("type = ?", "Public").Find(&publics).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load public objectives"})
-		return
-	}
-	c.JSON(http.StatusOK, publics)
+	ServeObjectives(c, "Public")
 }

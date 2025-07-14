@@ -10,6 +10,10 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	AgendaMutiny = "Mutiny"
+)
+
 // ApplyPoliticalCensure adjusts agenda score based on whether the player was censured or not.
 // If Gained is false, a point is removed.
 func ApplyPoliticalCensure(input models.PoliticalCensureRequest) error {
@@ -31,18 +35,9 @@ func ApplySeedOfEmpire(input models.SeedOfEmpireResolution) error {
 	}
 
 	// Step 2: Initialize totals to 0
-	totals := make(map[uint]int)
-	for _, gp := range gamePlayers {
-		totals[gp.PlayerID] = 0
-	}
-
-	// Step 3: Sum all current player scores from Score table
-	var scores []models.Score
-	if err := database.DB.Where("game_id = ?", input.GameID).Find(&scores).Error; err != nil {
+	totals, err := helpers.GetPlayerScoresMap(input.GameID)
+	if err != nil {
 		return err
-	}
-	for _, score := range scores {
-		totals[score.PlayerID] += score.Points
 	}
 
 	// Step 4: Determine the target player(s)
@@ -73,6 +68,10 @@ func ApplySeedOfEmpire(input models.SeedOfEmpireResolution) error {
 	default:
 		return fmt.Errorf("invalid vote result: %s", input.Result)
 	}
+	fmt.Printf("SeedOfEmpire totals: %+v\n", totals)
+	if len(targetPlayerIDs) == 0 {
+		return fmt.Errorf("no valid target players found for Seed of an Empire (%s)", input.Result)
+	}
 
 	for _, id := range targetPlayerIDs {
 		if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(id), 1, models.AgendaSeed, 0); err != nil {
@@ -85,14 +84,11 @@ func ApplySeedOfEmpire(input models.SeedOfEmpireResolution) error {
 
 // ApplyMutinyAgenda awards or removes points based on the Mutiny agenda result.
 func ApplyMutinyAgenda(input models.AgendaResolution) error {
-	var count int64
-	if err := database.DB.
-		Model(&models.Score{}).
-		Where("game_id = ? AND agenda_title = ?", input.GameID, "Mutiny").
-		Count(&count).Error; err != nil {
+	exists, err := helpers.AgendaAlreadyResolved(input.GameID, models.AgendaMutiny)
+	if err != nil {
 		return err
 	}
-	if count > 0 {
+	if exists {
 		return fmt.Errorf("Mutiny has already been resolved for this game")
 	}
 
@@ -105,10 +101,7 @@ func ApplyMutinyAgenda(input models.AgendaResolution) error {
 		}
 	case "against":
 		for _, playerID := range input.ForVotes {
-			var total int64
-			err := database.DB.Model(&models.Score{}).
-				Where("game_id = ? AND player_id = ?", input.GameID, playerID).
-				Select("SUM(points)").Scan(&total).Error
+			total, err := helpers.GetPlayerTotalPoints(input.GameID, playerID)
 			if err != nil {
 				return err
 			}
@@ -128,21 +121,18 @@ func ApplyMutinyAgenda(input models.AgendaResolution) error {
 // This converts the scored secret objective to a public one.
 // It also marks that it was originally secret, and records that CDL was used.
 func ApplyClassifiedDocumentLeaks(input models.ClassifiedDocumentLeaksRequest) error {
-	// Prevent duplicate resolution
-	var count int64
-	if err := database.DB.
-		Model(&models.Score{}).
-		Where("game_id = ? AND agenda_title = ?", input.GameID, models.AgendaCDL).
-		Count(&count).Error; err != nil {
+	exists, err := helpers.AgendaAlreadyResolved(input.GameID, models.AgendaCDL)
+	if err != nil {
 		return err
 	}
-	if count > 0 {
+	if exists {
 		return fmt.Errorf("Classified Document Leaks has already been resolved for this game")
 	}
 
 	// Locate the secret score
 	var score models.Score
-	err := database.DB.Where("game_id = ? AND player_id = ? AND objective_id = ? AND type = ?", input.GameID, input.PlayerID, input.ObjectiveID, "secret").
+	err = database.DB.
+		Where("game_id = ? AND player_id = ? AND objective_id = ? AND type = ?", input.GameID, input.PlayerID, input.ObjectiveID, models.ScoreTypeSecret).
 		First(&score).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -164,16 +154,16 @@ func ApplyClassifiedDocumentLeaks(input models.ClassifiedDocumentLeaksRequest) e
 		int(input.PlayerID),
 		0,
 		models.AgendaCDL,
-		input.ObjectiveID, // <-- This is the fix
+		input.ObjectiveID,
 	)
 }
 
 // Incentive Program reveals the next unrevealed Stage I/II objective
 // depending on the vote outcome: "for" → Stage I, "against" → Stage II
 func ApplyIncentiveProgramEffect(gameID uint, outcome string) error {
-	var game models.Game
-	if err := database.DB.First(&game, gameID).Error; err != nil {
-		return fmt.Errorf("Game not found")
+	game, err := helpers.GetUnfinishedGame(gameID)
+	if err != nil {
+		return err // handles both not found and already finished
 	}
 
 	if !game.UseObjectiveDecks {
@@ -199,7 +189,7 @@ func ApplyIncentiveProgramEffect(gameID uint, outcome string) error {
 	}
 
 	var newObjective models.Objective
-	err := database.DB.
+	err = database.DB.
 		Where("stage = ? AND id NOT IN ?", stage, existingObjectiveIDs).
 		Order("id").
 		First(&newObjective).Error

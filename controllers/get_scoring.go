@@ -39,8 +39,7 @@ func GetScoresByRound(c *gin.Context) {
 // GetObjectiveScoreSummary handles GET /games/:id/scores/objectives
 // Returns scoring summary grouped by public and secret objectives.
 func GetObjectiveScoreSummary(c *gin.Context) {
-	gameIDStr := c.Param("id")
-	gameID, err := strconv.Atoi(gameIDStr)
+	gameID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid game ID"})
 		return

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/arphillips06/TI4-stats/database"
+	"github.com/arphillips06/TI4-stats/helpers"
 	"github.com/arphillips06/TI4-stats/models"
 	"github.com/arphillips06/TI4-stats/services"
 	"github.com/gin-gonic/gin"
@@ -15,8 +15,8 @@ import (
 // Creates a new player.
 // Ensures the name is provided and not already in use.
 func CreatePlayer(c *gin.Context) {
-	var input models.Player
-	if err := c.ShouldBindJSON(&input); err != nil || strings.TrimSpace(input.Name) == "" {
+	input, ok := helpers.BindJSON[models.Player](c)
+	if !ok || strings.TrimSpace(input.Name) == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
 		return
 	}
@@ -33,23 +33,13 @@ func CreatePlayer(c *gin.Context) {
 // Manually assigns a player to a game with a faction.
 // Useful when not using the automated game setup flow.
 func AssignPlayerToGame(c *gin.Context) {
-	var input struct {
-		GameID   uint   `json:"game_id"`
-		PlayerID uint   `json:"player_id"`
-		Faction  string `json:"faction"`
-	}
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	input, ok := helpers.BindJSON[models.AssignPlayerInput](c)
+	if !ok {
 		return
 	}
 
-	gp := models.GamePlayer{
-		GameID:   input.GameID,
-		PlayerID: input.PlayerID,
-		Faction:  input.Faction,
-	}
-
-	if err := database.DB.Create(&gp).Error; err != nil {
+	gp, err := services.AssignPlayerToGame(input.GameID, input.PlayerID, input.Faction)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -61,33 +51,21 @@ func SFTT(c *gin.Context) {
 	gameID, _ := strconv.ParseUint(c.Param("game_id"), 10, 64)
 	playerID, _ := strconv.ParseUint(c.Param("player_id"), 10, 64)
 
-	var req struct {
+	type SFTTRequest struct {
 		RoundID uint   `json:"round_id"`
-		Action  string `json:"action"` // "score or "unscore"
+		Action  string `json:"action"`
 	}
 
-	if err := c.BindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request bosy"})
+	req, ok := helpers.BindJSON[SFTTRequest](c)
+	if !ok {
 		return
 	}
 
-	switch req.Action {
-	case "score":
-		err := services.ScoreSupportPoint(uint(gameID), uint(playerID))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		c.Status(http.StatusOK)
-	case "unscore":
-		err := services.LoseOneSupportPoint(uint(gameID), uint(playerID))
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		c.Status(http.StatusOK)
-
-	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid actions"})
+	err := services.HandleSupportForTheThrone(uint(gameID), uint(playerID), req.Action)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
+
+	c.Status(http.StatusOK)
 }
