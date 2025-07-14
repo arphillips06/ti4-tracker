@@ -18,7 +18,7 @@ func ApplyPoliticalCensure(input models.PoliticalCensureRequest) error {
 		points = -1
 	}
 
-	return helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(input.PlayerID), points, models.AgendaCensure)
+	return helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(input.PlayerID), points, models.AgendaCensure, 0)
 }
 
 // ApplySeedOfEmpire awards 1 point to the player with most (or fewest) points depending on the vote result.
@@ -75,7 +75,7 @@ func ApplySeedOfEmpire(input models.SeedOfEmpireResolution) error {
 	}
 
 	for _, id := range targetPlayerIDs {
-		if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(id), 1, models.AgendaSeed); err != nil {
+		if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(id), 1, models.AgendaSeed, 0); err != nil {
 			return err
 		}
 	}
@@ -99,7 +99,7 @@ func ApplyMutinyAgenda(input models.AgendaResolution) error {
 	switch input.Result {
 	case "for":
 		for _, playerID := range input.ForVotes {
-			if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(playerID), 1, models.AgendaMutiny); err != nil {
+			if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(playerID), 1, models.AgendaMutiny, 0); err != nil {
 				return err
 			}
 		}
@@ -113,13 +113,13 @@ func ApplyMutinyAgenda(input models.AgendaResolution) error {
 				return err
 			}
 			if total > 0 {
-				if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(playerID), -1, models.AgendaMutiny); err != nil {
+				if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(playerID), -1, models.AgendaMutiny, 0); err != nil {
 					return err
 				}
 			}
 		}
 	default:
-		return helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), 0, 0, models.AgendaMutiny)
+		return helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), 0, 0, models.AgendaMutiny, 0)
 	}
 
 	return nil
@@ -158,7 +158,14 @@ func ApplyClassifiedDocumentLeaks(input models.ClassifiedDocumentLeaksRequest) e
 		return err
 	}
 
-	return helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(input.PlayerID), 0, models.AgendaCDL)
+	return helpers.CreateAgendaScore(
+		int(input.GameID),
+		int(input.RoundID),
+		int(input.PlayerID),
+		0,
+		models.AgendaCDL,
+		input.ObjectiveID, // <-- This is the fix
+	)
 }
 
 // Incentive Program reveals the next unrevealed Stage I/II objective
@@ -212,6 +219,6 @@ func ApplyIncentiveProgramEffect(gameID uint, outcome string) error {
 		return err
 	}
 
-	return helpers.CreateAgendaScore(int(gameID), 0, 0, 0, models.AgendaIncentive)
+	return helpers.CreateAgendaScore(int(gameID), 0, 0, 0, models.AgendaIncentive, 0)
 
 }

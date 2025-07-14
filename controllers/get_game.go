@@ -78,6 +78,10 @@ func GetGameByID(c *gin.Context) {
 // Returns all public objectives tied to this game, including stage and round info
 func GetGameObjectives(c *gin.Context) {
 	gameID := c.Param("id")
+	const (
+		ScoreTypeAgenda = "agenda"
+		AgendaCDL       = "Classified Document Leaks"
+	)
 
 	// Step 1: Load normal game objectives
 	var gameObjectives []models.GameObjective
@@ -91,11 +95,10 @@ func GetGameObjectives(c *gin.Context) {
 		return
 	}
 
-	// Add CDL-converted secret objectives as pseudo-public objectives
+	// Step 2: Add CDL-converted secret objectives as pseudo-public objectives
 	var scores []models.Score
 	err = database.DB.
-		Preload("Objective").
-		Where("game_id = ? AND type = ? AND agenda_title = ?", gameID, models.ScoreTypeAgenda, models.AgendaCDL).
+		Where("game_id = ? AND type = ? AND agenda_title = ?", gameID, ScoreTypeAgenda, AgendaCDL).
 		Find(&scores).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load CDL agenda scores"})
@@ -108,19 +111,25 @@ func GetGameObjectives(c *gin.Context) {
 			continue
 		}
 
-		// Inject a pseudo-objective
+		// Load the full Objective from DB
+		var fullObj models.Objective
+		if err := database.DB.First(&fullObj, s.ObjectiveID).Error; err != nil {
+			continue // silently skip invalid/unknown objectives
+		}
+
+		// Inject as pseudo-public CDL objective
 		cdlObj := models.GameObjective{
-			ID:          0, // placeholder
+			ID:          0,
 			GameID:      s.GameID,
 			ObjectiveID: s.ObjectiveID,
-			Stage:       s.Objective.Stage,
-			Objective:   s.Objective,
+			Stage:       fullObj.Stage,
+			Objective:   fullObj,
 			IsCDL:       true,
 		}
 		gameObjectives = append(gameObjectives, cdlObj)
 	}
 
-	// Sort objectives by ID to ensure consistent order in UI
+	// Sort objectives by ID for consistent frontend ordering
 	sort.Slice(gameObjectives, func(i, j int) bool {
 		return gameObjectives[i].ObjectiveID < gameObjectives[j].ObjectiveID
 	})

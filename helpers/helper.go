@@ -37,14 +37,15 @@ func GetCurrentRoundID(gameID uint) (uint, error) {
 	return round.ID, nil
 }
 
-func CreateAgendaScore(gameID, roundID, playerID int, points int, title string) error {
+func CreateAgendaScore(gameID, roundID, playerID int, points int, agendaTitle string, objectiveID uint) error {
 	score := models.Score{
 		GameID:      uint(gameID),
 		RoundID:     uint(roundID),
 		PlayerID:    uint(playerID),
 		Points:      points,
-		Type:        ScoreTypeAgenda,
-		AgendaTitle: title,
+		Type:        "agenda",
+		AgendaTitle: agendaTitle,
+		ObjectiveID: objectiveID, // <- THIS LINE
 	}
 	return database.DB.Create(&score).Error
 }
