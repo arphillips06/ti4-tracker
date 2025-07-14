@@ -34,6 +34,13 @@ func GetGameByID(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	var custodiansPlayerID *uint
+	for _, s := range scores {
+		if s.Type == "mecatol" {
+			custodiansPlayerID = &s.PlayerID
+			break
+		}
+	}
 
 	scoreSummaryMap := make(map[uint]models.PlayerScoreSummary)
 	for _, s := range scores {
@@ -50,17 +57,18 @@ func GetGameByID(c *gin.Context) {
 	}
 
 	response := models.GameDetailResponse{
-		ID:                game.ID,
-		WinningPoints:     game.WinningPoints,
-		CurrentRound:      game.CurrentRound,
-		FinishedAt:        game.FinishedAt,
-		UseObjectiveDecks: game.UseObjectiveDecks,
-		Players:           game.GamePlayers,
-		Rounds:            game.Rounds,
-		Objectives:        game.GameObjectives,
-		Scores:            summaryList,
-		AllScores:         scores,
-		Winner:            &game.Winner,
+		ID:                 game.ID,
+		WinningPoints:      game.WinningPoints,
+		CurrentRound:       game.CurrentRound,
+		FinishedAt:         game.FinishedAt,
+		UseObjectiveDecks:  game.UseObjectiveDecks,
+		Players:            game.GamePlayers,
+		Rounds:             game.Rounds,
+		Objectives:         game.GameObjectives,
+		Scores:             summaryList,
+		AllScores:          scores,
+		Winner:             &game.Winner,
+		CustodiansPlayerID: custodiansPlayerID,
 	}
 
 	c.JSON(http.StatusOK, response)

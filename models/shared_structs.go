@@ -26,17 +26,18 @@ type RoundScoresGroup struct {
 }
 
 type GameDetailResponse struct {
-	ID                uint                 `json:"id"`
-	WinningPoints     int                  `json:"winning_points"`
-	CurrentRound      int                  `json:"current_round"`
-	FinishedAt        *time.Time           `json:"finished_at"`
-	UseObjectiveDecks bool                 `json:"use_objective_decks"`
-	Players           []GamePlayer         `json:"players"`
-	Rounds            []Round              `json:"rounds"`
-	Objectives        []GameObjective      `json:"objectives"`
-	Scores            []PlayerScoreSummary `json:"scores"`
-	AllScores         []Score              `json:"all_scores"`
-	Winner            *Player              `json:"winner"`
+	ID                 uint                 `json:"id"`
+	WinningPoints      int                  `json:"winning_points"`
+	CurrentRound       int                  `json:"current_round"`
+	FinishedAt         *time.Time           `json:"finished_at"`
+	UseObjectiveDecks  bool                 `json:"use_objective_decks"`
+	Players            []GamePlayer         `json:"players"`
+	Rounds             []Round              `json:"rounds"`
+	Objectives         []GameObjective      `json:"objectives"`
+	Scores             []PlayerScoreSummary `json:"scores"`
+	AllScores          []Score              `json:"all_scores"`
+	Winner             *Player              `json:"winner"`
+	CustodiansPlayerID *uint                `json:"custodiansPlayerId,omitempty"`
 }
 
 type SelectedPlayersWithFaction struct {
