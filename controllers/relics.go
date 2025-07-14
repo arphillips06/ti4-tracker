@@ -2,10 +2,7 @@ package controllers
 
 import (
 	"net/http"
-	"time"
 
-	"github.com/arphillips06/TI4-stats/database"
-	"github.com/arphillips06/TI4-stats/models"
 	"github.com/arphillips06/TI4-stats/services"
 	"github.com/gin-gonic/gin"
 )
@@ -26,53 +23,10 @@ func HandleShardRelic(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
-	var game models.Game
-	if err := database.DB.First(&game, req.GameID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load game"})
+	if err := services.ApplyShardOfTheThrone(req.GameID, req.NewHolderID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	// Step 1: Find previous holder
-	var lastShardScore models.Score
-	err := database.DB.Where("game_id = ? AND type = ? AND relic_title = ?", req.GameID, "relic", "Shard of the Throne").
-		Order("created_at desc").
-		First(&lastShardScore).Error
-
-	// Step 2: If a previous holder exists and it's different, subtract 1 point
-	if err == nil && lastShardScore.PlayerID != req.NewHolderID {
-		// Remove point from previous holder
-		prevScore := models.Score{
-			GameID:     req.GameID,
-			PlayerID:   lastShardScore.PlayerID,
-			Points:     -1,
-			Type:       "relic",
-			RelicTitle: "Shard of the Throne",
-			CreatedAt:  time.Now(),
-		}
-		if err := database.DB.Create(&prevScore).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to deduct point from previous holder"})
-			return
-		}
-	}
-
-	// Step 3: Give 1 point to new holder
-	newScore := models.Score{
-		GameID:     req.GameID,
-		PlayerID:   req.NewHolderID,
-		Points:     1,
-		Type:       "relic",
-		RelicTitle: "Shard of the Throne",
-		CreatedAt:  time.Now(),
-	}
-	if err := database.DB.Create(&newScore).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to assign Shard"})
-		return
-	}
-	if err := services.MaybeFinishGameFromScore(&game, req.NewHolderID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for end of game"})
-		return
-	}
-
 	c.JSON(http.StatusOK, gin.H{"message": "Shard of the Throne updated"})
 }
 
@@ -82,28 +36,8 @@ func HandleCrownRelic(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
-
-	var game models.Game
-	if err := database.DB.First(&game, req.GameID).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load game"})
-		return
-	}
-
-	score := models.Score{
-		GameID:     req.GameID,
-		PlayerID:   req.PlayerID,
-		Points:     1,
-		Type:       "relic",
-		RelicTitle: "The Crown of Emphidia",
-		CreatedAt:  time.Now(),
-	}
-	if err := database.DB.Create(&score).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to record Crown of Emphidia score"})
-		return
-	}
-
-	if err := services.MaybeFinishGameFromScore(&game, req.PlayerID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check for end of game"})
+	if err := services.ApplyCrownOfEmphidia(req.GameID, req.PlayerID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -117,17 +51,7 @@ func HandleObsidianRelic(c *gin.Context) {
 		return
 	}
 
-	// This relic grants an extra secret slot, but no points.
-	score := models.Score{
-		GameID:     req.GameID,
-		PlayerID:   req.PlayerID,
-		Points:     0,
-		Type:       "relic",
-		RelicTitle: "The Obsidian",
-		CreatedAt:  time.Now(),
-	}
-
-	if err := database.DB.Create(&score).Error; err != nil {
+	if err := services.ApplyObsidian(req.GameID, req.PlayerID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to record Obsidian relic use"})
 		return
 	}
