@@ -7,7 +7,11 @@ import (
 	"github.com/arphillips06/TI4-stats/models"
 )
 
-//to use when game end needs checking
+const (
+	ScoreTypeAgenda = "agenda"
+)
+
+// to use when game end needs checking
 
 func IsGameFinished(gameID uint) (bool, error) {
 	var game models.Game
@@ -31,4 +35,16 @@ func GetCurrentRoundID(gameID uint) (uint, error) {
 	}
 
 	return round.ID, nil
+}
+
+func CreateAgendaScore(gameID, roundID, playerID int, points int, title string) error {
+	score := models.Score{
+		GameID:      uint(gameID),
+		RoundID:     uint(roundID),
+		PlayerID:    uint(playerID),
+		Points:      points,
+		Type:        ScoreTypeAgenda,
+		AgendaTitle: title,
+	}
+	return database.DB.Create(&score).Error
 }

@@ -79,6 +79,7 @@ type SeedOfEmpireResolution struct {
 
 type ClassifiedDocumentLeaksRequest struct {
 	GameID      uint `json:"game_id"`
+	RoundID     uint `json:"round_id"`
 	PlayerID    uint `json:"player_id"`
 	ObjectiveID uint `json:"objective_id"`
 }
@@ -86,6 +87,11 @@ type ClassifiedDocumentLeaksRequest struct {
 type ObjectiveWithMetadata struct {
 	Objective Objective `json:"Objective"`
 	IsCDL     bool      `json:"IsCDL"`
+}
+
+type IncentiveProgramRequest struct {
+	GameID  uint   `json:"game_id"`
+	Outcome string `json:"outcome"`
 }
 
 type ObjectiveDeck struct {

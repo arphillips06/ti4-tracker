@@ -3,35 +3,37 @@ package services
 import (
 	"errors"
 	"fmt"
-	"log"
 
 	"github.com/arphillips06/TI4-stats/database"
+	"github.com/arphillips06/TI4-stats/helpers"
 	"github.com/arphillips06/TI4-stats/models"
 	"gorm.io/gorm"
 )
 
+const (
+	ScoreTypePublic = "public"
+	ScoreTypeSecret = "secret"
+
+	AgendaMutiny    = "Mutiny"
+	AgendaCDL       = "Classified Document Leaks"
+	AgendaSeed      = "Seed of an Empire"
+	AgendaCensure   = "Political Censure"
+	AgendaIncentive = "Incentive Program"
+)
+
+// ApplyPoliticalCensure adjusts agenda score based on whether the player was censured or not.
+// If Gained is false, a point is removed.
 func ApplyPoliticalCensure(input models.PoliticalCensureRequest) error {
 	points := 1
 	if !input.Gained {
 		points = -1
 	}
 
-	score := models.Score{
-		GameID:      input.GameID,
-		RoundID:     input.RoundID,
-		PlayerID:    input.PlayerID,
-		Points:      points,
-		Type:        "agenda", // lowercase to match existing entries
-		AgendaTitle: "Political Censure",
-	}
-
-	if err := database.DB.Create(&score).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(input.PlayerID), points, AgendaCensure)
 }
 
+// ApplySeedOfEmpire awards 1 point to the player with most (or fewest) points depending on the vote result.
+// Ties are handled by awarding all tied players.
 func ApplySeedOfEmpire(input models.SeedOfEmpireResolution) error {
 	// Step 1: Get all players in the game
 	var gamePlayers []models.GamePlayer
@@ -45,7 +47,7 @@ func ApplySeedOfEmpire(input models.SeedOfEmpireResolution) error {
 		totals[gp.PlayerID] = 0
 	}
 
-	// Step 3: Add up actual points from Score table
+	// Step 3: Sum all current player scores from Score table
 	var scores []models.Score
 	if err := database.DB.Where("game_id = ?", input.GameID).Find(&scores).Error; err != nil {
 		return err
@@ -80,17 +82,8 @@ func ApplySeedOfEmpire(input models.SeedOfEmpireResolution) error {
 		}
 	}
 
-	// Step 5: Apply the agenda score for each target player
 	for _, id := range targetPlayerIDs {
-		score := models.Score{
-			GameID:      input.GameID,
-			RoundID:     input.RoundID,
-			PlayerID:    id,
-			Points:      1,
-			Type:        "agenda",
-			AgendaTitle: "Seed of an Empire",
-		}
-		if err := database.DB.Create(&score).Error; err != nil {
+		if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(id), 1, AgendaSeed); err != nil {
 			return err
 		}
 	}
@@ -98,6 +91,7 @@ func ApplySeedOfEmpire(input models.SeedOfEmpireResolution) error {
 	return nil
 }
 
+// ApplyMutinyAgenda awards or removes points based on the Mutiny agenda result.
 func ApplyMutinyAgenda(input models.AgendaResolution) error {
 	var count int64
 	if err := database.DB.
@@ -111,25 +105,12 @@ func ApplyMutinyAgenda(input models.AgendaResolution) error {
 	}
 
 	if input.Result == "for" {
-		log.Println("ApplyMutinyAgenda called with:", input)
 		for _, playerID := range input.ForVotes {
-			score := models.Score{
-				GameID:      input.GameID,
-				RoundID:     input.RoundID,
-				PlayerID:    playerID,
-				Points:      1,
-				Type:        "agenda",
-				AgendaTitle: "Mutiny",
-			}
-
-			if err := database.DB.Create(&score).Error; err != nil {
+			if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(playerID), 1, AgendaMutiny); err != nil {
 				return err
 			}
 		}
-	}
-
-	if input.Result == "against" {
-		log.Println("ApplyMutinyAgenda called with:", input)
+	} else if input.Result == "against" {
 		for _, playerID := range input.ForVotes {
 			var total int64
 			err := database.DB.Model(&models.Score{}).
@@ -140,53 +121,32 @@ func ApplyMutinyAgenda(input models.AgendaResolution) error {
 			}
 
 			if total > 0 {
-				score := models.Score{
-					GameID:      input.GameID,
-					RoundID:     input.RoundID,
-					PlayerID:    playerID,
-					Points:      -1,
-					Type:        "agenda",
-					AgendaTitle: "Mutiny",
-				}
-
-				if err := database.DB.Create(&score).Error; err != nil {
+				if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(playerID), -1, AgendaMutiny); err != nil {
 					return err
 				}
 			}
 		}
-	}
-	if input.Result != "for" && input.Result != "against" || len(input.ForVotes) == 0 {
-		err := database.DB.Create(&models.Score{
-			GameID:      input.GameID,
-			RoundID:     input.RoundID,
-			PlayerID:    0, // or nullable if supported
-			ObjectiveID: 0,
-			Points:      0,
-			Type:        "agenda",
-			AgendaTitle: "Mutiny",
-		}).Error
-		if err != nil {
-			return fmt.Errorf("Failed to record Mutiny usage: %w", err)
-		}
+	} else {
+		return helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), 0, 0, AgendaMutiny)
 	}
 
 	return nil
 }
 
+// This converts the scored secret objective to a public one.
+// It also marks that it was originally secret, and records that CDL was used.
 func ApplyClassifiedDocumentLeaks(input models.ClassifiedDocumentLeaksRequest) error {
 	// Prevent duplicate resolution
 	var count int64
 	if err := database.DB.
 		Model(&models.Score{}).
-		Where("game_id = ? AND agenda_title = ?", input.GameID, "Classified Document Leaks").
+		Where("game_id = ? AND agenda_title = ?", input.GameID, AgendaCDL).
 		Count(&count).Error; err != nil {
 		return err
 	}
 	if count > 0 {
 		return fmt.Errorf("Classified Document Leaks has already been resolved for this game")
 	}
-
-	log.Println("ApplyClassifiedDocumentLeaks called with:", input)
 
 	// Locate the secret score
 	var score models.Score
@@ -200,30 +160,17 @@ func ApplyClassifiedDocumentLeaks(input models.ClassifiedDocumentLeaksRequest) e
 	}
 
 	// Update the score to public
-	score.Type = "public"
+	score.Type = ScoreTypePublic
 	score.OriginallySecret = true
 	if err := database.DB.Save(&score).Error; err != nil {
 		return err
 	}
 
-	// Record the agenda use (0-point marker)
-	agendaScore := models.Score{
-		GameID:      input.GameID,
-		PlayerID:    input.PlayerID,
-		ObjectiveID: input.ObjectiveID,
-		Points:      0,
-		Type:        "agenda",
-		AgendaTitle: "Classified Document Leaks",
-	}
-	log.Printf("CDL: Updating score %d from type=%s to public", score.ID, score.Type)
-
-	if err := database.DB.Create(&agendaScore).Error; err != nil {
-		return err
-	}
-
-	return nil
+	return helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(input.PlayerID), 0, AgendaCDL)
 }
 
+// Incentive Program reveals the next unrevealed Stage I/II objective
+// depending on the vote outcome: "for" → Stage I, "against" → Stage II
 func ApplyIncentiveProgramEffect(gameID uint, outcome string) error {
 	var game models.Game
 	if err := database.DB.First(&game, gameID).Error; err != nil {
@@ -243,8 +190,8 @@ func ApplyIncentiveProgramEffect(gameID uint, outcome string) error {
 	default:
 		return fmt.Errorf("Invalid outcome: must be 'for' or 'against'")
 	}
-	var existingObjectiveIDs []uint
 
+	var existingObjectiveIDs []uint
 	if err := database.DB.
 		Model(&models.GameObjective{}).
 		Where("game_id = ?", gameID).
@@ -269,15 +216,10 @@ func ApplyIncentiveProgramEffect(gameID uint, outcome string) error {
 		RoundID:     0,
 		Revealed:    true,
 	}
-	_ = database.DB.Create(&models.Score{
-		GameID:      gameID,
-		PlayerID:    0,
-		RoundID:     0,
-		ObjectiveID: 0,
-		Points:      0,
-		Type:        "agenda",
-		AgendaTitle: "Incentive Program",
-	})
+	if err := database.DB.Create(&gameObj).Error; err != nil {
+		return err
+	}
 
-	return database.DB.Create(&gameObj).Error
+	return helpers.CreateAgendaScore(int(gameID), 0, 0, 0, AgendaIncentive)
+
 }
