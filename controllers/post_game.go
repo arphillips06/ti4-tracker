@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/arphillips06/TI4-stats/database"
+	"github.com/arphillips06/TI4-stats/helpers"
 	"github.com/arphillips06/TI4-stats/models"
 	"github.com/arphillips06/TI4-stats/services"
 	"github.com/gin-gonic/gin"
@@ -13,14 +14,14 @@ import (
 // It creates a new game with players and optionally generates objectives
 func CreateGame(c *gin.Context) {
 
-	var input models.CreateGameInput
-
-	//bind incoming JSON to the CreateGameInput struct
-	//the struct is defined in 'models' so it can be reused and keeps this code cleaner
-	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	input, ok := helpers.BindJSON[models.CreateGameInput](c)
+	if !ok {
 		return
 	}
+	const (
+		DefaultWinningPoints   = 10
+		AlternateWinningPoints = 14
+	)
 	//sets to true unless otherwise set
 	//true means that the code will generate the objectives
 	useDecks := true
@@ -28,8 +29,8 @@ func CreateGame(c *gin.Context) {
 		useDecks = *input.UseObjectiveDecks
 	}
 	//set 10 points as default unless 14 is given
-	if input.WinningPoints != 10 && input.WinningPoints != 14 {
-		input.WinningPoints = 10
+	if input.WinningPoints != DefaultWinningPoints && input.WinningPoints != AlternateWinningPoints {
+		input.WinningPoints = DefaultWinningPoints
 	}
 	//basic validation on player names
 	//calls a function from 'services'
@@ -106,6 +107,7 @@ func AdvanceRound(c *gin.Context) {
 		return
 	}
 
+	// After round 9, automatically attempt to finish the game due to round limit
 	if game.CurrentRound >= 9 {
 		if err := services.MaybeFinishGameFromExhaustion(game); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to finish game"})
@@ -139,9 +141,8 @@ func AdvanceRound(c *gin.Context) {
 }
 
 func AssignObjective(c *gin.Context) {
-	var req models.AssignObjectiveRequest
-	if err := c.BindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+	req, ok := helpers.BindJSON[models.AssignObjectiveRequest](c)
+	if !ok {
 		return
 	}
 

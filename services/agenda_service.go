@@ -10,17 +10,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	ScoreTypePublic = "public"
-	ScoreTypeSecret = "secret"
-
-	AgendaMutiny    = "Mutiny"
-	AgendaCDL       = "Classified Document Leaks"
-	AgendaSeed      = "Seed of an Empire"
-	AgendaCensure   = "Political Censure"
-	AgendaIncentive = "Incentive Program"
-)
-
 // ApplyPoliticalCensure adjusts agenda score based on whether the player was censured or not.
 // If Gained is false, a point is removed.
 func ApplyPoliticalCensure(input models.PoliticalCensureRequest) error {
@@ -29,7 +18,7 @@ func ApplyPoliticalCensure(input models.PoliticalCensureRequest) error {
 		points = -1
 	}
 
-	return helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(input.PlayerID), points, AgendaCensure)
+	return helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(input.PlayerID), points, models.AgendaCensure)
 }
 
 // ApplySeedOfEmpire awards 1 point to the player with most (or fewest) points depending on the vote result.
@@ -60,7 +49,8 @@ func ApplySeedOfEmpire(input models.SeedOfEmpireResolution) error {
 	var targetPlayerIDs []uint
 	var targetPoints int
 
-	if input.Result == "for" {
+	switch input.Result {
+	case "for":
 		targetPoints = -1
 		for id, points := range totals {
 			if points > targetPoints {
@@ -70,7 +60,7 @@ func ApplySeedOfEmpire(input models.SeedOfEmpireResolution) error {
 				targetPlayerIDs = append(targetPlayerIDs, id)
 			}
 		}
-	} else if input.Result == "against" {
+	case "against":
 		targetPoints = 999
 		for id, points := range totals {
 			if points < targetPoints {
@@ -80,10 +70,12 @@ func ApplySeedOfEmpire(input models.SeedOfEmpireResolution) error {
 				targetPlayerIDs = append(targetPlayerIDs, id)
 			}
 		}
+	default:
+		return fmt.Errorf("invalid vote result: %s", input.Result)
 	}
 
 	for _, id := range targetPlayerIDs {
-		if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(id), 1, AgendaSeed); err != nil {
+		if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(id), 1, models.AgendaSeed); err != nil {
 			return err
 		}
 	}
@@ -104,13 +96,14 @@ func ApplyMutinyAgenda(input models.AgendaResolution) error {
 		return fmt.Errorf("Mutiny has already been resolved for this game")
 	}
 
-	if input.Result == "for" {
+	switch input.Result {
+	case "for":
 		for _, playerID := range input.ForVotes {
-			if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(playerID), 1, AgendaMutiny); err != nil {
+			if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(playerID), 1, models.AgendaMutiny); err != nil {
 				return err
 			}
 		}
-	} else if input.Result == "against" {
+	case "against":
 		for _, playerID := range input.ForVotes {
 			var total int64
 			err := database.DB.Model(&models.Score{}).
@@ -119,15 +112,14 @@ func ApplyMutinyAgenda(input models.AgendaResolution) error {
 			if err != nil {
 				return err
 			}
-
 			if total > 0 {
-				if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(playerID), -1, AgendaMutiny); err != nil {
+				if err := helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(playerID), -1, models.AgendaMutiny); err != nil {
 					return err
 				}
 			}
 		}
-	} else {
-		return helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), 0, 0, AgendaMutiny)
+	default:
+		return helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), 0, 0, models.AgendaMutiny)
 	}
 
 	return nil
@@ -140,7 +132,7 @@ func ApplyClassifiedDocumentLeaks(input models.ClassifiedDocumentLeaksRequest) e
 	var count int64
 	if err := database.DB.
 		Model(&models.Score{}).
-		Where("game_id = ? AND agenda_title = ?", input.GameID, AgendaCDL).
+		Where("game_id = ? AND agenda_title = ?", input.GameID, models.AgendaCDL).
 		Count(&count).Error; err != nil {
 		return err
 	}
@@ -160,13 +152,13 @@ func ApplyClassifiedDocumentLeaks(input models.ClassifiedDocumentLeaksRequest) e
 	}
 
 	// Update the score to public
-	score.Type = ScoreTypePublic
+	score.Type = models.ScoreTypePublic
 	score.OriginallySecret = true
 	if err := database.DB.Save(&score).Error; err != nil {
 		return err
 	}
 
-	return helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(input.PlayerID), 0, AgendaCDL)
+	return helpers.CreateAgendaScore(int(input.GameID), int(input.RoundID), int(input.PlayerID), 0, models.AgendaCDL)
 }
 
 // Incentive Program reveals the next unrevealed Stage I/II objective
@@ -220,6 +212,6 @@ func ApplyIncentiveProgramEffect(gameID uint, outcome string) error {
 		return err
 	}
 
-	return helpers.CreateAgendaScore(int(gameID), 0, 0, 0, AgendaIncentive)
+	return helpers.CreateAgendaScore(int(gameID), 0, 0, 0, models.AgendaIncentive)
 
 }

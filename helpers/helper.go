@@ -48,3 +48,12 @@ func CreateAgendaScore(gameID, roundID, playerID int, points int, title string) 
 	}
 	return database.DB.Create(&score).Error
 }
+
+func ContainsCDLObjective(objs []models.GameObjective, id uint) bool {
+	for _, obj := range objs {
+		if obj.ObjectiveID == id && obj.IsCDL {
+			return true
+		}
+	}
+	return false
+}

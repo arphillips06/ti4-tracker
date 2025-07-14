@@ -1,17 +1,17 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
+	"sort"
 
 	"github.com/arphillips06/TI4-stats/database"
+	"github.com/arphillips06/TI4-stats/helpers"
 	"github.com/arphillips06/TI4-stats/models"
 	"github.com/arphillips06/TI4-stats/services"
 	"github.com/gin-gonic/gin"
 )
 
-// GET /games
-// Returns all games with their associated players
+// ListGames returns all games, including associated players and winner info.
 func ListGames(c *gin.Context) {
 	var games []models.Game
 	if err := database.DB.
@@ -82,17 +82,12 @@ func GetGameObjectives(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load objectives for game"})
 		return
 	}
-	fmt.Println("Objectives returned:")
-	for _, obj := range gameObjectives {
-		fmt.Printf("ID: %d | Stage: %s | RoundID: %d | Revealed: %v\n",
-			obj.ObjectiveID, obj.Stage, obj.RoundID, obj.Revealed)
-	}
 
-	// Step 2: Inject CDL objectives
+	// Add CDL-converted secret objectives as pseudo-public objectives
 	var scores []models.Score
 	err = database.DB.
 		Preload("Objective").
-		Where("game_id = ? AND type = ? AND agenda_title = ?", gameID, "agenda", "Classified Document Leaks").
+		Where("game_id = ? AND type = ? AND agenda_title = ?", gameID, models.ScoreTypeAgenda, models.AgendaCDL).
 		Find(&scores).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load CDL agenda scores"})
@@ -101,14 +96,7 @@ func GetGameObjectives(c *gin.Context) {
 
 	for _, s := range scores {
 		// Avoid duplication if objective already present
-		alreadyIncluded := false
-		for _, existing := range gameObjectives {
-			if existing.ObjectiveID == s.ObjectiveID && existing.IsCDL {
-				alreadyIncluded = true
-				break
-			}
-		}
-		if alreadyIncluded {
+		if helpers.ContainsCDLObjective(gameObjectives, s.ObjectiveID) {
 			continue
 		}
 
@@ -123,6 +111,11 @@ func GetGameObjectives(c *gin.Context) {
 		}
 		gameObjectives = append(gameObjectives, cdlObj)
 	}
+
+	// Sort objectives by ID to ensure consistent order in UI
+	sort.Slice(gameObjectives, func(i, j int) bool {
+		return gameObjectives[i].ObjectiveID < gameObjectives[j].ObjectiveID
+	})
 
 	// Step 3: Return combined result
 	c.JSON(http.StatusOK, gameObjectives)
