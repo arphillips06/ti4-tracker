@@ -13,7 +13,7 @@ This is the frontend for the Twilight Imperium Stats Tracker. It provides a resp
 
 ## Tech Stack
 - **React** with **Vite** 
-- **Tailwind CSS** for styling
+- **CSS** for styling
 - **Bootstrap** components for layout and dropdowns
 - **React Icons** for iconography
 - **Fetch API** for backend communication
