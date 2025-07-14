@@ -26,17 +26,18 @@ type RoundScoresGroup struct {
 }
 
 type GameDetailResponse struct {
-	ID                uint                 `json:"id"`
-	WinningPoints     int                  `json:"winning_points"`
-	CurrentRound      int                  `json:"current_round"`
-	FinishedAt        *time.Time           `json:"finished_at"`
-	UseObjectiveDecks bool                 `json:"use_objective_decks"`
-	Players           []GamePlayer         `json:"players"`
-	Rounds            []Round              `json:"rounds"`
-	Objectives        []GameObjective      `json:"objectives"`
-	Scores            []PlayerScoreSummary `json:"scores"`
-	AllScores         []Score              `json:"all_scores"`
-	Winner            *Player              `json:"winner"`
+	ID                 uint                 `json:"id"`
+	WinningPoints      int                  `json:"winning_points"`
+	CurrentRound       int                  `json:"current_round"`
+	FinishedAt         *time.Time           `json:"finished_at"`
+	UseObjectiveDecks  bool                 `json:"use_objective_decks"`
+	Players            []GamePlayer         `json:"players"`
+	Rounds             []Round              `json:"rounds"`
+	Objectives         []GameObjective      `json:"objectives"`
+	Scores             []PlayerScoreSummary `json:"scores"`
+	AllScores          []Score              `json:"all_scores"`
+	Winner             *Player              `json:"winner"`
+	CustodiansPlayerID *uint                `json:"custodiansPlayerId,omitempty"`
 }
 
 type SelectedPlayersWithFaction struct {
@@ -79,6 +80,7 @@ type SeedOfEmpireResolution struct {
 
 type ClassifiedDocumentLeaksRequest struct {
 	GameID      uint `json:"game_id"`
+	RoundID     uint `json:"round_id"`
 	PlayerID    uint `json:"player_id"`
 	ObjectiveID uint `json:"objective_id"`
 }
@@ -86,6 +88,11 @@ type ClassifiedDocumentLeaksRequest struct {
 type ObjectiveWithMetadata struct {
 	Objective Objective `json:"Objective"`
 	IsCDL     bool      `json:"IsCDL"`
+}
+
+type IncentiveProgramRequest struct {
+	GameID  uint   `json:"game_id"`
+	Outcome string `json:"outcome"`
 }
 
 type ObjectiveDeck struct {

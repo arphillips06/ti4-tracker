@@ -1,17 +1,17 @@
 package controllers
 
 import (
-	"fmt"
 	"net/http"
+	"sort"
 
 	"github.com/arphillips06/TI4-stats/database"
+	"github.com/arphillips06/TI4-stats/helpers"
 	"github.com/arphillips06/TI4-stats/models"
 	"github.com/arphillips06/TI4-stats/services"
 	"github.com/gin-gonic/gin"
 )
 
-// GET /games
-// Returns all games with their associated players
+// ListGames returns all games, including associated players and winner info.
 func ListGames(c *gin.Context) {
 	var games []models.Game
 	if err := database.DB.
@@ -34,6 +34,13 @@ func GetGameByID(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+	var custodiansPlayerID *uint
+	for _, s := range scores {
+		if s.Type == "mecatol" {
+			custodiansPlayerID = &s.PlayerID
+			break
+		}
+	}
 
 	scoreSummaryMap := make(map[uint]models.PlayerScoreSummary)
 	for _, s := range scores {
@@ -50,17 +57,18 @@ func GetGameByID(c *gin.Context) {
 	}
 
 	response := models.GameDetailResponse{
-		ID:                game.ID,
-		WinningPoints:     game.WinningPoints,
-		CurrentRound:      game.CurrentRound,
-		FinishedAt:        game.FinishedAt,
-		UseObjectiveDecks: game.UseObjectiveDecks,
-		Players:           game.GamePlayers,
-		Rounds:            game.Rounds,
-		Objectives:        game.GameObjectives,
-		Scores:            summaryList,
-		AllScores:         scores,
-		Winner:            &game.Winner,
+		ID:                 game.ID,
+		WinningPoints:      game.WinningPoints,
+		CurrentRound:       game.CurrentRound,
+		FinishedAt:         game.FinishedAt,
+		UseObjectiveDecks:  game.UseObjectiveDecks,
+		Players:            game.GamePlayers,
+		Rounds:             game.Rounds,
+		Objectives:         game.GameObjectives,
+		Scores:             summaryList,
+		AllScores:          scores,
+		Winner:             &game.Winner,
+		CustodiansPlayerID: custodiansPlayerID,
 	}
 
 	c.JSON(http.StatusOK, response)
@@ -70,6 +78,10 @@ func GetGameByID(c *gin.Context) {
 // Returns all public objectives tied to this game, including stage and round info
 func GetGameObjectives(c *gin.Context) {
 	gameID := c.Param("id")
+	const (
+		ScoreTypeAgenda = "agenda"
+		AgendaCDL       = "Classified Document Leaks"
+	)
 
 	// Step 1: Load normal game objectives
 	var gameObjectives []models.GameObjective
@@ -82,17 +94,11 @@ func GetGameObjectives(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load objectives for game"})
 		return
 	}
-	fmt.Println("Objectives returned:")
-	for _, obj := range gameObjectives {
-		fmt.Printf("ID: %d | Stage: %s | RoundID: %d | Revealed: %v\n",
-			obj.ObjectiveID, obj.Stage, obj.RoundID, obj.Revealed)
-	}
 
-	// Step 2: Inject CDL objectives
+	// Step 2: Add CDL-converted secret objectives as pseudo-public objectives
 	var scores []models.Score
 	err = database.DB.
-		Preload("Objective").
-		Where("game_id = ? AND type = ? AND agenda_title = ?", gameID, "agenda", "Classified Document Leaks").
+		Where("game_id = ? AND type = ? AND agenda_title = ?", gameID, ScoreTypeAgenda, AgendaCDL).
 		Find(&scores).Error
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load CDL agenda scores"})
@@ -101,28 +107,32 @@ func GetGameObjectives(c *gin.Context) {
 
 	for _, s := range scores {
 		// Avoid duplication if objective already present
-		alreadyIncluded := false
-		for _, existing := range gameObjectives {
-			if existing.ObjectiveID == s.ObjectiveID && existing.IsCDL {
-				alreadyIncluded = true
-				break
-			}
-		}
-		if alreadyIncluded {
+		if helpers.ContainsCDLObjective(gameObjectives, s.ObjectiveID) {
 			continue
 		}
 
-		// Inject a pseudo-objective
+		// Load the full Objective from DB
+		var fullObj models.Objective
+		if err := database.DB.First(&fullObj, s.ObjectiveID).Error; err != nil {
+			continue // silently skip invalid/unknown objectives
+		}
+
+		// Inject as pseudo-public CDL objective
 		cdlObj := models.GameObjective{
-			ID:          0, // placeholder
+			ID:          0,
 			GameID:      s.GameID,
 			ObjectiveID: s.ObjectiveID,
-			Stage:       s.Objective.Stage,
-			Objective:   s.Objective,
+			Stage:       fullObj.Stage,
+			Objective:   fullObj,
 			IsCDL:       true,
 		}
 		gameObjectives = append(gameObjectives, cdlObj)
 	}
+
+	// Sort objectives by ID for consistent frontend ordering
+	sort.Slice(gameObjectives, func(i, j int) bool {
+		return gameObjectives[i].ObjectiveID < gameObjectives[j].ObjectiveID
+	})
 
 	// Step 3: Return combined result
 	c.JSON(http.StatusOK, gameObjectives)

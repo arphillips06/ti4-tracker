@@ -74,21 +74,3 @@ func insertObjective(obj models.Objective) {
 		}
 	}
 }
-
-// allObjectives := append(append(objectives.StageOne, objectives.StageTwo...), objectives.Secret...)
-
-// for _, obj := range allObjectives {
-// 	var existing models.Objective
-// 	if err := DB.Where("name = ?", obj.Name).First(&existing).Error; err != nil {
-// 		if err == gorm.ErrRecordNotFound {
-// 			if err := DB.Create(&obj).Error; err != nil {
-// 				log.Printf("Failed to seed objective '%s': %v\n", obj.Name, err)
-// 			} else {
-// 				log.Printf("Seeded objective: %s\n", obj.Name)
-// 			}
-// 		} else {
-// 			log.Printf("Error checking objective '%s': %v\n", obj.Name, err)
-// 		}
-// 	}
-// }
-//}
