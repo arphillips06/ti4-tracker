@@ -25,7 +25,9 @@ func main() {
 			strings.HasPrefix(origin, "http://100.") ||
 			origin == "http://localhost:3000" ||
 			strings.HasSuffix(origin, ".ts.net:3000") ||
-			strings.HasSuffix(origin, "ross-lab.org:3000") {
+			strings.HasSuffix(origin, "ross-lab.org:3000") ||
+			origin == "http://[2a01:4b00:bf28:bb00:be24:11ff:fe04:d1a5]" ||
+			origin == "http://2a01:4b00:bf28:bb00:be24:11ff:fe04:d1a5" {
 
 			c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
 			c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
