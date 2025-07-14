@@ -26,6 +26,11 @@ export default function PlayerStats({ stats }) {
   });
 
   const sorted = [...avgPoints].sort((a, b) => b.averagePoints - a.averagePoints);
+  const custodians = stats.custodiansStats || [];
+  const custodiansMap = {};
+  custodians.forEach((entry) => {
+    custodiansMap[entry.player_name] = entry;
+  });
 
   return (
     <div className="stats-section">
@@ -100,7 +105,34 @@ export default function PlayerStats({ stats }) {
             ))}
         </tbody>
       </table>
-
+      <h2 className="mt-5">Custodians Influence on Wins</h2>
+      <table className="stats-table">
+        <thead>
+          <tr>
+            <th>Player</th>
+            <th>Games Played</th>
+            <th>Wins</th>
+            <th>Custodians Taken</th>
+            <th>Wins w/ Custodians</th>
+            <th>% Wins w/ Custodians</th>
+          </tr>
+        </thead>
+        <tbody>
+          {(stats.custodiansStats || [])
+            .sort((a, b) => b.custodians_win_percentage - a.custodians_win_percentage)
+            .map((p) => (
+              <tr key={p.player_name}>
+                <td>{p.player_name}</td>
+                <td>{p.games_played}</td>
+                <td>{p.games_won}</td>
+                <td>{p.custodians_taken}</td>
+                <td>{p.custodians_wins}</td>
+                <td>{p.custodians_win_percentage}%</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
     </div>
   );
 }
