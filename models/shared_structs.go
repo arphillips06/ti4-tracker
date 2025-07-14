@@ -104,3 +104,9 @@ type ObjectiveDeck struct {
 	Position    int
 	Objective   Objective `gorm:"foreignKey:ObjectiveID"`
 }
+
+type AssignPlayerInput struct {
+	GameID   uint   `json:"game_id"`
+	PlayerID uint   `json:"player_id"`
+	Faction  string `json:"faction"`
+}

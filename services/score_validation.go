@@ -8,67 +8,8 @@ import (
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
+	"gorm.io/gorm"
 )
-
-func AddScoreToGame(gameID, playerID uint, objectiveName string) (*models.Score, int, error) {
-	var game models.Game
-	if err := database.DB.Preload("Rounds").First(&game, gameID).Error; err != nil {
-		return nil, 0, errors.New("game not found")
-	}
-
-	if game.FinishedAt != nil {
-		return nil, 0, errors.New("game is already finished")
-	}
-
-	var obj models.Objective
-	if err := database.DB.Where("LOWER(name) = ?", strings.ToLower(objectiveName)).First(&obj).Error; err != nil {
-		return nil, 0, errors.New("objective not found")
-	}
-
-	var round models.Round
-	if err := database.DB.Where("game_id = ? AND number = ?", game.ID, game.CurrentRound).First(&round).Error; err != nil {
-		return nil, 0, errors.New("current round not found")
-	}
-
-	if obj.Type == "Secret" {
-		if err := ValidateSecretScoringRules(gameID, playerID, round.ID, obj.ID); err != nil {
-			return nil, 0, err
-		}
-	}
-
-	exists, err := CheckIfScoreExists(game.ID, playerID, obj.ID)
-	if err != nil {
-		return nil, 0, err
-	}
-	if exists {
-		return nil, 0, errors.New("objective already scored")
-	}
-
-	score := models.Score{
-		GameID:      game.ID,
-		PlayerID:    playerID,
-		ObjectiveID: obj.ID,
-		Points:      obj.Points,
-		RoundID:     round.ID,
-	}
-
-	if err := database.DB.Create(&score).Error; err != nil {
-		return nil, 0, err
-	}
-
-	var total int
-	database.DB.Model(&models.Score{}).
-		Where("game_id = ? AND player_id = ?", game.ID, playerID).
-		Select("SUM(points)").Scan(&total)
-
-	if total >= game.WinningPoints {
-		if err := MaybeFinishGameFromScore(&game, playerID); err != nil {
-			return &score, total, err
-		}
-	}
-
-	return &score, total, nil
-}
 
 func ValidateSecretScoringRules(gameID, playerID, roundID, objectiveID uint) error {
 	var objective models.Objective
@@ -77,7 +18,7 @@ func ValidateSecretScoringRules(gameID, playerID, roundID, objectiveID uint) err
 		return errors.New("Objective not found")
 	}
 
-	if strings.ToLower(objective.Type) != "secret" {
+	if strings.ToLower(objective.Type) != models.ScoreTypeSecret {
 		return nil
 	}
 
@@ -130,4 +71,20 @@ func ValidateSecretScoringRules(gameID, playerID, roundID, objectiveID uint) err
 	}
 
 	return nil
+}
+
+func CheckIfScoreExists(gameID, playerID, objectiveID uint) (bool, error) {
+	var existing models.Score
+	err := database.DB.
+		Where("game_id = ? AND player_id = ? AND objective_id = ?", gameID, playerID, objectiveID).
+		First(&existing).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false, nil
+		}
+		return false, fmt.Errorf("failed to check for existing score: %w", err)
+	}
+
+	return true, nil
 }

@@ -30,31 +30,36 @@ func GetPlayerCustodiansStats() ([]PlayerCustodiansStats, error) {
 		var custodiansWins int64
 
 		// Games Played
-		database.DB.Model(&models.GamePlayer{}).
+		if err := database.DB.Model(&models.GamePlayer{}).
 			Where("player_id = ?", player.ID).
-			Count(&gamesPlayed)
+			Count(&gamesPlayed).Error; err != nil {
+			return nil, err
+		}
 
-		// Games Won
-		database.DB.Model(&models.Game{}).
+		if err := database.DB.Model(&models.Game{}).
 			Where("winner_id = ?", player.ID).
-			Count(&gamesWon)
+			Count(&gamesWon).Error; err != nil {
+			return nil, err
+		}
 
-		// Custodians Taken
-		database.DB.Model(&models.Score{}).
+		if err := database.DB.Model(&models.Score{}).
 			Where("player_id = ? AND type = 'mecatol'", player.ID).
-			Count(&custodiansTaken)
+			Count(&custodiansTaken).Error; err != nil {
+			return nil, err
+		}
 
-		// Games where player took Custodians AND won
-		database.DB.Raw(`
+		if err := database.DB.Raw(`
 			SELECT COUNT(DISTINCT s.game_id)
 			FROM scores s
 			JOIN games g ON g.id = s.game_id
 			WHERE s.type = 'mecatol' AND s.player_id = ? AND g.winner_id = ?
-		`, player.ID, player.ID).Scan(&custodiansWins)
+		`, player.ID, player.ID).Scan(&custodiansWins).Error; err != nil {
+			return nil, err
+		}
 
-		percentage := 0
+		custodiansWinPercent := 0
 		if gamesWon > 0 {
-			percentage = int((float64(custodiansWins) / float64(gamesWon)) * 100)
+			custodiansWinPercent = int((float64(custodiansWins) / float64(gamesWon)) * 100)
 		}
 
 		results = append(results, PlayerCustodiansStats{
@@ -64,7 +69,7 @@ func GetPlayerCustodiansStats() ([]PlayerCustodiansStats, error) {
 			GamesWon:                int(gamesWon),
 			CustodiansTaken:         int(custodiansTaken),
 			CustodiansWins:          int(custodiansWins),
-			CustodiansWinPercentage: percentage,
+			CustodiansWinPercentage: custodiansWinPercent,
 		})
 	}
 

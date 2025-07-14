@@ -9,6 +9,7 @@ import (
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/database/factions"
+	"github.com/arphillips06/TI4-stats/helpers"
 	"github.com/arphillips06/TI4-stats/models"
 	"gorm.io/gorm"
 )
@@ -127,121 +128,53 @@ func AssignObjectivesToGame(game models.Game, round1 models.Round) error {
 	return nil
 }
 
-// Gets a game by its string ID
-func GetGameByID(id string) (*models.Game, error) {
-	var game models.Game
-	if err := database.DB.First(&game, id).Error; err != nil {
-		return nil, err
-	}
-	return &game, nil
-}
+func CreateNewGameWithPlayers(input models.CreateGameInput) (models.Game, []models.GameObjective, error) {
+	const (
+		DefaultWinningPoints   = 10
+		AlternateWinningPoints = 14
+	)
 
-// Creates and advances to a new round
-func CreateNewRound(game *models.Game) (*models.Round, error) {
-	newRound := models.Round{
-		GameID: game.ID,
-		Number: game.CurrentRound + 1,
+	useDecks := true
+	if input.UseObjectiveDecks != nil {
+		useDecks = *input.UseObjectiveDecks
 	}
-	if err := database.DB.Create(&newRound).Error; err != nil {
-		return nil, err
+	if input.WinningPoints != DefaultWinningPoints && input.WinningPoints != AlternateWinningPoints {
+		input.WinningPoints = DefaultWinningPoints
 	}
-	game.CurrentRound = newRound.Number
-	if err := database.DB.Save(&game).Error; err != nil {
-		return nil, err
-	}
-	return &newRound, nil
-}
 
-// Determines if we should reveal a Stage I or Stage II objective this round
-func DetermineStageToReveal(gameID uint) string {
-	var count int64
-	database.DB.Model(&models.GameObjective{}).
-		Where("game_id = ? AND stage = ? AND round_id > 0", gameID, "I").
-		Count(&count)
-	if count >= 5 {
-		return "II"
-	}
-	return "I"
-}
-
-// Marks the next unrevealed objective of the given stage as revealed in the current round
-func RevealNextObjective(gameID, roundID uint, stage string) error {
-	var obj models.GameObjective
-	err := database.DB.
-		Where("game_id = ? AND round_id = 0 AND stage = ? AND revealed = false", gameID, stage).
-		First(&obj).Error
+	selected, err := ParseAndValidatePlayers(input.Players)
 	if err != nil {
-		return err
-	}
-	obj.RoundID = roundID
-	obj.Revealed = true
-
-	return database.DB.Save(&obj).Error
-}
-
-// Counts total number of revealed public objectives for a game
-func CountRevealedObjectives(gameID uint) int64 {
-	var count int64
-	database.DB.Model(&models.GameObjective{}).
-		Where("game_id = ? AND round_id > 0", gameID).
-		Count(&count)
-	return count
-}
-
-func GetGameAndScores(gameID string) (models.Game, []models.Score, error) {
-	var game models.Game
-	if err := database.DB.
-		Preload("GamePlayers.Player").
-		Preload("Rounds").
-		Preload("Winner").
-		Preload("GameObjectives.Objective").
-		Preload("GameObjectives.Round").
-		First(&game, gameID).Error; err != nil {
-		return game, nil, errors.New("game not found")
+		return models.Game{}, nil, err
 	}
 
-	var scores []models.Score
-	if err := database.DB.
-		Preload("Player").
-		Preload("Objective").
-		Where("game_id = ?", game.ID).
-		Find(&scores).Error; err != nil {
-		return game, nil, errors.New("Could not load scores")
+	game, round1, err := CreateGameAndRound(input.WinningPoints, useDecks)
+	if err != nil {
+		return models.Game{}, nil, err
 	}
-	cdlObjectiveIDs := map[uint]bool{}
-	for _, score := range scores {
-		// Match CDL record by AgendaTitle (regardless of Type)
-		if score.AgendaTitle == "Classified Document Leaks" {
-			cdlObjectiveIDs[score.ObjectiveID] = true
+
+	for _, entry := range selected {
+		if err := helpers.CreateGamePlayer(game.ID, entry.Player.ID, entry.Faction); err != nil {
+			return models.Game{}, nil, err
 		}
 	}
 
-	for objID := range cdlObjectiveIDs {
-		found := false
-		for _, gobj := range game.GameObjectives {
-			if gobj.ObjectiveID == objID {
-				found = true
-				break
-			}
-		}
-		if !found {
-			var objective models.Objective
-
-			game.GameObjectives = append(game.GameObjectives, models.GameObjective{
-				ObjectiveID: objID,
-				Objective:   objective,
-				IsCDL:       true,
-			})
-		}
+	if err := database.DB.First(&game, game.ID).Error; err != nil {
+		return models.Game{}, nil, errors.New("failed to reload game")
 	}
 
-	for i, gobj := range game.GameObjectives {
-		if cdlObjectiveIDs[gobj.ObjectiveID] {
-			game.GameObjectives[i].IsCDL = true
+	var revealed []models.GameObjective
+	if game.UseObjectiveDecks {
+		if err := AssignObjectivesToGame(game, round1); err != nil {
+			return models.Game{}, nil, err
 		}
+		_ = database.DB.
+			Preload("Objective").
+			Joins("JOIN rounds ON rounds.id = game_objectives.round_id").
+			Where("game_objectives.game_id = ?", game.ID).
+			Find(&revealed)
 	}
 
-	return game, scores, nil
+	return game, revealed, nil
 }
 
 func ManuallyAssignObjective(gameID uint, roundNumber uint, objectiveID uint) error {

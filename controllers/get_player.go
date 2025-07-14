@@ -3,8 +3,7 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/arphillips06/TI4-stats/database"
-	"github.com/arphillips06/TI4-stats/models"
+	"github.com/arphillips06/TI4-stats/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,14 +11,12 @@ import (
 // Returns a list of players and their factions in a specific game.
 func ListPlayersInGame(c *gin.Context) {
 	gameID := c.Param("id")
-	var gamePlayers []models.GamePlayer
-
-	if err := database.DB.Where("game_id = ?", gameID).Preload("Player").Find(&gamePlayers).Error; err != nil {
+	players, err := services.GetPlayersInGame(gameID)
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-	c.JSON(http.StatusOK, gamePlayers)
+	c.JSON(http.StatusOK, players)
 }
 
 // GET /players/:id/games
@@ -27,18 +24,11 @@ func ListPlayersInGame(c *gin.Context) {
 // including which other players were in those games.
 func GetPlayerGames(c *gin.Context) {
 	playerID := c.Param("id")
-
-	var player models.Player
-
-	err := database.DB.
-		Preload("Games.Game").                    // Load Game inside each GamePlayer
-		Preload("Games.Game.GamePlayers.Player"). // Load all players of that Game
-		First(&player, playerID).Error
+	player, err := services.GetGamesForPlayer(playerID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Player not found"})
 		return
 	}
-
 	c.JSON(http.StatusOK, gin.H{
 		"player": player.Name,
 		"games":  player.Games,
@@ -48,8 +38,8 @@ func GetPlayerGames(c *gin.Context) {
 // GET /players
 // Returns a list of all players in the system.
 func ListPlayers(c *gin.Context) {
-	var players []models.Player
-	if err := database.DB.Find(&players).Error; err != nil {
+	players, err := services.ListAllPlayers()
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -2,24 +2,16 @@ package helpers
 
 import (
 	"errors"
+	"net/http"
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
+	"github.com/gin-gonic/gin"
 )
 
 const (
 	ScoreTypeAgenda = "agenda"
 )
-
-// to use when game end needs checking
-
-func IsGameFinished(gameID uint) (bool, error) {
-	var game models.Game
-	if err := database.DB.Select("finished_at").First(&game, gameID).Error; err != nil {
-		return false, err
-	}
-	return game.FinishedAt != nil, nil
-}
 
 func GetCurrentRoundID(gameID uint) (uint, error) {
 	var game models.Game
@@ -37,24 +29,42 @@ func GetCurrentRoundID(gameID uint) (uint, error) {
 	return round.ID, nil
 }
 
-func CreateAgendaScore(gameID, roundID, playerID int, points int, agendaTitle string, objectiveID uint) error {
-	score := models.Score{
-		GameID:      uint(gameID),
-		RoundID:     uint(roundID),
-		PlayerID:    uint(playerID),
-		Points:      points,
-		Type:        "agenda",
-		AgendaTitle: agendaTitle,
-		ObjectiveID: objectiveID, // <- THIS LINE
+func HandleRequest[T any](c *gin.Context, handler func(input T) error) {
+	input, ok := BindJSON[T](c)
+	if !ok {
+		return
 	}
-	return database.DB.Create(&score).Error
+	err := handler(*input)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
-func ContainsCDLObjective(objs []models.GameObjective, id uint) bool {
-	for _, obj := range objs {
-		if obj.ObjectiveID == id && obj.IsCDL {
-			return true
-		}
+func GetTotalPoints(gameID, playerID uint) (int, error) {
+	var total int
+	err := database.DB.Model(&models.Score{}).
+		Where("game_id = ? AND player_id = ?", gameID, playerID).
+		Select("SUM(points)").Scan(&total).Error
+	return total, err
+}
+
+func GetUnfinishedGame(gameID uint) (*models.Game, error) {
+	var game models.Game
+	if err := database.DB.First(&game, gameID).Error; err != nil {
+		return nil, err
 	}
-	return false
+	if game.FinishedAt != nil {
+		return nil, errors.New("game is already finished")
+	}
+	return &game, nil
+}
+
+func CreateGamePlayer(gameID, playerID uint, faction string) error {
+	return database.DB.Create(&models.GamePlayer{
+		GameID:   gameID,
+		PlayerID: playerID,
+		Faction:  faction,
+	}).Error
 }
