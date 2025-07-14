@@ -8,10 +8,18 @@ import (
 )
 
 func GetStatsOverview(c *gin.Context) {
-	stats, err := services.CalculateStatsOverview()
+	overview, err := services.CalculateStatsOverview()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate overview stats"})
 		return
 	}
-	c.JSON(http.StatusOK, stats)
+
+	custodians, err := services.GetPlayerCustodiansStats()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate custodians stats"})
+		return
+	}
+
+	overview.CustodiansStats = custodians
+	c.JSON(http.StatusOK, overview)
 }

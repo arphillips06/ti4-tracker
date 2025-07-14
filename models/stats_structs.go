@@ -1,22 +1,5 @@
 package models
 
-type StatsOverview struct {
-	TotalGames                 int                           `json:"totalGames"`
-	GamesWonByFaction          map[string]int                `json:"gamesWonByFaction"`
-	GamesPlayedByFaction       map[string]int                `json:"gamesPlayedByFaction"`
-	WinRateByFaction           map[string]float64            `json:"winRateByFaction"`
-	ObjectiveStats             map[string]int                `json:"objectiveStats"`
-	ObjectiveFrequency         map[string]int                `json:"objectiveFrequency"`
-	PlayerWinRates             []PlayerWinRate               `json:"playerWinRates"`
-	ObjectiveAppearanceStats   map[string]ObjectiveStats     `json:"objectiveAppearanceStats"`
-	FactionPlayWinDistribution map[string]FactionPlayWinStat `json:"factionPlayWinDistribution"`
-	PlayerAveragePoints        []PlayerAveragePoints         `json:"playerAveragePoints"`
-	TopFactionsPerPlayer       []PlayerFactionStats          `json:"topFactionsPerPlayer"`
-	PlayerMostCommonFinishes   []PlayerMostCommonFinish      `json:"playerMostCommonFinishes"`
-	SecretObjectiveRates       []SecretObjectiveRate         `json:"secretObjectiveRates"`
-	HeadlineStats              HeadlineStats                 `json:"headlineStats"`
-}
-
 type FactionPlayWinStat struct {
 	PlayedCount int     `json:"playedCount"`
 	WinCount    int     `json:"winCount"`

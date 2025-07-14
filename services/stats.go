@@ -25,6 +25,7 @@ type StatsOverview struct {
 	MostPlayedFaction          string                               `json:"mostPlayedFaction"`
 	MostVictoriousFaction      string                               `json:"mostVictoriousFaction"`
 	AverageGameRounds          float64                              `json:"averageGameRounds"`
+	CustodiansStats            []PlayerCustodiansStats              `json:"custodiansStats"`
 }
 
 func CalculateStatsOverview() (*StatsOverview, error) {
