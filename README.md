@@ -42,3 +42,10 @@ src/
 ├── App.js              # Main app with routing
 ├── index.js            # Entry point
 └── config.js           # Backend API base URL
+```
+---
+
+## Access
+Access is granted via Tailscale until v6 can be made to work with the backend.
+
+To access the tailnet, request access - link will be provided. From there login via a third party (git or google for example), once done download the application to $device and then you should be able to join the tailnet from there and access the magic URL ```ti4-stats.tail798251.ts.net```
