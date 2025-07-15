@@ -68,6 +68,12 @@ func BuildGameDetailResponse(gameID string) (models.GameDetailResponse, error) {
 	for _, s := range scoreSummaryMap {
 		summaryList = append(summaryList, s)
 	}
+	scoresByObjective := make(map[uint][]models.Score)
+	for _, s := range scores {
+		if s.ObjectiveID != 0 {
+			scoresByObjective[s.ObjectiveID] = append(scoresByObjective[s.ObjectiveID], s)
+		}
+	}
 
 	return models.GameDetailResponse{
 		ID:                 game.ID,
@@ -80,6 +86,7 @@ func BuildGameDetailResponse(gameID string) (models.GameDetailResponse, error) {
 		Objectives:         game.GameObjectives,
 		Scores:             summaryList,
 		AllScores:          scores,
+		ScoresByObjective:  scoresByObjective,
 		Winner:             &game.Winner,
 		CustodiansPlayerID: custodiansPlayerID,
 	}, nil

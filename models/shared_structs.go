@@ -38,6 +38,7 @@ type GameDetailResponse struct {
 	AllScores          []Score              `json:"all_scores"`
 	Winner             *Player              `json:"winner"`
 	CustodiansPlayerID *uint                `json:"custodiansPlayerId,omitempty"`
+	ScoresByObjective  map[uint][]Score     `json:"ScoresByObjective"`
 }
 
 type SelectedPlayersWithFaction struct {

@@ -39,7 +39,10 @@ func GetAllPublicObjectivesForGame(gameID string) ([]models.GameObjective, error
 	gameObjectives = helpers.InjectCDLObjectives(uint(gameIDUint), gameObjectives, scores)
 
 	sort.Slice(gameObjectives, func(i, j int) bool {
-		return gameObjectives[i].ObjectiveID < gameObjectives[j].ObjectiveID
+		if gameObjectives[i].Stage != gameObjectives[j].Stage {
+			return gameObjectives[i].Stage < gameObjectives[j].Stage
+		}
+		return gameObjectives[i].Position < gameObjectives[j].Position
 	})
 
 	return gameObjectives, nil

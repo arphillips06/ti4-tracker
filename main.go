@@ -62,6 +62,7 @@ func main() {
 	r.GET("/objectives/secrets/all", controllers.GetAllSecretObjectives)
 	r.POST("/assign_objective", controllers.AssignObjective)
 	r.GET("/objectives/public/all", controllers.GetAllPublicObjectives)
+	r.GET("/api/games/:id/exists", controllers.GetGameExists)
 
 	//scoring
 	r.POST("/score", controllers.AddScore)

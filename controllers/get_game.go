@@ -45,3 +45,15 @@ func GetGameObjectives(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, objectives)
 }
+
+func GetGameExists(c *gin.Context) {
+	id := c.Param("id")
+	var game models.Game
+
+	if err := database.DB.First(&game, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"exists": false})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"exists": true})
+}
