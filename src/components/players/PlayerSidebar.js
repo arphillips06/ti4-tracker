@@ -236,7 +236,7 @@ export default function PlayerSidebar({
                     </div>
 
                     <select
-                      className="form-select form-select-sm"
+                      className="secret-objective-select"
                       value=""
                       onChange={async (e) => {
                         const selectedId = parseInt(e.target.value);
