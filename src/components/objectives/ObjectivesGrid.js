@@ -2,6 +2,27 @@ import React, { useEffect, useState } from "react";
 import API_BASE_URL from "../../config";
 import factionImageMap from "../../data/factionIcons";
 
+// ✅ Move these ABOVE where they're used
+const getFactionKey = (faction) => {
+  return factionImageMap[faction] || "fallback";
+};
+
+const normalizePlayer = (p) => {
+  const rawFaction =
+    p.faction || p.Faction || p.Player?.Faction || p.Player?.faction || "Unknown";
+
+  const factionKey =
+    p.factionKey || p.FactionKey || getFactionKey(rawFaction);
+
+  return {
+    id: p.Player?.ID || p.player_id || p.PlayerID || p.ID,
+    name: p.name || p.Name || p.Player?.name || p.Player?.Name || "Unknown",
+    faction: rawFaction,
+    factionKey,
+    color: p.color || "#000",
+  };
+};
+
 export default function ObjectivesGrid({
   game,
   gameId,
@@ -16,7 +37,7 @@ export default function ObjectivesGrid({
   assignObjective,
 }) {
   const safeObjectives = objectives || [];
-  const safePlayers = (playersUnsorted || []).map(normalizePlayer);
+  const safePlayers = (playersUnsorted || []).map(normalizePlayer); // ✅ now safe
   const rawScores = game?.ScoresByObjective || {};
   const safeLocalScored = localScored || {};
   const usingDecks = String(useObjectiveDecks).toLowerCase() === "true";
@@ -25,23 +46,7 @@ export default function ObjectivesGrid({
   const availableStageI = publicObjectives.filter((o) => o.stage === "I");
   const availableStageII = publicObjectives.filter((o) => o.stage === "II");
   const currentRoundId = game?.current_round || 0;
-  const getFactionKey = (faction) => {
-    return factionImageMap[faction] || "fallback";
-  };
-  const normalizePlayer = (p) => {
-    const rawFaction =
-      p.faction || p.Faction || p.Player?.Faction || p.Player?.faction || "Unknown";
 
-    const factionKey =
-      p.factionKey || p.FactionKey || getFactionKey(rawFaction);
-    return {
-      id: p.Player?.ID || p.player_id || p.PlayerID || p.ID, // Match exactly what scoring returns
-      name: p.name || p.Name || p.Player?.name || p.Player?.Name || "Unknown",
-      faction: rawFaction,
-      factionKey,
-      color: p.color || "#000",
-    };
-  };
   const normalizedScores = {};
   Object.entries(rawScores).forEach(([objId, entries]) => {
     normalizedScores[objId] = entries.map(
