@@ -52,7 +52,7 @@ function GameList() {
   }, []);
 
   return (
-    <div className="container mt-4">
+    <div className="container">
       <h1 className="mb-4">TI4 Games</h1>
       <div className="d-flex justify-content-end gap-3 mb-4">
         <Link to="/" className="btn btn-outline-light">Home</Link>
@@ -62,7 +62,7 @@ function GameList() {
       {games.length === 0 ? (
         <p>No games found.</p>
       ) : (
-        <ul className="list-group">
+        <ul className="list-group list-unstyled">
           {games.map((game) => {
             const start = new Date(game.created_at);
             const end = game.finished_at ? new Date(game.finished_at) : null;
@@ -112,7 +112,6 @@ function GameList() {
                     </ul>
                   </div>
                 )}
-
                 <div className="text-end">
                   <Link to={`/games/${game.id}`} className="btn btn-sm btn-primary">
                     View Game

@@ -13,8 +13,6 @@
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.9);
 }
 
-
-/* === Stat Title Label (Inside Cards) === */
 .stat-card .label {
   font-size: 1.1rem;
   font-weight: bold;
@@ -23,6 +21,11 @@
 }
 
 /* === Section Title === */
+.stats-section {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
 .stats-section h2 {
   color: #f8f9fa;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
@@ -99,7 +102,7 @@
   color: #ffd700;
 }
 
-/* === Home Button (Optional: if not in nav bar) === */
+/* === Home Button === */
 .stats-home-btn {
   position: absolute;
   top: 1rem;
@@ -119,7 +122,7 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
-/* === Optional: Page Background Overlay === */
+/* === Background Overlay === */
 .page-background::before {
   content: "";
   position: absolute;
@@ -131,7 +134,7 @@
   z-index: -1;
 }
 
-/* General table styling */
+/* === Stats Table === */
 .stats-table {
   width: 100%;
   border-collapse: collapse;
@@ -141,37 +144,32 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 10px;
   overflow: hidden;
+  margin-top: 1rem;
   margin-bottom: 2rem;
   color: #f8f9fa;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
-/* Header row */
 .stats-table thead {
   background: rgba(255, 215, 0, 0.15);
   color: #ffd700;
 }
 
-.stats-table th {
-  padding: 0.75rem;
-  text-align: left;
-  font-weight: bold;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Table body */
+.stats-table th,
 .stats-table td {
   padding: 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
   vertical-align: top;
 }
 
-/* Alternating row backgrounds */
 .stats-table tbody tr:nth-child(even) {
   background: rgba(255, 255, 255, 0.03);
 }
+
+/* === Chart Glass Container === */
 .chart-glass-container {
-  background: rgba(0, 0, 0, 0.5); /* translucent black */
+  background: rgba(0, 0, 0, 0.5);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -181,14 +179,13 @@
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
 }
 
-/* Optional: improve axis label visibility */
+/* === Recharts Styling === */
 .recharts-cartesian-axis-tick text {
   fill: #f8f9fa !important;
   font-weight: 500;
   text-shadow: 1px 1px 2px #000;
 }
 
-/* Optional: make legends more readable */
 .recharts-default-legend {
   color: #fff;
   font-weight: 500;

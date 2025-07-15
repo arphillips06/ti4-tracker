@@ -1,25 +1,35 @@
 // src/utils/relicHandlers.js
-import API_BASE_URL from "../config";
+import { postJSON, submitAndRefresh } from "./helpers";
+
 export async function handleShardSubmit(playerId, gameId, refreshGameState, closeModal) {
   try {
-    const res = await fetch(`${API_BASE_URL}/relic/shard`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        game_id: parseInt(gameId),
-        new_holder_id: parseInt(playerId),
-      }),
+    await submitAndRefresh({
+      requestFn: () =>
+        postJSON("/relic/shard", {
+          game_id: parseInt(gameId),
+          new_holder_id: parseInt(playerId),
+        }),
+      refreshGameState,
+      closeModal,
     });
-
-    if (!res.ok) {
-      const errorText = await res.text();
-      throw new Error(`Failed to assign Shard: ${errorText}`);
-    }
-
-    await refreshGameState();
-    closeModal();
   } catch (err) {
     console.error("Failed to submit Shard:", err);
     alert("Error assigning Shard of the Throne.");
+  }
+}
+
+export async function handleScoreCrown(playerId, gameId, refresh) {
+  try {
+    await submitAndRefresh({
+      requestFn: () =>
+        postJSON("/relic/crown", {
+          game_id: parseInt(gameId),
+          player_id: parseInt(playerId),
+        }),
+      refreshGameState: refresh,
+    });
+  } catch (err) {
+    console.error("Failed to submit Crown of Emphidia:", err);
+    alert("Error scoring Crown of Emphidia.");
   }
 }

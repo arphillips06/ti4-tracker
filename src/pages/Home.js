@@ -13,7 +13,7 @@ const handleGoToGame = () => {
 };
 
   return (
-    <div className="container text-center mt-5">
+    <div className="container text-center p-4">
       <h1 className="mb-4">Twilight Imperium Stats Tracker</h1>
 
       <img
