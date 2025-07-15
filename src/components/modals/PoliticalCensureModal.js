@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
+import PlayerSelect from "../shared/PlayerSelect";
+
 
 export default function PoliticalCensureModal({ show, onClose, onSubmit, players }) {
     const scoredEntry = players.find((p) =>
@@ -28,24 +30,17 @@ export default function PoliticalCensureModal({ show, onClose, onSubmit, players
             </Modal.Header>
             <Modal.Body>
                 <div className="mb-3">
-                    <label className="form-label">Player Affected</label>
-                    <select
-                        className="form-select"
-                        value={selectedPlayerId || ""}
-                        onChange={(e) => setSelectedPlayerId(parseInt(e.target.value))}
-                    >
-                        <option value="">Select a player</option>
-                        {players.map((p) => (
-                            <option
-                                key={p.player_id}
-                                value={p.player_id}
-                                disabled={alreadyAssignedPlayerId !== null && alreadyAssignedPlayerId !== p.player_id}
-                            >
-                                {p.name}
-                            </option>
-                        ))}
-
-                    </select>
+                    <PlayerSelect
+                        players={players}
+                        value={selectedPlayerId}
+                        onChange={(val) => setSelectedPlayerId(parseInt(val))}
+                        label="Player Affected"
+                        disabledIds={
+                            alreadyAssignedPlayerId !== null
+                                ? players.map((p) => p.player_id).filter((id) => id !== alreadyAssignedPlayerId)
+                                : []
+                        }
+                    />
                 </div>
                 <div className="form-check mb-2">
                     <input

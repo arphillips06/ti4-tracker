@@ -1,0 +1,63 @@
+.btn-outline-orange {
+  color: #fd7e14;
+  border-color: #fd7e14;
+}
+
+.btn-outline-orange:hover {
+  background-color: #fd7e14;
+  color: white;
+  box-shadow: 0 0 10px #fd7e1488;
+}
+
+.custom-dropdown {
+  background-color: #0d0d1a;
+  border: 1px solid #e0c873;
+  border-radius: 6px;
+  padding: 4px 0;
+  font-family: "Orbitron", sans-serif;
+  min-width: 220px;
+  box-shadow: 0 0 12px rgba(224, 200, 115, 0.2);
+}
+
+.custom-dropdown .dropdown-item {
+  color: #e0c873;
+  padding: 8px 16px;
+  font-size: 0.95rem;
+}
+
+.custom-dropdown .dropdown-item:hover {
+  background-color: #1a1a33;
+  color: #fff7cc;
+}
+
+.btn-outline-orange {
+  color: #ff9933;
+  border-color: #ff9933;
+}
+.btn-outline-orange:hover {
+  background-color: #ff9933;
+  color: black;
+}
+
+.custom-dropdown {
+  background-color: #111122;
+  border: 1px solid #e0c873;
+  font-family: 'Orbitron', sans-serif;
+  color: #e0c873;
+  min-width: 240px;
+}
+.custom-dropdown .dropdown-item {
+  color: #e0c873;
+}
+.custom-dropdown .dropdown-item:hover {
+  background-color: #1a1a33;
+  color: #fff7cc;
+}
+.btn-outline-primary {
+  color: #339aff;
+  border-color: #339aff;
+}
+.btn-outline-primary:hover {
+  background-color: #339aff;
+  color: black;
+}

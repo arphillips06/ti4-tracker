@@ -1,17 +1,6 @@
 import React from "react";
 import { Bar } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-
-// Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+import "./shared/graphs.css";
 
 export default function FactionWinRateChart({ dataMap }) {
   const factions = Object.keys(dataMap || {});
@@ -46,5 +35,12 @@ export default function FactionWinRateChart({ dataMap }) {
     },
   };
 
-  return <Bar data={data} options={options} />;
+  return (
+    <div className="graph-container">
+      <h3 className="chart-section-title">Faction Win Rate</h3>
+      <div className="graph-bar-container-medium">
+        <Bar data={data} options={options} />
+      </div>
+    </div>
+  );
 }

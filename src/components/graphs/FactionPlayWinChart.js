@@ -1,15 +1,7 @@
 import React, { useState } from "react";
 import { Bar } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  BarElement,
-  CategoryScale,
-  LinearScale,
-  Tooltip,
-  Legend,
-} from "chart.js";
-
-ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+import "./shared/graphs.css"
+import { sortData, horizontalBarOptions } from "./shared/chartUtils";
 
 export default function FactionPlayWinChart({ data }) {
   const [showTable, setShowTable] = useState(false);
@@ -30,16 +22,7 @@ export default function FactionPlayWinChart({ data }) {
     ...val,
   }));
 
-  const sorted = [...processed].sort((a, b) => {
-    const valA = a[sortKey];
-    const valB = b[sortKey];
-    if (typeof valA === "string") {
-      return sortOrder === "asc"
-        ? valA.localeCompare(valB)
-        : valB.localeCompare(valA);
-    }
-    return sortOrder === "asc" ? valA - valB : valB - valA;
-  });
+  const sorted = sortData(processed, sortKey, sortOrder);
 
   const chartData = {
     labels: sorted.map((f) => f.name),
@@ -57,40 +40,25 @@ export default function FactionPlayWinChart({ data }) {
     ],
   };
 
-  const options = {
-    indexAxis: "y",
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "top" },
-      tooltip: { mode: "nearest", intersect: true },
-    },
-    scales: {
-      x: {
-        beginAtZero: true,
-        max: 100,
-        ticks: { callback: (v) => `${v}%` },
-      },
-    },
-  };
+  const options = horizontalBarOptions();
 
   return (
-    <div className="mt-4">
-      <div style={{ height: "500px" }}>
+    <div className="graph-container">
+      <h3 className="chart-section-title">Faction Play vs Win Rate</h3>
+
+      <div className="graph-bar-container-large">
         <Bar data={chartData} options={options} />
       </div>
-
-      <div className="mt-3">
+      <div className="graph-toggle-buttons">
         <button
-          className="btn btn-sm btn-outline-secondary"
+          className="btn btn-sm btn-outline-secondary graph-button-sm"
           onClick={() => setShowTable(!showTable)}
         >
           {showTable ? "Hide Raw Data" : "Show Raw Data"}
         </button>
       </div>
-
       {showTable && (
-        <table className="table table-sm table-bordered mt-3">
+        <table className="table table-sm table-bordered graph-table">
           <thead>
             <tr>
               <th onClick={() => setSort("name")}>
@@ -114,10 +82,10 @@ export default function FactionPlayWinChart({ data }) {
             {sorted.map((faction) => (
               <tr key={faction.name}>
                 <td>{faction.name}</td>
-                <td style={{ textAlign: "center" }}>{faction.playedCount}</td>
-                <td style={{ textAlign: "center" }}>{faction.winCount}</td>
-                <td style={{ textAlign: "center" }}>{faction.playRate.toFixed(1)}%</td>
-                <td style={{ textAlign: "center" }}>{faction.winRate.toFixed(1)}%</td>
+                <td>{faction.playedCount}</td>
+                <td>{faction.winCount}</td>
+                <td>{faction.playRate.toFixed(1)}%</td>
+                <td>{faction.winRate.toFixed(1)}%</td>
               </tr>
             ))}
           </tbody>

@@ -2,6 +2,8 @@
 import React, { useState } from "react";
 import Modal from "react-bootstrap/Modal";
 import Button from "react-bootstrap/Button";
+import PlayerSelect from "../shared/PlayerSelect";
+
 
 export default function RelicModal({ show, onClose, title, players, onSubmit, description }) {
   const [selectedPlayerId, setSelectedPlayerId] = useState("");
@@ -18,17 +20,12 @@ export default function RelicModal({ show, onClose, title, players, onSubmit, de
         <Modal.Title>{title}</Modal.Title>
       </Modal.Header>
       <Modal.Body>
-        <label className="form-label">{description}</label>
-        <select
-          className="form-select"
+        <PlayerSelect
+          players={players}
           value={selectedPlayerId}
-          onChange={(e) => setSelectedPlayerId(e.target.value)}
-        >
-          <option value="">-- Select Player --</option>
-          {players.map((p) => (
-            <option key={p.player_id} value={p.player_id}>{p.name}</option>
-          ))}
-        </select>
+          onChange={setSelectedPlayerId}
+          label={description}
+        />
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onClose}>Cancel</Button>

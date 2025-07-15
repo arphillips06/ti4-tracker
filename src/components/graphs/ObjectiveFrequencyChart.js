@@ -1,17 +1,7 @@
-import { Bar } from "react-chartjs-2";
 import React, { useState } from "react";
-
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+import { Bar } from "react-chartjs-2";
+import "./shared/graphs.css";
+import { sortData } from "./shared/chartUtils";
 
 export default function ObjectiveFrequencyChart({ frequency, secretPublic = 0 }) {
   const [showAll, setShowAll] = useState(false);
@@ -21,21 +11,23 @@ export default function ObjectiveFrequencyChart({ frequency, secretPublic = 0 })
     return <div>No frequency data available.</div>;
   }
 
-  const secretPublicBreakdown = {}; // For future use
+  const secretPublicBreakdown = {};
 
-  const sortedObjectives = Object.entries(frequency).sort((a, b) => b[1] - a[1]);
-  const displayData = showAll ? sortedObjectives : sortedObjectives.slice(0, 10);
+  const objectiveData = Object.entries(frequency).map(([name, count]) => ({
+    name,
+    publicCount: count - (secretPublicBreakdown[name] || 0),
+    total: count,
+  }));
+
+  const sorted = sortData(objectiveData, "total", "desc");
+  const displayData = showAll ? sorted : sorted.slice(0, 10);
 
   const chartData = {
-    labels: displayData.map(([name]) => name),
+    labels: displayData.map((o) => o.name),
     datasets: [
       {
         label: "Public Objectives",
-        data: displayData.map(([name]) => {
-          const count = frequency[name];
-          const secretAmount = secretPublicBreakdown?.[name] || 0;
-          return count - secretAmount;
-        }),
+        data: displayData.map((o) => o.publicCount),
         backgroundColor: "rgba(54, 162, 235, 0.7)",
         stack: "stack1",
       },
@@ -51,9 +43,7 @@ export default function ObjectiveFrequencyChart({ frequency, secretPublic = 0 })
       legend: { position: "top" },
     },
     layout: {
-      padding: {
-        left: 0, // Gives room for long Y-axis labels
-      },
+      padding: { left: 0 }, 
     },
     scales: {
       x: {
@@ -73,13 +63,17 @@ export default function ObjectiveFrequencyChart({ frequency, secretPublic = 0 })
   };
 
   return (
-    <div className="p-3">
-      <h2 className="mb-2" style={{ color: "#f4d35e" }}>Objective Appearance Frequency</h2>
-      <div style={{ height: `${displayData.length * 35}px` }}>
+    <div className="graph-container">
+      <h2 className="chart-section-title">Objective Appearance Frequency</h2>
+
+      <div
+        className="graph-bar-container"
+        style={{ height: `${displayData.length * 35}px` }}
+      >
         <Bar data={chartData} options={options} />
       </div>
 
-      <div className="mt-3 d-flex gap-2">
+      <div className="graph-button-row">
         <button
           onClick={() => setShowAll(!showAll)}
           className="btn btn-sm btn-outline-secondary"
@@ -93,6 +87,25 @@ export default function ObjectiveFrequencyChart({ frequency, secretPublic = 0 })
           {showTable ? "Hide Raw Data" : "Show Raw Data"}
         </button>
       </div>
+
+      {showTable && (
+        <table className="table table-sm table-bordered mt-2">
+          <thead>
+            <tr>
+              <th>Objective</th>
+              <th>Times Appeared</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((row) => (
+              <tr key={row.name}>
+                <td>{row.name}</td>
+                <td>{row.total}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
