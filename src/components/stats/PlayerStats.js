@@ -1,4 +1,5 @@
 import React from "react";
+import "../../pages/stats.css"
 
 export default function PlayerStats({ stats }) {
   const avgPoints = stats.playerAveragePoints || [];

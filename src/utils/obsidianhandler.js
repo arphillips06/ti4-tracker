@@ -1,18 +1,17 @@
-import API_BASE_URL from "../config";
+// src/utils/obsidianhandler.js
+import { postJSON, submitAndRefresh } from "./helpers";
 
 export async function handleAssignObsidian(playerId, gameId, refreshGameState, onClose) {
   try {
-    await fetch(`${API_BASE_URL}/relic/obsidian`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        game_id: parseInt(gameId),
-        player_id: parseInt(playerId),
-      }),
+    await submitAndRefresh({
+      requestFn: () =>
+        postJSON("/relic/obsidian", {
+          game_id: parseInt(gameId),
+          player_id: parseInt(playerId),
+        }),
+      refreshGameState,
+      closeModal: onClose,
     });
-    await refreshGameState();
-
-    if (onClose) onClose();
   } catch (err) {
     console.error("Failed to assign Obsidian:", err);
     alert("Failed to assign The Obsidian. See console.");
