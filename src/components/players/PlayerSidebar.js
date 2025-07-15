@@ -47,7 +47,7 @@ export default function PlayerSidebar({
       {(playersSorted || []).map((entry) => (
         <div
           key={entry.player_id}
-          className="card mb-3 border-start border-5 glass-box"
+          className="card mb-3 glass-box"
           style={{ borderColor: entry.color }}
         >
           <div className="card-body">
