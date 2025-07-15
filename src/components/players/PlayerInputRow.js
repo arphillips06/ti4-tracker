@@ -22,10 +22,10 @@ export default function PlayerInputRow({
 
   const glowColor = value.color || "transparent";
 
-console.log("DEBUG:", {
-  selectedFaction: value.faction,
-  imageFile: factionImageMap[value.faction],
-});
+  console.log("DEBUG:", {
+    selectedFaction: value.faction,
+    imageFile: factionImageMap[value.faction],
+  });
 
   return (
     <div
@@ -61,12 +61,14 @@ console.log("DEBUG:", {
         <select
           value={value.color}
           onChange={(e) => onColorChange(index, e.target.value)}
-          className="color-select"
+          className="player-input bottom"
           style={{
-            color: value.color === "#ffff00" ? "#000" : "#fff",
-            backgroundColor: "transparent",
+            backgroundColor: value.color || "#111122",
+            color: value.color === "#ffff00" ? "#000" : "#e0c873",
+            border: `1px solid ${value.color || "#e0c87388"}`,
           }}
         >
+
           <option value="">Colour</option>
           {[
             "#ff3333", "#008000", "#3333ff", "#000000", "#ffff00",

@@ -147,3 +147,97 @@ input[type="text"]::placeholder {
 input[type="range"] {
   background-color: transparent;
 }
+
+.label-gold {
+  color: #e0c873;
+  font-family: "Merriweather", serif;
+  font-size: 1rem;
+}
+
+/* Wrapper to align checkbox and label */
+.custom-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Hide native checkbox */
+.custom-checkbox input[type="checkbox"] {
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background-color: #111122;
+  border: 2px solid #e0c873;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  outline: none;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+/* Add custom checkmark when checked */
+.custom-checkbox input[type="checkbox"]:checked::after {
+  content: "✓";
+  color: #e0c873;
+  font-weight: bold;
+  position: absolute;
+  top: 0;
+  left: 4px;
+  font-size: 16px;
+  line-height: 18px;
+}
+
+/* Optional: hover effect */
+.custom-checkbox input[type="checkbox"]:hover {
+  border-color: #ffd700;
+}
+
+/* Center the checkbox & label */
+.checkbox-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+/* Style the label text */
+.label-gold {
+  color: #e0c873;
+  font-family: "Merriweather", serif;
+  font-size: 1.1rem;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px #000;
+}
+
+/* Hide native checkbox and style custom version */
+.checkbox-container input[type="checkbox"] {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  background-color: #111122;
+  border: 2px solid #e0c873;
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+/* Checkmark */
+.checkbox-container input[type="checkbox"]:checked::after {
+  content: "✓";
+  color: #e0c873;
+  font-weight: bold;
+  position: absolute;
+  top: 0px;
+  left: 5px;
+  font-size: 16px;
+  line-height: 20px;
+}
+/* Matching hover effect */
+.checkbox-container input[type="checkbox"]:hover {
+  background-color: #1a1a33;
+  box-shadow: 0 0 10px #e0c87388;
+  color: #fff7cc;
+  border-color: #e0c873;
+}

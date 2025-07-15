@@ -4,7 +4,9 @@ import { useNavigate } from "react-router-dom";
 import PlayerInputRow from "../components/players/PlayerInputRow";
 import factionColors from "../data/factionColors";
 import API_BASE_URL from "../config";
-import '../NewGamePage.css';
+import '../pages/NewGamePage.css';
+import '../pages/stats.css';
+
 const FACTIONS = Object.entries(factionColors).map(([key, data]) => ({
   key,
   label: data.label,
@@ -101,51 +103,57 @@ export default function NewGamePage() {
     <div className="p-6 max-w-3xl mx-auto">
       <h1 className="ti-header">Start a New Game</h1>
 
-      <div className="mb-4">
-        <label className="block font-medium mb-1">Winning Points:</label>
-        <select
-          value={winningPoints}
-          onChange={(e) => setWinningPoints(Number(e.target.value))}
-          style={{
-            width: "60px",
-            padding: "4px 6px",
-            fontSize: "0.9rem",
-            borderRadius: "4px",
-          }}
-        >
-          <option value={10}>10</option>
-          <option value={14}>14</option>
-        </select>
-      </div>
+      <div className="stat-card mb-6">
+        <div className="mb-4">
+          <label className="label-gold mb-1">
+            Winning Points:
+          </label>
+          <select
+            value={winningPoints}
+            onChange={(e) => setWinningPoints(Number(e.target.value))}
+            style={{
+              width: "60px",
+              padding: "4px 6px",
+              fontSize: "0.9rem",
+              borderRadius: "4px",
+            }}
+          >
+            <option value={10}>10</option>
+            <option value={14}>14</option>
+          </select>
+        </div>
 
-      <div className="mb-4">
-        <label className="block font-medium mb-1">Use Objective Decks:</label>
-        <input
-          type="checkbox"
-          checked={useObjectives}
-          onChange={(e) => setUseObjectives(e.target.checked)}
-        />
-      </div>
+        <div className="mb-4">
+          <div className="checkbox-container">
+            <label className="label-gold">Use Objective Decks:</label>
+            <input
+              type="checkbox"
+              checked={useObjectives}
+              onChange={(e) => setUseObjectives(e.target.checked)}
+            />
+          </div>
+        </div>
 
-      <div className="mb-4">
-        <label className="block font-medium mb-1">
-          Number of Players: {numPlayers}
-        </label>
-        <input
-          type="range"
-          min={1}
-          max={10}
-          value={numPlayers}
-          onChange={(e) => {
-            const newCount = Number(e.target.value);
-            setNumPlayers(newCount);
-            setPlayers((prev) =>
-              Array.from({ length: newCount }, (_, i) => prev[i] || { name: "", faction: "", color: "" })
-            );
-          }}
-        />
-      </div>
 
+        <div className="mb-4">
+          <label className="label-gold mb-1">
+            Number of Players: {numPlayers}
+          </label>
+          <input
+            type="range"
+            min={2}
+            max={8}
+            value={numPlayers}
+            onChange={(e) => {
+              const newCount = Number(e.target.value);
+              setNumPlayers(newCount);
+              setPlayers((prev) =>
+                Array.from({ length: newCount }, (_, i) => prev[i] || { name: "", faction: "", color: "" })
+              );
+            }}
+          />
+        </div>
+      </div>
       <div
         style={{
           display: "grid",
