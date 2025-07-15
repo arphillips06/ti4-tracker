@@ -10,7 +10,7 @@ import useMergedPlayerData from "../hooks/useMergedPlayerData";
 import useObjectiveActions from "../hooks/useObjectiveActions";
 import useModalControls from "../hooks/useModalControls";
 import { handleScoreImperialRider } from "../utils/imperialRiderHandler";
-import { handleScoreCrown } from "../utils/relicHandler";
+import { handleScoreCrown } from "../utils/relicHandlers";
 import '../GameDetail.css';
 import ScoreGraph from '../components/graphs/ScoreGraph';
 import VictoryBanner from "../components/layout/VictoryBanner";
@@ -96,7 +96,6 @@ export default function GameDetail() {
   if (!game) return <div className="p-4 text-warning">Loading game data...</div>;
   const winner_id = game.winner_id || game.winner_id;
   const winnerPlayer = game.players?.find(p => p.PlayerID === winner_id || p.player_id === winner_id);
-console.log("🔁 game.ScoresByObjective", game?.ScoresByObjective);
 
   return (
     <>

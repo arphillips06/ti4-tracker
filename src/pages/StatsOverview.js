@@ -11,15 +11,14 @@ export default function StatsPage() {
   const [stats, setStats] = useState(null);
   const [view, setView] = useState("overview");
 
-useEffect(() => {
-  fetch(`${API_BASE_URL}/stats/overview`)
-    .then((res) => res.json())
-    .then((data) => {
-      console.log("Fetched stats overview:", data); // 👈 Add this line
-      setStats(data);
-    })
-    .catch((err) => console.error("Failed to load stats:", err));
-}, []);
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/stats/overview`)
+      .then((res) => res.json())
+      .then((data) => {
+        setStats(data);
+      })
+      .catch((err) => console.error("Failed to load stats:", err));
+  }, []);
 
   if (!stats) return <div className="p-4">Loading stats...</div>;
 
@@ -55,7 +54,7 @@ useEffect(() => {
         >
           Objectives
         </button>
-        
+
       </div>
 
 

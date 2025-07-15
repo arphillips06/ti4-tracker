@@ -23,3 +23,25 @@ export async function handleShardSubmit(playerId, gameId, refreshGameState, clos
     alert("Error assigning Shard of the Throne.");
   }
 }
+
+export async function handleScoreCrown(playerId, gameId, refresh) {
+  console.log("Sending Crown payload:", {
+    player_id: parseInt(playerId),
+    game_id: parseInt(gameId),
+  });
+  const res = await fetch(`${API_BASE_URL}/relic/crown`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      player_id: parseInt(playerId), 
+      game_id: parseInt(gameId), 
+    }),
+  });
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}));
+    throw new Error(data.error || "Failed to score Crown of Emphidia");
+  }
+
+  refresh();
+}

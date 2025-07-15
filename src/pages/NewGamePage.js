@@ -100,7 +100,7 @@ export default function NewGamePage() {
   const selectedColors = players.map((p) => p.color).filter(Boolean);
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
+    <div className="p-4 max-w-3xl mx-auto">
       <h1 className="ti-header">Start a New Game</h1>
 
       <div className="stat-card mb-6">
