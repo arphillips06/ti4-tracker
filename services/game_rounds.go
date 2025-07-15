@@ -41,6 +41,7 @@ func RevealNextObjective(gameID, roundID uint, stage string) error {
 	var obj models.GameObjective
 	err := database.DB.
 		Where("game_id = ? AND round_id = 0 AND stage = ? AND revealed = false", gameID, stage).
+		Order("position ASC").
 		First(&obj).Error
 	if err != nil {
 		return err

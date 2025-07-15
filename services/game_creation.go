@@ -109,17 +109,20 @@ func AssignObjectivesToGame(game models.Game, round1 models.Round) error {
 			RoundID:     roundID,
 			Stage:       obj.Stage,
 			Revealed:    i < 2,
+			Position:    i,
 		}
 		if err := database.DB.Create(&gameObj).Error; err != nil {
 			return err
 		}
 	}
-	for _, obj := range selectedStage2 {
+	for j, obj := range selectedStage2 {
 		gameObj := models.GameObjective{
 			GameID:      game.ID,
 			ObjectiveID: obj.ID,
 			RoundID:     0,
 			Stage:       obj.Stage,
+			Revealed:    false,
+			Position:    j,
 		}
 		if err := database.DB.Create(&gameObj).Error; err != nil {
 			return err

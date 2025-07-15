@@ -84,6 +84,7 @@ type GameObjective struct {
 	Objective   Objective `gorm:"foreignKey:ObjectiveID;references:ID" json:"Objective"`
 	Round       Round     `gorm:"foreignKey:RoundID;references:ID" json:"Round"`
 	IsCDL       bool      `json:"IsCDL" gorm:"-"`
+	Position    int
 }
 
 type PlayerInput struct {
