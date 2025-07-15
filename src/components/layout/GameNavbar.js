@@ -1,5 +1,6 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import "../layout/navbar.css";
 
 export default function GameNavbar({
   gameId,
@@ -19,13 +20,12 @@ export default function GameNavbar({
   obsidianUsed,
   setShowObsidianModal,
 }) {
-
   const navigate = useNavigate();
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark mb-4 px-3">
       <div className="container-fluid justify-content-between">
-        {/* Left side: Home button + Game ID */}
+        {/* Left Side */}
         <div className="d-flex align-items-center gap-3">
           <button className="btn btn-sm btn-secondary" onClick={() => navigate("/")}>
             Home
@@ -37,23 +37,28 @@ export default function GameNavbar({
           >
             {showScoreGraph ? "Back to Objectives" : "Score"}
           </button>
-
         </div>
 
-        {/* Right side: Controls */}
-        <div className="dropdown d-flex gap-2">
+        {/* Right Side: Button Group */}
+        <div className="d-flex align-items-center gap-2">
+          {/* Imperial Rider */}
           <button
-            className="btn btn-outline-primary"
+            className="btn btn-outline-orange"
             onClick={() => setShowImperialModal(true)}
           >
             Score Imperial Rider
           </button>
 
+          {/* Relics */}
           <div className="btn-group">
-            <button className="btn btn-outline-warning dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <button
+              className="btn btn-outline-warning dropdown-toggle"
+              type="button"
+              data-bs-toggle="dropdown"
+            >
               Relics
             </button>
-            <ul className="dropdown-menu">
+            <ul className="dropdown-menu custom-dropdown dropdown-menu-end">
               <li>
                 <button
                   className="dropdown-item"
@@ -64,10 +69,7 @@ export default function GameNavbar({
                 </button>
               </li>
               <li>
-                <button
-                  className="dropdown-item"
-                  onClick={() => setShowShardModal(true)}
-                >
+                <button className="dropdown-item" onClick={() => setShowShardModal(true)}>
                   Shard of the Throne
                 </button>
               </li>
@@ -83,11 +85,16 @@ export default function GameNavbar({
             </ul>
           </div>
 
+          {/* Agendas */}
           <div className="btn-group">
-            <button className="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <button
+              className="btn btn-outline-primary dropdown-toggle"
+              type="button"
+              data-bs-toggle="dropdown"
+            >
               Agendas
             </button>
-            <ul className="dropdown-menu">
+            <ul className="dropdown-menu custom-dropdown dropdown-menu-end">
               <li>
                 <button
                   className="dropdown-item"
@@ -98,12 +105,11 @@ export default function GameNavbar({
                 </button>
               </li>
               <li>
-                <button
-                  className="dropdown-item"
-                  onClick={() => setShowCensureModal(true)}
-                >
+                <button className="dropdown-item" onClick={() => setShowCensureModal(true)}>
                   Political Censure
                 </button>
+              </li>
+              <li>
                 <button
                   className="dropdown-item"
                   onClick={() => setShowSeedModal(true)}

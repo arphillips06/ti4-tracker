@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from "react";
 import API_BASE_URL from "../../config";
+import factionImageMap from "../../data/factionIcons";
+
 export default function ObjectivesGrid({
   game,
-  refreshGameState,
   gameId,
   objectives,
   playersUnsorted,
-  objectiveScores,
   localScored,
   scoringMode,
   scoreObjective,
@@ -15,70 +15,39 @@ export default function ObjectivesGrid({
   assigningObjective,
   assignObjective,
 }) {
-  const factionImageMap = {
-    "Arborec": "Arborec.webp",
-    "Argent Flight": "ArgentFlight.webp",
-    "Barony of Letnev": "BaronyofLetnev.webp",
-    "Clan of Saar": "ClanofSaar.webp",
-    "Council Keleres": "CouncilKeleresFactionSymbol.webp",
-    "Embers of Muaat": "EmbersofMuaat.webp",
-    "Emirates of Hacan": "EmiratesofHacan.webp",
-    "Empyrean": "Empyrean.webp",
-    "Federation of Sol": "FederationofSol.webp",
-    "Ghosts of Creuss": "GhostsofCreuss.webp",
-    "L1Z1X Mindnet": "L1Z1XMindnet.webp",
-    "Mahat Gene-Sorcerers": "MahatGeneSorcerers.webp",
-    "Mentak Coalition": "MentakCoalition.webp",
-    "Naalu Collective": "NaaluCollective.webp",
-    "Naaz-Rokha Alliance": "NaazRokhaAlliance.webp",
-    "Nekro Virus": "NekroVirus.webp",
-    "Nomad": "Nomad.webp",
-    "Sardakk N'orr": "SardakkNorr.webp",
-    "Titans of Ul": "TitansofUl.webp",
-    "Universities of Jol-Nar": "UniversitiesofJolNar.webp",
-    "Vuil'raith Cabal": "VuilraithCabal.webp",
-    "Winnu": "Winnu.webp",
-    "Xxcha Kingdom": "XxchaKingdom.webp",
-    "Yin Brotherhood": "YinBrotherhood.webp",
-    "Yssaril Tribes": "YssarilTribes.webp",
-  };
-
   const safeObjectives = objectives || [];
-
-  const safePlayers = (playersUnsorted || []).map((p) => {
-    const faction = p.Faction || p.faction || p.Player?.Faction || p.Player?.faction;
-    const name = p.name || p.Player?.name;
-    const color = p.color || p.Player?.color;
-    const id = p.PlayerID || p.player_id || p.Player?.ID || p.id;
-
-
-    return {
-      ...p,
-      id,
-      name,
-      color,
-      faction,
-      factionKey: factionImageMap[faction] ? factionImageMap[faction] : "fallback.webp"
-
-    };
-  });
-
-  const safeScores = objectiveScores || {};
-  const normalizedScores = {};
-  Object.entries(safeScores).forEach(([objId, scoreEntries]) => {
-    normalizedScores[objId] = scoreEntries.map(
-      (s) => s.player_id || s.Player?.ID
-    );
-  });
-
+  const safePlayers = (playersUnsorted || []).map(normalizePlayer);
+  const rawScores = game?.ScoresByObjective || {};
   const safeLocalScored = localScored || {};
   const usingDecks = String(useObjectiveDecks).toLowerCase() === "true";
-
   const [publicObjectives, setPublicObjectives] = useState([]);
   const isManualMode = !usingDecks;
   const availableStageI = publicObjectives.filter((o) => o.stage === "I");
   const availableStageII = publicObjectives.filter((o) => o.stage === "II");
   const currentRoundId = game?.current_round || 0;
+  const getFactionKey = (faction) => {
+    return factionImageMap[faction] || "fallback";
+  };
+  const normalizePlayer = (p) => {
+    const rawFaction =
+      p.faction || p.Faction || p.Player?.Faction || p.Player?.faction || "Unknown";
+
+    const factionKey =
+      p.factionKey || p.FactionKey || getFactionKey(rawFaction);
+    return {
+      id: p.Player?.ID || p.player_id || p.PlayerID || p.ID, // Match exactly what scoring returns
+      name: p.name || p.Name || p.Player?.name || p.Player?.Name || "Unknown",
+      faction: rawFaction,
+      factionKey,
+      color: p.color || "#000",
+    };
+  };
+  const normalizedScores = {};
+  Object.entries(rawScores).forEach(([objId, entries]) => {
+    normalizedScores[objId] = entries.map(
+      (s) => s.PlayerID || s.Player?.ID
+    );
+  });
 
   useEffect(() => {
     if (!usingDecks) {
@@ -109,7 +78,6 @@ export default function ObjectivesGrid({
       ...(normalizedScores[objId] || []),
       ...(safeLocalScored[objId] || []),
     ];
-
     return (
       <div
         key={obj.ID}
@@ -177,23 +145,32 @@ export default function ObjectivesGrid({
                       }
                     >
                       <img
-                        src={`/faction-icons/${p.factionKey}`}
+                        src={`/faction-icons/${p.factionKey}.webp`}
                         alt={p.faction}
                         onError={(e) => {
                           console.warn("🚫 Could not load faction icon for", p.factionKey);
-                          e.target.style.display = "none";
+                          if (!e.target.src.includes("fallback.webp")) {
+                            e.target.src = "/faction-icons/fallback.webp";
+                          }
                         }}
                         style={{
-                          width: "20px",
-                          height: "20px",
+                          width: "24px",
+                          height: "24px",
+                          borderRadius: "50%",
                           objectFit: "contain",
+                          backgroundColor: "transparent",
                         }}
                       />
+
                     </button>
                   ) : hasScored ? (
                     <img
-                      src={`/faction-icons/${p.factionKey}`}
+                      src={`/faction-icons/${p.factionKey}.webp`}
                       alt={p.faction}
+                      onError={(e) => {
+                        console.warn("🚫 Could not load faction icon for", p.factionKey);
+                        e.target.src = "/faction-icons/fallback.webp";
+                      }}
                       style={{
                         width: "24px",
                         height: "24px",
@@ -201,7 +178,6 @@ export default function ObjectivesGrid({
                         objectFit: "contain",
                         backgroundColor: "transparent",
                       }}
-                      onError={(e) => (e.target.style.display = "none")}
                     />
                   ) : (
                     <div style={{ width: "24px", height: "24px" }} />

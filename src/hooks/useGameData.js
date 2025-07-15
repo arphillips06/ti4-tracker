@@ -102,15 +102,6 @@ const refreshGameState = async () => {
 
       setObjectives(normalizedObjectives);
 
-      //     const normalizedObjectives = gameData.use_objective_decks
-      //   ? (gameData.GameObjectives || []).map((entry) => ({
-      //       Objective: entry.Objective,
-      //       IsCDL: entry.IsCDL || false,
-      //     }))
-      //   : (Array.isArray(objectiveData) ? objectiveData : objectiveData?.value || []);
-      // setObjectives(normalizedObjectives);
-
-
       const normalizedSecrets = secretData.map((obj) => ({
         id: obj.ID,
         name: obj.name,
