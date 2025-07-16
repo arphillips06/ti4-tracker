@@ -582,3 +582,21 @@ func CalculatePointStandardDeviations() ([]models.PlayerPointStdev, error) {
 	}
 	return result, nil
 }
+
+func GetFactionPlayerStats() ([]models.FactionPlayerStats, error) {
+	db := database.DB
+	var results []models.FactionPlayerStats
+
+	err := db.
+		Model(&models.GamePlayer{}).
+		Select("faction, players.name as player, COUNT(*) as played_count, SUM(CASE WHEN game_players.won THEN 1 ELSE 0 END) as won_count").
+		Joins("JOIN players ON players.id = game_players.player_id").
+		Group("faction, players.name").
+		Scan(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}

@@ -71,6 +71,7 @@ type GamePlayer struct {
 	Faction  string
 	Player   Player `gorm:"foreignKey:PlayerID"`
 	Game     Game   `gorm:"foreignKey:GameID;references:ID" json:"-"`
+	Won      bool
 }
 
 //links game and ovjective into one struct
