@@ -3,6 +3,7 @@ import OverviewStats from "../components/stats/OverviewStats";
 import PlayerStats from "../components/stats/PlayerStats";
 import FactionStats from "../components/stats/FactionStats";
 import ObjectiveStats from "../components/stats/ObjectiveStats";
+import GameStats from "../components/stats/GameStats";
 import API_BASE_URL from "../config";
 import { Link } from "react-router-dom";
 import './stats.css';
@@ -54,6 +55,12 @@ export default function StatsPage() {
         >
           Objectives
         </button>
+        <button
+          className={view === "game" ? "active" : ""}
+          onClick={() => setView("game")}
+        >
+          Game
+        </button>
 
       </div>
 
@@ -63,6 +70,7 @@ export default function StatsPage() {
       {view === "players" && <PlayerStats stats={stats} />}
       {view === "factions" && <FactionStats stats={stats} />}
       {view === "objectives" && <ObjectiveStats stats={stats} />}
+      {view === "game" && <GameStats stats={stats} />}
     </div>
   );
 }
