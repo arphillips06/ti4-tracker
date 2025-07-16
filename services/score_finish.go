@@ -20,6 +20,14 @@ func MaybeFinishGameFromScore(game *models.Game, scoringPlayerID uint) error {
 		now := time.Now()
 		game.FinishedAt = &now
 		game.WinnerID = &scoringPlayerID
+
+		err := database.DB.Model(&models.GamePlayer{}).
+			Where("game_id = ? AND player_id = ?", game.ID, scoringPlayerID).
+			Update("won", true).Error
+		if err != nil {
+			return err
+		}
+
 		return database.DB.Save(game).Error
 	}
 
@@ -58,6 +66,14 @@ func WinnerByScore(game *models.Game) error {
 
 	if topScore.PlayerID != 0 {
 		game.WinnerID = &topScore.PlayerID
+
+		err := database.DB.Model(&models.GamePlayer{}).
+			Where("game_id = ? AND player_id = ?", game.ID, topScore.PlayerID).
+			Update("won", true).Error
+		if err != nil {
+			return err
+		}
+
 		return nil
 	}
 
