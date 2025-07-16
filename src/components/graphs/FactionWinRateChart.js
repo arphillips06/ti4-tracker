@@ -1,73 +1,93 @@
 import React from "react";
-import { Bar } from "react-chartjs-2";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+} from "recharts";
 import "./shared/graphs.css";
 
 export default function FactionWinRateChart({ dataMap }) {
-  const factions = Object.keys(dataMap || {});
-  const rates = Object.values(dataMap || {});
+  if (!dataMap) return null;
 
-  const data = {
-    labels: factions,
-    datasets: [
-      {
-        label: "Win Rate (%)",
-        data: rates,
-        backgroundColor: "rgba(75,192,192,0.6)",
-        borderColor: "rgba(75,192,192,1)",
-        borderWidth: 1,
-      },
-    ],
-  };
-
-const options = {
-  responsive: true,
-  plugins: {
-    legend: {
-      position: "top",
-      labels: {
-        color: "#ffffff", // white legend text
-      },
-    },
-    tooltip: {
-      mode: "nearest",
-      intersect: true,
-      bodyColor: "#ffffff",
-      titleColor: "#ffffff",
-    },
-  },
-  scales: {
-    x: {
-      ticks: {
-        color: "#ffffff", // white x-axis labels
-      },
-      grid: {
-        color: "rgba(255, 255, 255, 0.1)", // subtle grid lines
-      },
-    },
-    y: {
-      beginAtZero: true,
-      max: 100,
-      title: {
-        display: true,
-        text: "Win Rate (%)",
-        color: "#ffffff", // white y-axis title
-      },
-      ticks: {
-        color: "#ffffff", // white y-axis labels
-      },
-      grid: {
-        color: "rgba(255, 255, 255, 0.1)",
-      },
-    },
-  },
-};
+  const data = Object.entries(dataMap).map(([faction, winRate]) => ({
+    faction,
+    winRate,
+  }));
 
   return (
     <div className="graph-container">
       <h3 className="chart-section-title">Faction Win Rate</h3>
-      <div className="graph-bar-container-medium">
-        <Bar data={data} options={options} />
-      </div>
+      <ResponsiveContainer width="100%" height={400}>
+        <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
+          <XAxis
+            dataKey="faction"
+            angle={-45}
+            textAnchor="end"
+            interval={0}
+            tick={{ fill: "#fff", fontWeight: 500, fontSize: 12 }}
+            label={{
+              value: "Faction",
+              position: "insideBottom",
+              offset: -80,
+              fill: "#fff",
+              fontWeight: 600,
+            }}
+          />
+
+          <YAxis
+            domain={[0, 100]}
+            tick={{ fill: "#fff", fontWeight: 500 }}
+            label={{
+              value: "Win Rate (%)",
+              angle: -90,
+              position: "insideLeft",
+              fill: "#fff",
+              fontWeight: 600,
+            }}
+          />
+          <Tooltip
+            cursor={false}
+            content={({ active, payload, label }) =>
+              active && payload?.length ? (
+                <div
+                  style={{
+                    backgroundColor: "rgba(0, 0, 0, 0.85)",
+                    padding: "8px",
+                    color: "#ffd700",
+                    border: "1px solid #ffd700",
+                    borderRadius: "4px",
+                  }}
+                >
+                  <strong>{label}</strong>
+                  <br />
+                  Win Rate: {payload[0].value}%
+                </div>
+              ) : null
+            }
+          />
+          <Bar
+            dataKey="winRate"
+            name="Win Rate (%)"
+            shape={({ x, y, width, height }) => (
+              <rect
+                x={x}
+                y={y}
+                width={width}
+                height={height}
+                fill="#61dafb"
+                style={{ pointerEvents: "none" }} // disables highlight behavior
+              />
+            )}
+            isAnimationActive={false}
+          />
+
+
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
