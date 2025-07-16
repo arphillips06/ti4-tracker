@@ -57,3 +57,10 @@ type HeadlineStats struct {
 	MostPlayedFaction      string  `json:"mostPlayedFaction"`
 	MostVictoriousFaction  string  `json:"mostVictoriousFaction"`
 }
+
+type FactionPlayerStats struct {
+	Faction     string `json:"faction"`
+	Player      string `json:"player"`
+	PlayedCount int    `json:"playedCount"`
+	WonCount    int    `json:"wonCount"`
+}
