@@ -54,3 +54,44 @@
   text-align: center;
   vertical-align: middle;
 }
+
+.styled-graph-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.95rem;
+  color: #f1f1f1;
+}
+
+.styled-graph-table thead {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.styled-graph-table th,
+.styled-graph-table td {
+  padding: 0.6rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: default;
+}
+
+.styled-graph-table th {
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+}
+
+.styled-graph-table tr:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.chart-glass-container {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.15);
+}

@@ -28,44 +28,47 @@ export const sortData = (data, sortKey, sortOrder = "desc") => {
 
 // Horizontal bar chart config with % axis
 export const horizontalBarOptions = () => ({
-  indexAxis: 'y',
+  indexAxis: "y",
   responsive: true,
+  maintainAspectRatio: false,
   plugins: {
     legend: {
+      position: "top",
       labels: {
-        color: '#ffffff'  // White legend text
-      }
+        color: "#ffffff",
+      },
     },
     title: {
-      display: true,
-      text: 'Faction Play vs Win Rates',
-      color: '#ffffff',  // White title text
-      font: {
-        size: 20
-      }
+      display: false,
     },
     tooltip: {
-      bodyColor: '#ffffff',
-      titleColor: '#ffffff',
-    }
+      mode: "nearest",
+      intersect: true,
+      bodyColor: "#ffffff",
+      titleColor: "#ffffff",
+    },
   },
   scales: {
     x: {
+      beginAtZero: true,
       ticks: {
-        color: '#ffffff'  // White x-axis labels
+        color: "#ffffff",
+        precision: 0,
       },
       grid: {
-        color: 'rgba(255,255,255,0.1)' // Optional: faint white gridlines
-      }
+        color: "rgba(255, 255, 255, 0.1)",
+      },
     },
     y: {
       ticks: {
-        color: '#ffffff'  // White y-axis labels (faction names)
+        color: "#ffffff",
+        font: { size: 11 },
+        autoSkip: false,
+        padding: 8,
       },
       grid: {
-        color: 'rgba(255,255,255,0.1)'
-      }
-    }
-  }
+        color: "rgba(255, 255, 255, 0.1)",
+      },
+    },
+  },
 });
-
