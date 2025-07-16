@@ -75,13 +75,13 @@ export default function useObjectiveActions(gameId, refreshGameState, setLocalSc
   );
 
   const assignObjective = useCallback(
-    async (roundId, objectiveId) => {
+    async (gameIdParam, roundId, objectiveId) => {
       try {
         const res = await fetch(`${API_BASE_URL}/assign_objective`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            game_id: parseInt(gameId),
+            game_id: parseInt(gameIdParam),
             round_id: roundId,
             objective_id: objectiveId,
           }),
@@ -98,7 +98,7 @@ export default function useObjectiveActions(gameId, refreshGameState, setLocalSc
         alert("Failed to assign objective. See console for details.");
       }
     },
-    [gameId, refreshGameState]
+    [refreshGameState]
   );
 
   const advanceRound = useCallback(async () => {
