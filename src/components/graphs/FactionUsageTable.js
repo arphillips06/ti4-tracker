@@ -56,7 +56,6 @@ export default function FactionUsageTable({ data }) {
 
   return (
     <div className="stats-section">
-      <h2>Faction Usage</h2>
       <table className="stats-table">
         <thead>
           <tr>

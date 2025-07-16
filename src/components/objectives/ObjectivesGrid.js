@@ -45,7 +45,7 @@ export default function ObjectivesGrid({
   const isManualMode = !usingDecks;
   const availableStageI = publicObjectives.filter((o) => o.stage === "I");
   const availableStageII = publicObjectives.filter((o) => o.stage === "II");
-  const currentRoundId = game?.current_round || 0;
+  const currentRoundId = game?.current_round || 1;
 
   const normalizedScores = {};
   Object.entries(rawScores).forEach(([objId, entries]) => {
@@ -252,8 +252,13 @@ export default function ObjectivesGrid({
               <select
                 className="form-select"
                 onChange={async (e) => {
-                  const selectedId = parseInt(e.target.value);
-                  if (selectedId) {
+                  const selectedId = parseInt(e.target.value, 10);
+                  if (selectedId && assigningObjective?.roundId) {
+                    console.log("Assigning objective:", {
+                      game_id: gameId,
+                      round_id: assigningObjective.roundId,
+                      objective_id: selectedId,
+                    });
                     await assignObjective(gameId, assigningObjective.roundId, selectedId);
                     setAssigningObjective(null);
                   }

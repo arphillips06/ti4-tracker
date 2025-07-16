@@ -35,7 +35,7 @@ export default function PlayerStats({ stats }) {
 
   return (
     <div className="stats-section">
-      <h2>Player Average Points per Game</h2>
+      <h2 className="chart-header">Player Average Points per Game</h2>
 
       <table className="stats-table">
 
@@ -83,7 +83,7 @@ export default function PlayerStats({ stats }) {
           })}
         </tbody>
       </table>
-      <h2 className="mt-5">Secret Objective Scoring Rate</h2>
+      <h2 className="chart-header">Secret Objective Scoring Rate</h2>
       <table className="stats-table">
         <thead>
           <tr>
@@ -106,7 +106,7 @@ export default function PlayerStats({ stats }) {
             ))}
         </tbody>
       </table>
-      <h2 className="mt-5">Custodians Influence on Wins</h2>
+      <h2 className="chart-header">Custodians Influence on Wins</h2>
       <table className="stats-table">
         <thead>
           <tr>

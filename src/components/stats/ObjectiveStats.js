@@ -9,7 +9,7 @@ export default function ObjectiveStats({ stats }) {
 
   return (
     <div className="stats-section">
-      <h2 className="chart-title">Objective Statistics</h2>
+      <h2 className="chart-header">Objective Statistics</h2>
 
       {/* Objective Points Chart */}
       <div className="chart-glass-container">
