@@ -22,11 +22,6 @@ export default function PlayerInputRow({
 
   const glowColor = value.color || "transparent";
 
-  console.log("DEBUG:", {
-    selectedFaction: value.faction,
-    imageFile: factionImageMap[value.faction],
-  });
-
   return (
     <div
       className="player-card"

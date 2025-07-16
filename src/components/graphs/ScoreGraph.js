@@ -21,6 +21,10 @@ export default function ScoreGraph({ gameId, refreshSignal }) {
     try {
       const res = await axios.get(`${API_BASE_URL}/games/${gameId}/scores-by-round`);
       const raw = res.data;
+      if (!Array.isArray(raw)) {
+        console.error("Invalid score data format:", raw);
+        return;
+      }
 
       const cumulativeScores = {};
       const playerNames = new Set();
