@@ -27,19 +27,48 @@ export const sortData = (data, sortKey, sortOrder = "desc") => {
 };
 
 // Horizontal bar chart config with % axis
-export const horizontalBarOptions = (xMax = 100) => ({
+export const horizontalBarOptions = () => ({
   indexAxis: "y",
   responsive: true,
   maintainAspectRatio: false,
   plugins: {
-    legend: { position: "top" },
-    tooltip: { mode: "nearest", intersect: true },
+    legend: {
+      position: "top",
+      labels: {
+        color: "#ffffff",
+      },
+    },
+    title: {
+      display: false,
+    },
+    tooltip: {
+      mode: "nearest",
+      intersect: true,
+      bodyColor: "#ffffff",
+      titleColor: "#ffffff",
+    },
   },
   scales: {
     x: {
       beginAtZero: true,
-      max: xMax,
-      ticks: { callback: (v) => `${v}%` },
+      ticks: {
+        color: "#ffffff",
+        precision: 0,
+      },
+      grid: {
+        color: "rgba(255, 255, 255, 0.1)",
+      },
+    },
+    y: {
+      ticks: {
+        color: "#ffffff",
+        font: { size: 11 },
+        autoSkip: false,
+        padding: 8,
+      },
+      grid: {
+        color: "rgba(255, 255, 255, 0.1)",
+      },
     },
   },
 });

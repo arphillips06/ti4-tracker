@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Bar } from "react-chartjs-2";
-import "./shared/graphs.css"
+import "./shared/graphs.css";
 import { sortData, horizontalBarOptions } from "./shared/chartUtils";
 
 export default function FactionPlayWinChart({ data }) {
@@ -31,11 +31,15 @@ export default function FactionPlayWinChart({ data }) {
         label: "% Played",
         data: sorted.map((f) => f.playRate),
         backgroundColor: "rgba(54, 162, 235, 0.7)",
+        barThickness: 14,
+        categoryPercentage: 0.9,
       },
       {
         label: "% Won",
         data: sorted.map((f) => f.winRate),
         backgroundColor: "rgba(255, 99, 132, 0.7)",
+        barThickness: 14,
+        categoryPercentage: 0.9,
       },
     ],
   };
@@ -44,11 +48,13 @@ export default function FactionPlayWinChart({ data }) {
 
   return (
     <div className="graph-container">
-      <h3 className="chart-section-title">Faction Play vs Win Rate</h3>
-
-      <div className="graph-bar-container-large">
+      <div
+        className="graph-bar-container"
+        style={{ height: `${sorted.length * 36}px` }}
+      >
         <Bar data={chartData} options={options} />
       </div>
+
       <div className="graph-toggle-buttons">
         <button
           className="btn btn-sm btn-outline-secondary graph-button-sm"
@@ -57,6 +63,7 @@ export default function FactionPlayWinChart({ data }) {
           {showTable ? "Hide Raw Data" : "Show Raw Data"}
         </button>
       </div>
+
       {showTable && (
         <table className="table table-sm table-bordered graph-table">
           <thead>
