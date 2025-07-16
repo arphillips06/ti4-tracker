@@ -19,21 +19,48 @@ export default function FactionWinRateChart({ dataMap }) {
     ],
   };
 
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: { position: "top" },
-      title: { display: true, text: "Faction Win Rate" },
-      tooltip: { mode: "nearest", intersect: true },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        max: 100,
-        title: { display: true, text: "Win Rate (%)" },
+const options = {
+  responsive: true,
+  plugins: {
+    legend: {
+      position: "top",
+      labels: {
+        color: "#ffffff", // white legend text
       },
     },
-  };
+    tooltip: {
+      mode: "nearest",
+      intersect: true,
+      bodyColor: "#ffffff",
+      titleColor: "#ffffff",
+    },
+  },
+  scales: {
+    x: {
+      ticks: {
+        color: "#ffffff", // white x-axis labels
+      },
+      grid: {
+        color: "rgba(255, 255, 255, 0.1)", // subtle grid lines
+      },
+    },
+    y: {
+      beginAtZero: true,
+      max: 100,
+      title: {
+        display: true,
+        text: "Win Rate (%)",
+        color: "#ffffff", // white y-axis title
+      },
+      ticks: {
+        color: "#ffffff", // white y-axis labels
+      },
+      grid: {
+        color: "rgba(255, 255, 255, 0.1)",
+      },
+    },
+  },
+};
 
   return (
     <div className="graph-container">

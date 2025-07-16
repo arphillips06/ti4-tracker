@@ -44,7 +44,6 @@ export default function FactionPlayWinChart({ data }) {
 
   return (
     <div className="graph-container">
-      <h3 className="chart-section-title">Faction Play vs Win Rate</h3>
 
       <div className="graph-bar-container-large">
         <Bar data={chartData} options={options} />

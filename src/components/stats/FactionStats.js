@@ -17,7 +17,6 @@ return (
   <>
     {/* Faction Win Rate Chart */}
     <div className="chart-glass-container">
-      <h3 className="chart-title">Faction Win Rates</h3>
       <FactionWinRateChart dataMap={stats.winRateByFaction} />
       <button
         onClick={() => setShowFactionData(!showFactionData)}
