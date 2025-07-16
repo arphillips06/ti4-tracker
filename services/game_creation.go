@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
 	"math/rand"
 	"strconv"
 	"strings"
@@ -200,20 +201,26 @@ func ManuallyAssignObjective(gameID uint, roundNumber uint, objectiveID uint) er
 		First(&existing).Error
 
 	if err == nil {
-		// already exists
 		return errors.New("Objective already assigned to this game")
 	}
 
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		// some other DB error
 		return err
 	}
+	var position int64
+	_ = database.DB.Model(&models.GameObjective{}).
+		Where("game_id = ? AND stage = ?", gameID, obj.Stage).
+		Count(&position)
 
-	// Not found – go ahead and insert
 	reveal := models.GameObjective{
 		GameID:      gameID,
 		ObjectiveID: obj.ID,
 		RoundID:     round.ID,
+		Stage:       obj.Stage,     // e.g., "I" or "II"
+		Revealed:    true,          // so it shows up in /objectives
+		Position:    int(position), // controls display order
 	}
+	log.Printf("Assigned objective %s (ID %d) to game %d round %d", obj.Name, obj.ID, gameID, roundNumber)
+
 	return database.DB.Create(&reveal).Error
 }

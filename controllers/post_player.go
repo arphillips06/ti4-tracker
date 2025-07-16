@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/helpers"
 	"github.com/arphillips06/TI4-stats/models"
 	"github.com/arphillips06/TI4-stats/services"
@@ -58,6 +59,11 @@ func SFTT(c *gin.Context) {
 
 	req, ok := helpers.BindJSON[SFTTRequest](c)
 	if !ok {
+		return
+	}
+	var game models.Game
+	if err := database.DB.First(&game, gameID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Game not found"})
 		return
 	}
 
