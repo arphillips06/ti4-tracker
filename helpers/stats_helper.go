@@ -3,7 +3,10 @@ package helpers
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"math"
+	"sort"
+	"time"
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
@@ -599,4 +602,83 @@ func GetFactionPlayerStats() ([]models.FactionPlayerStats, error) {
 	}
 
 	return results, nil
+}
+func formatDuration(d time.Duration) string {
+	h := int(d.Hours())
+	m := int(d.Minutes()) % 60
+	if h > 0 {
+		return fmt.Sprintf("%dh %02dm", h, m)
+	}
+	return fmt.Sprintf("%dm", m)
+}
+
+func GetGameLengthStats() (models.GameLengthStats, error) {
+	var games []models.Game
+	db := database.DB
+
+	err := db.
+		Where("games.partial = false").
+		Preload("Rounds").
+		Find(&games).Error
+	if err != nil {
+		return models.GameLengthStats{}, err
+	}
+
+	var durations []models.GameDurationStat
+	var totalRoundSeconds int64
+	var totalRounds int
+
+	for _, game := range games {
+		if game.FinishedAt == nil || game.CreatedAt.IsZero() {
+			continue
+		}
+
+		duration := game.FinishedAt.Sub(game.CreatedAt)
+		rounds := len(game.Rounds)
+		if rounds == 0 {
+			continue
+		}
+
+		durations = append(durations, models.GameDurationStat{
+			GameID:     game.ID,
+			RoundCount: rounds,
+			Duration:   formatDuration(duration),
+			Seconds:    int64(duration.Seconds()),
+			StartedAt:  game.CreatedAt,
+		})
+
+		totalRoundSeconds += int64(duration.Seconds())
+		totalRounds += rounds
+	}
+
+	if len(durations) == 0 {
+		return models.GameLengthStats{}, nil
+	}
+
+	sortByRounds := make([]models.GameDurationStat, len(durations))
+	sortByTime := make([]models.GameDurationStat, len(durations))
+	copy(sortByRounds, durations)
+	copy(sortByTime, durations)
+
+	sort.Slice(sortByRounds, func(i, j int) bool {
+		return sortByRounds[i].RoundCount < sortByRounds[j].RoundCount
+	})
+
+	sort.Slice(sortByTime, func(i, j int) bool {
+		return sortByTime[i].Seconds < sortByTime[j].Seconds
+	})
+
+	average := ""
+	if totalRounds > 0 {
+		avgSeconds := totalRoundSeconds / int64(totalRounds)
+		average = formatDuration(time.Duration(avgSeconds) * time.Second)
+	}
+
+	return models.GameLengthStats{
+		LongestByRounds:  sortByRounds[len(sortByRounds)-1],
+		ShortestByRounds: sortByRounds[0],
+		LongestByTime:    sortByTime[len(sortByTime)-1],
+		ShortestByTime:   sortByTime[0],
+		AverageRoundTime: average,
+	}, nil
 }
