@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type FactionPlayWinStat struct {
 	PlayedCount int     `json:"playedCount"`
 	WinCount    int     `json:"winCount"`
@@ -63,4 +65,20 @@ type FactionPlayerStats struct {
 	Player      string `json:"player"`
 	PlayedCount int    `json:"playedCount"`
 	WonCount    int    `json:"wonCount"`
+}
+
+type GameDurationStat struct {
+	GameID     uint      `json:"game_id"`
+	RoundCount int       `json:"round_count"`
+	Duration   string    `json:"duration"`
+	Seconds    int64     `json:"seconds"`
+	StartedAt  time.Time `json:"started_at"`
+}
+
+type GameLengthStats struct {
+	LongestByRounds  GameDurationStat `json:"longest_by_rounds"`
+	ShortestByRounds GameDurationStat `json:"shortest_by_rounds"`
+	LongestByTime    GameDurationStat `json:"longest_by_time"`
+	ShortestByTime   GameDurationStat `json:"shortest_by_time"`
+	AverageRoundTime string           `json:"average_round_time"`
 }
