@@ -76,9 +76,16 @@ type GameDurationStat struct {
 }
 
 type GameLengthStats struct {
+	All         GameLengthCategoryStats `json:"all"`
+	ThreePlayer GameLengthCategoryStats `json:"three_player"`
+	FourPlayer  GameLengthCategoryStats `json:"four_player"`
+}
+
+type GameLengthCategoryStats struct {
 	LongestByRounds  GameDurationStat `json:"longest_by_rounds"`
 	ShortestByRounds GameDurationStat `json:"shortest_by_rounds"`
 	LongestByTime    GameDurationStat `json:"longest_by_time"`
 	ShortestByTime   GameDurationStat `json:"shortest_by_time"`
 	AverageRoundTime string           `json:"average_round_time"`
+	AverageGameTime  string           `json:"average_game_time"`
 }
