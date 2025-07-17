@@ -617,7 +617,6 @@ func GetGameLengthStats() (models.GameLengthStats, error) {
 	db := database.DB
 
 	err := db.
-		Where("games.partial = false").
 		Preload("Rounds").
 		Find(&games).Error
 	if err != nil {
@@ -634,39 +633,57 @@ func GetGameLengthStats() (models.GameLengthStats, error) {
 		}
 
 		duration := game.FinishedAt.Sub(game.CreatedAt)
-		rounds := len(game.Rounds)
-		if rounds == 0 {
-			continue
+
+		// Always calculate time-based fields
+		stat := models.GameDurationStat{
+			GameID:    game.ID,
+			Duration:  formatDuration(duration),
+			Seconds:   int64(duration.Seconds()),
+			StartedAt: game.CreatedAt,
 		}
 
-		durations = append(durations, models.GameDurationStat{
-			GameID:     game.ID,
-			RoundCount: rounds,
-			Duration:   formatDuration(duration),
-			Seconds:    int64(duration.Seconds()),
-			StartedAt:  game.CreatedAt,
-		})
+		// Only count rounds if game is not partial
+		if !game.Partial {
+			roundCount := len(game.Rounds)
+			if roundCount == 0 {
+				continue // skip games with no rounds
+			}
+			stat.RoundCount = roundCount
+			totalRoundSeconds += int64(duration.Seconds())
+			totalRounds += roundCount
+		}
 
-		totalRoundSeconds += int64(duration.Seconds())
-		totalRounds += rounds
+		durations = append(durations, stat)
 	}
 
 	if len(durations) == 0 {
 		return models.GameLengthStats{}, nil
 	}
 
-	sortByRounds := make([]models.GameDurationStat, len(durations))
+	// Sort copies
+	sortByRounds := make([]models.GameDurationStat, 0)
 	sortByTime := make([]models.GameDurationStat, len(durations))
-	copy(sortByRounds, durations)
 	copy(sortByTime, durations)
 
-	sort.Slice(sortByRounds, func(i, j int) bool {
-		return sortByRounds[i].RoundCount < sortByRounds[j].RoundCount
-	})
+	// Filter games with RoundCount > 0 before sorting by rounds
+	for _, d := range durations {
+		if d.RoundCount > 0 {
+			sortByRounds = append(sortByRounds, d)
+		}
+	}
 
 	sort.Slice(sortByTime, func(i, j int) bool {
 		return sortByTime[i].Seconds < sortByTime[j].Seconds
 	})
+
+	var longestByRounds, shortestByRounds models.GameDurationStat
+	if len(sortByRounds) > 0 {
+		sort.Slice(sortByRounds, func(i, j int) bool {
+			return sortByRounds[i].RoundCount < sortByRounds[j].RoundCount
+		})
+		shortestByRounds = sortByRounds[0]
+		longestByRounds = sortByRounds[len(sortByRounds)-1]
+	}
 
 	average := ""
 	if totalRounds > 0 {
@@ -675,8 +692,8 @@ func GetGameLengthStats() (models.GameLengthStats, error) {
 	}
 
 	return models.GameLengthStats{
-		LongestByRounds:  sortByRounds[len(sortByRounds)-1],
-		ShortestByRounds: sortByRounds[0],
+		LongestByRounds:  longestByRounds,
+		ShortestByRounds: shortestByRounds,
 		LongestByTime:    sortByTime[len(sortByTime)-1],
 		ShortestByTime:   sortByTime[0],
 		AverageRoundTime: average,
