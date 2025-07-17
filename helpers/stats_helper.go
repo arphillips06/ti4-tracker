@@ -612,29 +612,14 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%dm", m)
 }
 
-func GetGameLengthStats() (models.GameLengthStats, error) {
-	var games []models.Game
-	db := database.DB
-
-	err := db.
-		Preload("Rounds").
-		Find(&games).Error
-	if err != nil {
-		return models.GameLengthStats{}, err
-	}
-
+func computeStats(games []models.Game) models.GameLengthCategoryStats {
 	var durations []models.GameDurationStat
 	var totalRoundSeconds int64
 	var totalRounds int
 
 	for _, game := range games {
-		if game.FinishedAt == nil || game.CreatedAt.IsZero() {
-			continue
-		}
-
 		duration := game.FinishedAt.Sub(game.CreatedAt)
 
-		// Always calculate time-based fields
 		stat := models.GameDurationStat{
 			GameID:    game.ID,
 			Duration:  formatDuration(duration),
@@ -642,11 +627,10 @@ func GetGameLengthStats() (models.GameLengthStats, error) {
 			StartedAt: game.CreatedAt,
 		}
 
-		// Only count rounds if game is not partial
 		if !game.Partial {
 			roundCount := len(game.Rounds)
 			if roundCount == 0 {
-				continue // skip games with no rounds
+				continue
 			}
 			stat.RoundCount = roundCount
 			totalRoundSeconds += int64(duration.Seconds())
@@ -657,26 +641,29 @@ func GetGameLengthStats() (models.GameLengthStats, error) {
 	}
 
 	if len(durations) == 0 {
-		return models.GameLengthStats{}, nil
+		return models.GameLengthCategoryStats{}
 	}
 
-	// Sort copies
-	sortByRounds := make([]models.GameDurationStat, 0)
-	sortByTime := make([]models.GameDurationStat, len(durations))
-	copy(sortByTime, durations)
+	var totalGameSeconds int64
+	for _, d := range durations {
+		totalGameSeconds += d.Seconds
+	}
 
-	// Filter games with RoundCount > 0 before sorting by rounds
+	avgGame := formatDuration(time.Duration(totalGameSeconds/int64(len(durations))) * time.Second)
+
+	var sortByRounds, sortByTime []models.GameDurationStat
 	for _, d := range durations {
 		if d.RoundCount > 0 {
 			sortByRounds = append(sortByRounds, d)
 		}
 	}
+	sortByTime = append([]models.GameDurationStat(nil), durations...)
 
 	sort.Slice(sortByTime, func(i, j int) bool {
 		return sortByTime[i].Seconds < sortByTime[j].Seconds
 	})
 
-	var longestByRounds, shortestByRounds models.GameDurationStat
+	var shortestByRounds, longestByRounds models.GameDurationStat
 	if len(sortByRounds) > 0 {
 		sort.Slice(sortByRounds, func(i, j int) bool {
 			return sortByRounds[i].RoundCount < sortByRounds[j].RoundCount
@@ -685,17 +672,55 @@ func GetGameLengthStats() (models.GameLengthStats, error) {
 		longestByRounds = sortByRounds[len(sortByRounds)-1]
 	}
 
-	average := ""
+	averageRound := ""
 	if totalRounds > 0 {
-		avgSeconds := totalRoundSeconds / int64(totalRounds)
-		average = formatDuration(time.Duration(avgSeconds) * time.Second)
+		avgRound := totalRoundSeconds / int64(totalRounds)
+		averageRound = formatDuration(time.Duration(avgRound) * time.Second)
 	}
 
-	return models.GameLengthStats{
+	return models.GameLengthCategoryStats{
 		LongestByRounds:  longestByRounds,
 		ShortestByRounds: shortestByRounds,
 		LongestByTime:    sortByTime[len(sortByTime)-1],
 		ShortestByTime:   sortByTime[0],
-		AverageRoundTime: average,
+		AverageRoundTime: averageRound,
+		AverageGameTime:  avgGame,
+	}
+}
+
+func GetGameLengthStats() (models.GameLengthStats, error) {
+	var games []models.Game
+	db := database.DB
+
+	err := db.Preload("Rounds").Preload("GamePlayers").Find(&games).Error
+	if err != nil {
+		return models.GameLengthStats{}, err
+	}
+
+	var (
+		allGames         []models.Game
+		threePlayerGames []models.Game
+		fourPlayerGames  []models.Game
+	)
+
+	for _, game := range games {
+		if game.FinishedAt == nil || game.CreatedAt.IsZero() {
+			continue
+		}
+		count := len(game.GamePlayers)
+		switch count {
+		case 3:
+			threePlayerGames = append(threePlayerGames, game)
+
+		case 4:
+			fourPlayerGames = append(fourPlayerGames, game)
+		}
+		allGames = append(allGames, game)
+	}
+
+	return models.GameLengthStats{
+		All:         computeStats(allGames),
+		ThreePlayer: computeStats(threePlayerGames),
+		FourPlayer:  computeStats(fourPlayerGames),
 	}, nil
 }
