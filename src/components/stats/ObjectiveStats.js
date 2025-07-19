@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import ObjectiveStatsChart from "../graphs/ObjectiveStatsChart";
 import ObjectiveFrequencyChart from "../graphs/ObjectiveFrequencyChart";
 import ObjectiveAppearanceChart from "../graphs/ObjectiveAppearanceChart";
+import ObjectiveMetaTable from "../graphs/ObjectiveMetaTable";
+import SecretObjectiveTable from "../graphs/SecretOnjectiveTable";
 import '../../pages/stats.css';
 
 export default function ObjectiveStats({ stats }) {
@@ -10,8 +12,6 @@ export default function ObjectiveStats({ stats }) {
   return (
     <div className="stats-section">
       <h2 className="chart-header">Objective Statistics</h2>
-
-      {/* Objective Points Chart */}
       <div className="chart-glass-container">
         <ObjectiveStatsChart stats={stats} />
         <button
@@ -20,7 +20,6 @@ export default function ObjectiveStats({ stats }) {
         >
           {showObjectiveData ? "Hide Raw Data" : "Show Raw Data"}
         </button>
-
         {showObjectiveData && (
           <ul className="raw-data-list mt-2 mb-2">
             <li>Public Objectives: {stats.objectiveStats.publicScored}</li>
@@ -30,19 +29,18 @@ export default function ObjectiveStats({ stats }) {
           </ul>
         )}
       </div>
-
-      {/* Frequency Chart */}
       <div className="chart-glass-container">
         <ObjectiveFrequencyChart
-          frequency={stats.objectiveFrequency}
-          secretPublic={stats.objectiveStats.secretPublic}
-        />
+          data={stats.objectiveAppearanceStats} />
+      </div>
+      <div className="chart-glass-container">
+        <ObjectiveAppearanceChart data={stats.objectiveAppearanceStats} />
+      </div>
+      <div className="chart-glass-container">
+        <ObjectiveMetaTable metas={stats.objectiveMetaStats} />
+        <SecretObjectiveTable secrets={stats.objectiveMetaStats} />
       </div>
 
-      {/* Appearance Chart */}
-      <div className="chart-glass-container">
-        <ObjectiveAppearanceChart stats={stats} />
-      </div>
     </div>
   );
 

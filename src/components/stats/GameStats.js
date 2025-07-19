@@ -1,5 +1,8 @@
 import React from "react";
 import "../../pages/stats.css";
+import PointSpreadChart from "../graphs/PointSpreadChart";
+import GameLengthChart from "../graphs/GameLengthChart";
+
 
 export default function GameStats({ stats }) {
   if (!stats || !stats.gameLengthStats) return null;
@@ -63,10 +66,23 @@ export default function GameStats({ stats }) {
 
   return (
     <div className="stats-section">
-      <h2 className="chart-header">Game Length Stats</h2>
-      {renderTable("All Games", all)}
-      {renderTable("3-Player Games", three_player)}
-      {renderTable("4-Player Games", four_player)}
+      <div>
+        <h2 className="chart-header">Game Length Stats</h2>
+        {renderTable("All Games", all)}
+        {renderTable("3-Player Games", three_player)}
+        {renderTable("4-Player Games", four_player)}
+
+      </div>
+      <div className="chart-glass-container">
+        {stats.pointSpreadDistribution && (
+          <PointSpreadChart spreadData={stats.pointSpreadDistribution} />
+        )}
+      </div>
+      <div className="chart-glass-container">
+        {stats.gameLengthDistribution && (
+          <GameLengthChart lengthData={stats.gameLengthDistribution} />
+        )}
+      </div>
     </div>
   );
 }
