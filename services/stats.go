@@ -1,7 +1,7 @@
 package services
 
 import (
-	"github.com/arphillips06/TI4-stats/helpers"
+	"github.com/arphillips06/TI4-stats/helpers/stats"
 	"github.com/arphillips06/TI4-stats/models"
 )
 
@@ -29,90 +29,108 @@ type StatsOverview struct {
 	FactionPlayerStats         []models.FactionPlayerStats          `json:"factionPlayerStats"`
 	GameLengthStats            models.GameLengthStats               `json:"gameLengthStats"`
 	FactionAggregateStats      []models.FactionAggregateStats       `json:"factionAggregateStats"`
+	SecretObjectiveFrequency   map[string]int                       `json:"publicSecretFrequency"`
+	PublicObjectiveFrequency   map[string]int                       `json:"publicObjectiveFrequency"`
+	ObjectiveMetaStats         []models.ObjectiveMeta               `json:"objectiveMetaStats"`
+	PointSpreadDistribution    map[int]int                          `json:"pointSpreadDistribution"`
+	GameLengthDistribution     map[int]int                          `json:"gameLengthDistribution"`
 }
 
 func CalculateStatsOverview() (*StatsOverview, error) {
-	totalGames, err := helpers.CountTotalGames()
+	totalGames, err := stats.CountTotalGames()
 	if err != nil {
 		return nil, err
 	}
 
-	factionPlays, factionWins, winRates, playWinDist, err := helpers.CalculateFactionStats()
+	factionPlays, factionWins, winRates, playWinDist, err := stats.CalculateFactionStats()
 	if err != nil {
 		return nil, err
 	}
 
-	objectiveStats, err := helpers.CalculateObjectiveCounts()
+	objectiveStats, err := stats.CalculateObjectiveCounts()
 	if err != nil {
 		return nil, err
 	}
 
-	objectiveFreq, err := helpers.CalculateObjectiveFrequencies()
+	publicFreq, secretFreq, err := stats.CalculateObjectiveFrequencies()
 	if err != nil {
 		return nil, err
 	}
 
-	playerWinRates, err := helpers.CalculatePlayerWinRates()
+	playerWinRates, err := stats.CalculatePlayerWinRates()
 	if err != nil {
 		return nil, err
 	}
 
-	playerAverages, err := helpers.CalculatePlayerAverages()
+	playerAverages, err := stats.CalculatePlayerAverages()
 	if err != nil {
 		return nil, err
 	}
 
-	topFactionsPerPlayer, err := helpers.CalculateTopFactionsPerPlayer()
+	topFactionsPerPlayer, err := stats.CalculateTopFactionsPerPlayer()
 	if err != nil {
 		return nil, err
 	}
 
-	playerFinishes, err := helpers.CalculateMostCommonFinishes()
+	playerFinishes, err := stats.CalculateMostCommonFinishes()
 	if err != nil {
 		return nil, err
 	}
 
-	secretRates, err := helpers.CalculateSecretObjectiveRates()
+	secretRates, err := stats.CalculateSecretObjectiveRates()
 	if err != nil {
 		return nil, err
 	}
 
-	pointStdevs, err := helpers.CalculatePointStandardDeviations()
+	pointStdevs, err := stats.CalculatePointStandardDeviations()
 	if err != nil {
 		return nil, err
 	}
 
-	avgRounds, err := helpers.CalculateAverageRounds()
+	avgRounds, err := stats.CalculateAverageRounds()
 	if err != nil {
 		return nil, err
 	}
 
-	avgPoints, err := helpers.CalculateAveragePlayerPoints()
+	avgPoints, err := stats.CalculateAveragePlayerPoints()
 	if err != nil {
 		return nil, err
 	}
 
-	totalPlayers, err := helpers.CountUniquePlayers()
+	totalPlayers, err := stats.CountUniquePlayers()
 	if err != nil {
 		return nil, err
 	}
 
-	mostPlayed, mostVictorious := helpers.DetermineMostPlayedAndVictoriousFactions(factionPlays, factionWins)
+	mostPlayed, mostVictorious := stats.DetermineMostPlayedAndVictoriousFactions(factionPlays, factionWins)
 
-	objectiveAppearanceStats, err := helpers.CalculateObjectiveAppearanceStats(totalGames)
+	objectiveAppearanceStats, err := stats.CalculateObjectiveAppearanceStats(totalGames)
 	if err != nil {
 		return nil, err
 	}
 
-	gameLengthStats, err := helpers.GetGameLengthStats()
+	gameLengthStats, err := stats.GetGameLengthStats()
 	if err != nil {
 		return nil, err
 	}
-	factionPlayerStats, err := helpers.GetFactionPlayerStats()
+	factionPlayerStats, err := stats.GetFactionPlayerStats()
 	if err != nil {
 		return nil, err
 	}
-	factionAggStats, err := helpers.GetFactionAggregateStats()
+	factionAggStats, err := stats.GetFactionAggregateStats()
+	if err != nil {
+		return nil, err
+	}
+	objectiveMetaStats, err := stats.CalculateObjectiveMetaStats()
+	if err != nil {
+		return nil, err
+	}
+	pointSpreads, err := stats.CalculateVictoryPointSpreads()
+	if err != nil {
+		return nil, err
+	}
+
+	lengths, err := stats.CalculateGameLengthDistribution()
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +141,6 @@ func CalculateStatsOverview() (*StatsOverview, error) {
 		GamesWonByFaction:          factionWins,
 		WinRateByFaction:           winRates,
 		ObjectiveStats:             objectiveStats,
-		ObjectiveFrequency:         objectiveFreq,
 		PlayerWinRates:             playerWinRates,
 		ObjectiveAppearanceStats:   objectiveAppearanceStats,
 		FactionPlayWinDistribution: playWinDist,
@@ -140,5 +157,10 @@ func CalculateStatsOverview() (*StatsOverview, error) {
 		FactionPlayerStats:         factionPlayerStats,
 		GameLengthStats:            gameLengthStats,
 		FactionAggregateStats:      factionAggStats,
+		PublicObjectiveFrequency:   publicFreq,
+		SecretObjectiveFrequency:   secretFreq,
+		ObjectiveMetaStats:         objectiveMetaStats,
+		PointSpreadDistribution:    pointSpreads,
+		GameLengthDistribution:     lengths,
 	}, nil
 }
