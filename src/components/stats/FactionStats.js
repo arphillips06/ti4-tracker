@@ -35,20 +35,16 @@ export default function FactionStats({ stats }) {
           </ul>
         )}
       </div>
-
-      {/* Faction Play vs Win Rates */}
       <div className="chart-glass-container">
         <h3 className="chart-title">Faction Play vs Win Rates</h3>
         <FactionPlayWinChart data={stats.factionPlayWinDistribution} />
       </div>
-
       <div className="chart-glass-container">
         <h3 className="chart-title">Faction Usage</h3>
-        <FactionUsageTable data={stats.factionPlayerStats} />
+        <FactionUsageTable
+          data={stats.factionPlayerStats}
+          aggregates={stats.factionAggregateStats} />
       </div>
-
-
     </>
   );
-
 }

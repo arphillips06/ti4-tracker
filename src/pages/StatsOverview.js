@@ -28,7 +28,6 @@ export default function StatsPage() {
 
       <h1 className="mb-4">Twilight Imperium Stats</h1>
 
-      {/* Styled View Switcher */}
       <div className="stats-nav mb-4">
         <Link to="/" className="nav-btn">Home</Link>
         <button
