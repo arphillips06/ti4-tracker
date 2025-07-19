@@ -1,11 +1,18 @@
 import React, { useState } from "react";
 import "../../pages/stats.css";
 
-export default function FactionUsageTable({ data }) {
+export default function FactionUsageTable({ data, aggregates = [] }) {
   const [sortKey, setSortKey] = useState("faction");
   const [sortOrder, setSortOrder] = useState("asc");
 
-  // Aggregate rows by faction
+  // Build a map for quick lookup of aggregate stats
+  const aggregateMap = {};
+  aggregates.forEach((agg) => {
+    aggregateMap[agg.faction.toLowerCase()] = agg;
+  });
+  console.log("Available aggregates:", Object.keys(aggregateMap));
+
+  // Aggregate player-level stats per faction
   const grouped = {};
 
   data.forEach((entry) => {
@@ -30,8 +37,23 @@ export default function FactionUsageTable({ data }) {
     }
   });
 
-  // Turn grouped data into array
-  const tableData = Object.values(grouped);
+  // Convert to array and add avgPoints
+  const tableData = Object.values(grouped).map((row) => {
+    const aggregate = aggregateMap[row.faction.toLowerCase()];
+    if (!aggregate) {
+      console.warn("No aggregate found for", row.faction);
+    }
+    const avgPoints =
+      aggregate && aggregate.totalPlays > 0
+        ? aggregate.totalPointsScored / aggregate.totalPlays
+        : 0;
+    console.log("aggregate", aggregate);
+
+    return {
+      ...row,
+      avgPoints,
+    };
+  });
 
   // Sort
   const sorted = [...tableData].sort((a, b) => {
@@ -65,6 +87,9 @@ export default function FactionUsageTable({ data }) {
             <th onClick={() => toggleSort("totalPlays")}>
               Total Plays {sortKey === "totalPlays" && (sortOrder === "asc" ? "▲" : "▼")}
             </th>
+            <th onClick={() => toggleSort("avgPoints")}>
+              Avg Points {sortKey === "avgPoints" && (sortOrder === "asc" ? "▲" : "▼")}
+            </th>
             <th>Players Played</th>
             <th>Players Won With</th>
           </tr>
@@ -74,18 +99,20 @@ export default function FactionUsageTable({ data }) {
             <tr key={row.faction}>
               <td>{row.faction}</td>
               <td>{row.totalPlays || "-"}</td>
+              <td>{row.avgPoints !== undefined && row.avgPoints !== null ? row.avgPoints.toFixed(2) : "-"}</td>
+
               <td>
                 {Object.keys(row.playersPlayed).length > 0
                   ? Object.entries(row.playersPlayed)
-                      .map(([player, count]) => `${player} (${count})`)
-                      .join(", ")
+                    .map(([player, count]) => `${player} (${count})`)
+                    .join(", ")
                   : "-"}
               </td>
               <td>
                 {Object.keys(row.playersWon).length > 0
                   ? Object.entries(row.playersWon)
-                      .map(([player, count]) => `${player} (${count})`)
-                      .join(", ")
+                    .map(([player, count]) => `${player} (${count})`)
+                    .join(", ")
                   : "-"}
               </td>
             </tr>

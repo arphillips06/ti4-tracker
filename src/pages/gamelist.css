@@ -7,12 +7,21 @@
   color: white;
 }
 
-.btn-outline-light {
-  border-color: gold;
+.nav-btn {
   color: gold;
+  background-color: transparent;
+  border: 2px solid gold;
+  padding: 0.4em 1em;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
-.btn-outline-light:hover {
+.nav-btn:hover,
+.nav-btn.active {
   background-color: gold;
   color: black;
 }

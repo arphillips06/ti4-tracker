@@ -55,8 +55,9 @@ function GameList() {
     <div className="container">
       <h1 className="mb-4">TI4 Games</h1>
       <div className="d-flex justify-content-end gap-3 mb-4">
-        <Link to="/" className="btn btn-outline-light">Home</Link>
-        <Link to="/stats" className="btn btn-outline-light">Stats</Link>
+        <Link to="/" className="nav-btn">Home</Link>
+        <Link to="/stats" className="nav-btn">Stats</Link>
+
       </div>
 
       {games.length === 0 ? (
@@ -88,7 +89,7 @@ function GameList() {
                 )}
 
                 {game.Scores?.length > 0 && (
-                  <div className="mb-2">
+                  <div className="stats-nav mb-4">
                     <strong>Scores:</strong>
                     <ul className="list-unstyled ms-3">
                       {game.Scores.map((s) => (
@@ -113,9 +114,10 @@ function GameList() {
                   </div>
                 )}
                 <div className="text-end">
-                  <Link to={`/games/${game.id}`} className="btn btn-sm btn-primary">
+                  <Link to={`/games/${game.id}`} className="nav-btn">
                     View Game
                   </Link>
+
                 </div>
               </li>
             );
