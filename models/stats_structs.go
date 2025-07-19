@@ -36,8 +36,11 @@ type PlayerWinRate struct {
 }
 
 type ObjectiveStats struct {
+	Type                   string  `json:"type"` // "public" or "secret"
 	AppearanceRate         float64 `json:"appearanceRate"`
 	ScoredWhenAppearedRate float64 `json:"scoredWhenAppearedRate"`
+	AppearedCount          int     `json:"appearedCount"`
+	ScoredCount            int     `json:"scoredCount"`
 }
 
 type PlayerFactionStats struct {
@@ -96,4 +99,13 @@ type GameLengthCategoryStats struct {
 	ShortestByTime   GameDurationStat `json:"shortest_by_time"`
 	AverageRoundTime string           `json:"average_round_time"`
 	AverageGameTime  string           `json:"average_game_time"`
+}
+
+type ObjectiveMeta struct {
+	Name          string  `json:"name"`
+	Type          string  `json:"type"`
+	TimesAppeared int     `json:"timesAppeared"`
+	TimesScored   int     `json:"timesScored"`
+	ScoredPercent float64 `json:"scoredPercent"`
+	AverageRound  float64 `json:"averageRound"`
 }
