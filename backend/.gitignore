@@ -1,9 +1,0 @@
-*.exe
-*.log
-*.db
-*.sqlite
-*.sqlite3
-.vscode/
-.env
-.idea/
-*.zip
