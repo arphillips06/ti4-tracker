@@ -109,3 +109,8 @@ type ObjectiveMeta struct {
 	ScoredPercent float64 `json:"scoredPercent"`
 	AverageRound  float64 `json:"averageRound"`
 }
+
+type SpreadStat struct {
+	Spread int
+	Count  int
+}

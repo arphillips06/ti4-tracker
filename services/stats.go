@@ -32,6 +32,8 @@ type StatsOverview struct {
 	SecretObjectiveFrequency   map[string]int                       `json:"publicSecretFrequency"`
 	PublicObjectiveFrequency   map[string]int                       `json:"publicObjectiveFrequency"`
 	ObjectiveMetaStats         []models.ObjectiveMeta               `json:"objectiveMetaStats"`
+	PointSpreadDistribution    map[int]int                          `json:"pointSpreadDistribution"`
+	GameLengthDistribution     map[int]int                          `json:"gameLengthDistribution"`
 }
 
 func CalculateStatsOverview() (*StatsOverview, error) {
@@ -123,6 +125,15 @@ func CalculateStatsOverview() (*StatsOverview, error) {
 	if err != nil {
 		return nil, err
 	}
+	pointSpreads, err := stats.CalculateVictoryPointSpreads()
+	if err != nil {
+		return nil, err
+	}
+
+	lengths, err := stats.CalculateGameLengthDistribution()
+	if err != nil {
+		return nil, err
+	}
 
 	return &StatsOverview{
 		TotalGames:                 int(totalGames),
@@ -149,5 +160,7 @@ func CalculateStatsOverview() (*StatsOverview, error) {
 		PublicObjectiveFrequency:   publicFreq,
 		SecretObjectiveFrequency:   secretFreq,
 		ObjectiveMetaStats:         objectiveMetaStats,
+		PointSpreadDistribution:    pointSpreads,
+		GameLengthDistribution:     lengths,
 	}, nil
 }

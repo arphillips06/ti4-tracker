@@ -134,3 +134,20 @@ func GetGameLengthStats() (models.GameLengthStats, error) {
 		FourPlayer:  computeStats(fourPlayerGames),
 	}, nil
 }
+
+func CalculateGameLengthDistribution() (map[int]int, error) {
+	var games []models.Game
+	err := database.DB.
+		Where("partial = ?", false).
+		Find(&games).Error
+	if err != nil {
+		return nil, err
+	}
+
+	lengths := map[int]int{}
+	for _, g := range games {
+		lengths[g.CurrentRound]++
+	}
+
+	return lengths, nil
+}
