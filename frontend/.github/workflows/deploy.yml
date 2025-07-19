@@ -1,0 +1,33 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build React app (ignore warnings)
+        run: CI=false npm run build
+
+      - name: Deploy to production folder
+        run: |
+          rm -rf /projects/TI4-frontend/build/*
+          cp -r build/* /projects/TI4-frontend/build/
+
+      - name: Restart frontend service
+        run: |
+          sudo systemctl restart ti4-frontend
