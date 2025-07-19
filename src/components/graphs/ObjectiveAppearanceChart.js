@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { Bar } from "react-chartjs-2";
 import "./shared/graphs.css";
 import { sortData } from "./shared/chartUtils";
+import { color } from "chart.js/helpers";
 
-export default function ObjectiveAppearanceChart({ stats }) {
+export default function ObjectiveAppearanceChart({ data  }) {
   const [showAll, setShowAll] = useState(false);
   const [showTable, setShowTable] = useState(false);
   const [sortKey, setSortKey] = useState("appearPct");
@@ -18,21 +19,24 @@ export default function ObjectiveAppearanceChart({ stats }) {
     }
   };
 
-  const appearanceStats = stats.objectiveAppearanceStats || {};
+  const appearanceStats = data  || {};
 
-  const merged = Object.entries(appearanceStats).map(([name, data]) => ({
-    name,
-    appearPct: data.appearanceRate || 0,
-    scorePct: data.scoredWhenAppearedRate || 0,
-    appeared: data.appearedCount || 0,
-    scored: data.scoredCount || 0,
-  }));
+  const merged = Object.entries(appearanceStats)
+    .filter(([_, data]) => data.type !== "Secret")
+    .map(([name, data]) => ({
+      name,
+      appearPct: data.appearanceRate || 0,
+      scorePct: data.scoredWhenAppearedRate || 0,
+      appeared: data.appearedCount || 0,
+      scored: data.scoredCount || 0,
+    }));
+  const mergedMap = Object.fromEntries(merged.map(d => [d.name, d]));
 
   const sorted = sortData(merged, sortKey, sortOrder);
   const displayData = showAll ? sorted : sorted.slice(0, 10);
 
   const chartData = {
-    labels: displayData.map((d) => d.name),
+    labels: displayData.map((d) => d.name), // ✅ based on filtered `displayData`
     datasets: [
       {
         label: "% of Games Appeared",
@@ -47,6 +51,7 @@ export default function ObjectiveAppearanceChart({ stats }) {
     ],
   };
 
+
   const options = {
     indexAxis: "y",
     responsive: true,
@@ -57,12 +62,12 @@ export default function ObjectiveAppearanceChart({ stats }) {
         intersect: true,
         callbacks: {
           afterLabel: (context) => {
-            const stat = appearanceStats[context.label];
+            const stat = mergedMap[context.label]; // Only public objectives
             if (!stat) return "";
             if (context.dataset.label === "% of Games Appeared") {
-              return `Appeared in ${stat.appearedCount} games`;
+              return `Appeared in ${stat.appeared} games`;
             } else if (context.dataset.label === "% Scored When Appeared") {
-              return `Scored in ${stat.scoredCount} of ${stat.appearedCount} games`;
+              return `Scored in ${stat.scored} of ${stat.appeared} games`;
             }
             return "";
           },
@@ -74,8 +79,16 @@ export default function ObjectiveAppearanceChart({ stats }) {
       x: {
         beginAtZero: true,
         max: 100,
-        ticks: { callback: (v) => `${v}%` },
+        ticks: {
+          callback: (v) => `${v}%`,
+          color: 'white',
+        },
       },
+      y: {
+        ticks: {
+          color: 'white',
+        },
+      }
     },
   };
 

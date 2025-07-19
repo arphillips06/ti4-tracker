@@ -1,6 +1,7 @@
 import React from "react";
 import { Bar } from "react-chartjs-2";
-import "./shared/graphs.css"; 
+import "./shared/graphs.css";
+import { color } from "chart.js/helpers";
 
 export default function ObjectiveStatsChart({ stats }) {
   const totalPublic = stats.objectiveStats.publicScored || 0;
@@ -51,21 +52,29 @@ export default function ObjectiveStatsChart({ stats }) {
       tooltip: { mode: "nearest", intersect: true },
     },
     scales: {
-      x: { stacked: true },
+      x: {
+        stacked: true,
+        ticks: {
+          color: 'white',
+        }
+      },
       y: {
         stacked: true,
         beginAtZero: true,
-        ticks: { precision: 0 },
+        ticks: {
+          precision: 0,
+          color: 'white',
+        },
       },
-    },
-  };
+    }
+  }
 
   return (
-    <div className="graph-container">
+    <div className="graph-container" >
       <h3 className="chart-section-title">Objective Types Scored</h3>
       <div className="graph-bar-container" style={{ height: "300px" }}>
         <Bar data={data} options={options} />
       </div>
-    </div>
+    </div >
   );
 }

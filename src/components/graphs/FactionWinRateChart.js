@@ -64,7 +64,7 @@ export default function FactionWinRateChart({ dataMap }) {
                 >
                   <strong>{label}</strong>
                   <br />
-                  Win Rate: {payload[0].value}%
+                  Win Rate: {payload[0].value.toFixed(2)}%
                 </div>
               ) : null
             }

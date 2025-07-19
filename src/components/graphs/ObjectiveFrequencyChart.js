@@ -3,31 +3,29 @@ import { Bar } from "react-chartjs-2";
 import "./shared/graphs.css";
 import { sortData } from "./shared/chartUtils";
 
-export default function ObjectiveFrequencyChart({ frequency, secretPublic = 0 }) {
+export default function ObjectiveFrequencyChart({ data }) {
   const [showAll, setShowAll] = useState(false);
   const [showTable, setShowTable] = useState(false);
 
-  if (!frequency || typeof frequency !== "object") {
-    return <div>No frequency data available.</div>;
-  }
+  const appearanceStats = data || {};
 
-  const secretPublicBreakdown = {};
+  // Filter out secret objectives and map data
+  const objectives = Object.entries(appearanceStats)
+    .filter(([_, data]) => data.type !== "Secret")
+    .map(([name, data]) => ({
+      name,
+      appeared: data.appearedCount || 0,
+    }));
 
-  const objectiveData = Object.entries(frequency).map(([name, count]) => ({
-    name,
-    publicCount: count - (secretPublicBreakdown[name] || 0),
-    total: count,
-  }));
-
-  const sorted = sortData(objectiveData, "total", "desc");
+  const sorted = sortData(objectives, "appeared", "desc");
   const displayData = showAll ? sorted : sorted.slice(0, 10);
 
   const chartData = {
     labels: displayData.map((o) => o.name),
     datasets: [
       {
-        label: "Public Objectives",
-        data: displayData.map((o) => o.publicCount),
+        label: "Times Appeared",
+        data: displayData.map((o) => o.appeared),
         backgroundColor: "rgba(54, 162, 235, 0.7)",
         stack: "stack1",
       },
@@ -43,13 +41,16 @@ export default function ObjectiveFrequencyChart({ frequency, secretPublic = 0 })
       legend: { position: "top" },
     },
     layout: {
-      padding: { left: 0 }, 
+      padding: { left: 0 },
     },
     scales: {
       x: {
         beginAtZero: true,
         stacked: true,
-        ticks: { precision: 0 },
+        ticks: {
+          precision: 0,
+          color: 'white',
+        },
       },
       y: {
         stacked: true,
@@ -57,6 +58,7 @@ export default function ObjectiveFrequencyChart({ frequency, secretPublic = 0 })
           font: { size: 11 },
           autoSkip: false,
           padding: 8,
+          color: 'white'
         },
       },
     },
@@ -100,7 +102,7 @@ export default function ObjectiveFrequencyChart({ frequency, secretPublic = 0 })
             {sorted.map((row) => (
               <tr key={row.name}>
                 <td>{row.name}</td>
-                <td>{row.total}</td>
+                <td>{row.appeared}</td>
               </tr>
             ))}
           </tbody>
