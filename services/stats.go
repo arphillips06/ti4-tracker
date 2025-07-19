@@ -28,6 +28,7 @@ type StatsOverview struct {
 	CustodiansStats            []PlayerCustodiansStats              `json:"custodiansStats"`
 	FactionPlayerStats         []models.FactionPlayerStats          `json:"factionPlayerStats"`
 	GameLengthStats            models.GameLengthStats               `json:"gameLengthStats"`
+	FactionAggregateStats      []models.FactionAggregateStats       `json:"factionAggregateStats"`
 }
 
 func CalculateStatsOverview() (*StatsOverview, error) {
@@ -111,6 +112,10 @@ func CalculateStatsOverview() (*StatsOverview, error) {
 	if err != nil {
 		return nil, err
 	}
+	factionAggStats, err := helpers.GetFactionAggregateStats()
+	if err != nil {
+		return nil, err
+	}
 
 	return &StatsOverview{
 		TotalGames:                 int(totalGames),
@@ -134,5 +139,6 @@ func CalculateStatsOverview() (*StatsOverview, error) {
 		AverageGameRounds:          avgRounds,
 		FactionPlayerStats:         factionPlayerStats,
 		GameLengthStats:            gameLengthStats,
+		FactionAggregateStats:      factionAggStats,
 	}, nil
 }

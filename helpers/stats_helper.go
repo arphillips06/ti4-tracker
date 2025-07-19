@@ -603,6 +603,29 @@ func GetFactionPlayerStats() ([]models.FactionPlayerStats, error) {
 
 	return results, nil
 }
+func GetFactionAggregateStats() ([]models.FactionAggregateStats, error) {
+	db := database.DB
+	var results []models.FactionAggregateStats
+
+	err := db.
+		Model(&models.GamePlayer{}).
+		Select(`
+			faction,
+			COUNT(DISTINCT game_players.game_id) AS total_plays,
+			SUM(CASE WHEN game_players.won THEN 1 ELSE 0 END) AS won_count,
+			COALESCE(SUM(scores.points), 0) AS total_points_scored
+		`).
+		Joins("LEFT JOIN scores ON scores.player_id = game_players.player_id AND scores.game_id = game_players.game_id").
+		Group("game_players.faction").
+		Scan(&results).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return results, nil
+}
+
 func formatDuration(d time.Duration) string {
 	h := int(d.Hours())
 	m := int(d.Minutes()) % 60

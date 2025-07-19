@@ -61,10 +61,18 @@ type HeadlineStats struct {
 }
 
 type FactionPlayerStats struct {
-	Faction     string `json:"faction"`
-	Player      string `json:"player"`
-	PlayedCount int    `json:"playedCount"`
-	WonCount    int    `json:"wonCount"`
+	Faction           string `json:"faction"`
+	Player            string `json:"player"`
+	PlayedCount       int    `json:"playedCount"`
+	WonCount          int    `json:"wonCount"`
+	TotalPointsScored int    `json:"totalPointsScored"`
+}
+
+type FactionAggregateStats struct {
+	Faction           string `json:"faction"`
+	TotalPlays        int    `json:"totalPlays"`
+	TotalPointsScored int    `json:"totalPointsScored"`
+	WonCount          int    `json:"wonCount"`
 }
 
 type GameDurationStat struct {
