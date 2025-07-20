@@ -1,12 +1,14 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"strings"
 
 	"github.com/arphillips06/TI4-stats/controllers"
 	"github.com/arphillips06/TI4-stats/database"
+	"github.com/arphillips06/TI4-stats/helpers/stats"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,6 +19,12 @@ func main() {
 
 	// Setup Gin router
 	r := gin.Default()
+	pathCounts, err := stats.CalculateCommonVictoryPaths()
+	if err != nil {
+		log.Printf("Could not preload victory paths: %v", err)
+		pathCounts = make(map[string]int)
+	}
+	stats.CachedVictoryPathCounts = pathCounts
 
 	r.Use(func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")
@@ -68,6 +76,7 @@ func main() {
 	r.POST("/score", controllers.AddScore)
 	r.POST("/score/imperial", controllers.ScoreImperialPoint)
 	r.POST("/score/mecatol", controllers.ScoreMecatolPoint)
+	r.POST("/score/imperial-rider", controllers.ScoreImperialRiderPoint)
 	r.GET("/games/:id/objectives/scores", controllers.GetObjectiveScoreSummary)
 	r.POST("/unscore", controllers.DeleteScore)
 

@@ -2,9 +2,11 @@ package services
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/helpers"
+	"github.com/arphillips06/TI4-stats/helpers/stats"
 	"github.com/arphillips06/TI4-stats/models"
 )
 
@@ -49,6 +51,36 @@ func BuildGameDetailResponse(gameID string) (models.GameDetailResponse, error) {
 	if err != nil {
 		return models.GameDetailResponse{}, err
 	}
+	var vpSummary *models.VictoryPathSummary
+	if game.WinnerID != nil {
+		vp, err := stats.CalculateVictoryPath(game.ID, *game.WinnerID)
+		if err == nil {
+			key := stats.FormatVictoryPathKey(vp)
+			if _, found := stats.CachedVictoryPathCounts[key]; !found {
+				log.Printf("[VictoryPath] New key '%s' not found in cache. Refreshing cache.", key)
+				RefreshVictoryPathCache()
+			}
+
+			freq := CachedVictoryPathCounts[key]
+			uniqueness := 100
+			if freq > 1 {
+				uniqueness = int(100.0 / float64(freq))
+			}
+
+			vpSummary = &models.VictoryPathSummary{
+				Path:       vp,
+				Frequency:  freq,
+				Uniqueness: uniqueness,
+			}
+			fmt.Println("Winner VP Key:", key)
+			fmt.Println("Cached keys:")
+			for k := range stats.CachedVictoryPathCounts {
+				fmt.Println("  ", k)
+			}
+			log.Printf("[VictoryPath] Cache pointer address: %p", &CachedVictoryPathCounts)
+
+		}
+	}
 
 	var custodiansPlayerID *uint
 	scoreSummaryMap := make(map[uint]models.PlayerScoreSummary)
@@ -89,5 +121,6 @@ func BuildGameDetailResponse(gameID string) (models.GameDetailResponse, error) {
 		ScoresByObjective:  scoresByObjective,
 		Winner:             &game.Winner,
 		CustodiansPlayerID: custodiansPlayerID,
+		WinnerVictoryPath:  vpSummary,
 	}, nil
 }

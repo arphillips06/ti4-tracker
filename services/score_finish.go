@@ -1,13 +1,17 @@
 package services
 
 import (
+	"log"
 	"time"
 
 	"github.com/arphillips06/TI4-stats/database"
+	"github.com/arphillips06/TI4-stats/helpers/stats"
 	"github.com/arphillips06/TI4-stats/models"
 )
 
 func MaybeFinishGameFromScore(game *models.Game, scoringPlayerID uint) error {
+	log.Printf("Checking if game %d is finished after scoring by player %d", game.ID, scoringPlayerID)
+
 	var totalPoints int
 	err := database.DB.Model(&models.Score{}).
 		Where("game_id = ? AND player_id = ?", game.ID, scoringPlayerID).
@@ -27,11 +31,22 @@ func MaybeFinishGameFromScore(game *models.Game, scoringPlayerID uint) error {
 		if err != nil {
 			return err
 		}
-
+		RefreshVictoryPathCache()
 		return database.DB.Save(game).Error
 	}
 
 	return nil
+}
+
+func RefreshVictoryPathCache() {
+	pathCounts, err := stats.CalculateCommonVictoryPaths()
+	if err != nil {
+		log.Printf("Failed to refresh victory paths: %v", err)
+		return
+	}
+	CachedVictoryPathCounts = pathCounts
+	log.Printf("[VictoryPath] Cache pointer address: %p", &CachedVictoryPathCounts)
+
 }
 
 func MaybeFinishGameFromExhaustion(game *models.Game) error {

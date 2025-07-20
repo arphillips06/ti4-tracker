@@ -1,6 +1,8 @@
 package helpers
 
 import (
+	"log"
+
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
 )
@@ -55,6 +57,8 @@ func GetPlayerTotalPoints(gameID, playerID uint) (int, error) {
 }
 
 func CreateGenericScore(score models.Score) error {
+	log.Printf("Creating score: Game %d, Player %d, Type %s, Points %d", score.GameID, score.PlayerID, score.Type, score.Points)
+
 	return database.DB.Create(&score).Error
 }
 
