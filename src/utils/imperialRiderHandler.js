@@ -5,7 +5,7 @@ export async function handleScoreImperialRider(playerId, gameId, refreshGameStat
   try {
     await submitAndRefresh({
       requestFn: () =>
-        postJSON("/score/imperial", {
+        postJSON("/score/imperial-rider", {
           game_id: parseInt(gameId),
           player_id: parseInt(playerId),
         }),
