@@ -34,7 +34,10 @@ type StatsOverview struct {
 	ObjectiveMetaStats         []models.ObjectiveMeta               `json:"objectiveMetaStats"`
 	PointSpreadDistribution    map[int]int                          `json:"pointSpreadDistribution"`
 	GameLengthDistribution     map[int]int                          `json:"gameLengthDistribution"`
+	CommonVictoryPaths         map[string]int                       `json:"commonVictoryPaths"`
 }
+
+var CachedVictoryPathCounts = map[string]int{}
 
 func CalculateStatsOverview() (*StatsOverview, error) {
 	totalGames, err := stats.CountTotalGames()
@@ -135,6 +138,11 @@ func CalculateStatsOverview() (*StatsOverview, error) {
 		return nil, err
 	}
 
+	victoryPaths, err := stats.CalculateCommonVictoryPaths()
+	if err != nil {
+		return nil, err
+	}
+
 	return &StatsOverview{
 		TotalGames:                 int(totalGames),
 		GamesPlayedByFaction:       factionPlays,
@@ -162,5 +170,6 @@ func CalculateStatsOverview() (*StatsOverview, error) {
 		ObjectiveMetaStats:         objectiveMetaStats,
 		PointSpreadDistribution:    pointSpreads,
 		GameLengthDistribution:     lengths,
+		CommonVictoryPaths:         victoryPaths,
 	}, nil
 }

@@ -114,3 +114,21 @@ type SpreadStat struct {
 	Spread int
 	Count  int
 }
+
+type VictoryPath struct {
+	Stage1Points int `json:"stage1"`
+	Stage2Scored int `json:"stage2scored"`
+	SecretPoints int `json:"secrets"`
+	Custodians   int `json:"custodians"`
+	Imperial     int `json:"imperial"`
+	Relics       int `json:"relics"`
+	Agenda       int `json:"agenda"`
+	ActionCard   int `json:"action_card"`
+	Support      int `json:"support"`
+}
+
+type VictoryPathSummary struct {
+	Path       VictoryPath `json:"path"`
+	Frequency  int         `json:"frequency"`
+	Uniqueness int         `json:"uniqueness_percent"`
+}

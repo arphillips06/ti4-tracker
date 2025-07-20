@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/arphillips06/TI4-stats/database"
@@ -130,6 +131,7 @@ func AddScoreToGame(gameID, playerID uint, objectiveName string) (*models.Score,
 func ScoreMecatolPoint(gameID, playerID uint) error {
 	roundID, err := helpers.GetCurrentRoundID(gameID)
 	if err != nil {
+		log.Printf("[ScoreMecatolPoint] Failed to get round ID for game %d: %v", gameID, err)
 		return err
 	}
 
@@ -138,17 +140,23 @@ func ScoreMecatolPoint(gameID, playerID uint) error {
 		Where("game_id = ? AND type = ?", gameID, models.ScoreTypeMecatol).
 		First(&existing).Error
 	if err == nil {
+		log.Printf("[ScoreMecatolPoint] Mecatol already scored for game %d", gameID)
 		return fmt.Errorf("Mecatol Rex point already awarded")
 	}
 	if err != gorm.ErrRecordNotFound {
+		log.Printf("[ScoreMecatolPoint] DB error when checking existing Mecatol: %v", err)
 		return err
 	}
+
+	log.Printf("[ScoreMecatolPoint] No existing Mecatol score found for game %d. Creating one for player %d", gameID, playerID)
 
 	var game models.Game
 	if err := database.DB.First(&game, gameID).Error; err != nil {
+		log.Printf("[ScoreMecatolPoint] Failed to load game %d: %v", gameID, err)
 		return err
 	}
 
+	log.Printf("[ScoreMecatolPoint] Creating Mecatol score: Game %d, Player %d, Round %d", gameID, playerID, roundID)
 	if err := helpers.CreateGenericScore(models.Score{
 		GameID:   gameID,
 		RoundID:  roundID,
@@ -156,23 +164,28 @@ func ScoreMecatolPoint(gameID, playerID uint) error {
 		Points:   1,
 		Type:     models.ScoreTypeMecatol,
 	}); err != nil {
+		log.Printf("[ScoreMecatolPoint] Failed to create Mecatol score: %v", err)
 		return err
 	}
 
+	log.Printf("[ScoreMecatolPoint] Mecatol score created. Checking if game is finished.")
 	return MaybeFinishGameFromScore(&game, playerID)
 }
 
 func ScoreImperialPoint(gameID, roundID, playerID uint) error {
 	roundID, err := helpers.GetCurrentRoundID(gameID)
 	if err != nil {
+		log.Printf("[ScoreImperialPoint] Failed to get round ID for game %d: %v", gameID, err)
 		return err
 	}
 
 	game, err := helpers.GetUnfinishedGame(gameID)
 	if err != nil {
+		log.Printf("[ScoreImperialPoint] Could not get unfinished game %d: %v", gameID, err)
 		return err
 	}
 
+	log.Printf("[ScoreImperialPoint] Creating Imperial score: Game %d, Player %d, Round %d", gameID, playerID, roundID)
 	if err := helpers.CreateGenericScore(models.Score{
 		GameID:   gameID,
 		RoundID:  roundID,
@@ -180,8 +193,11 @@ func ScoreImperialPoint(gameID, roundID, playerID uint) error {
 		Points:   1,
 		Type:     "imperial",
 	}); err != nil {
-
+		log.Printf("[ScoreImperialPoint] Failed to create Imperial score: %v", err)
+		return err
 	}
+
+	log.Printf("[ScoreImperialPoint] Imperial score created. Checking if game is finished.")
 	return MaybeFinishGameFromScore(game, playerID)
 }
 
@@ -257,4 +273,31 @@ func HandleSupportForTheThrone(gameID, playerID uint, action string) error {
 	default:
 		return errors.New("invalid action: must be 'score' or 'unscore'")
 	}
+}
+
+func ScoreImperialRiderPoint(gameID, roundID, playerID uint) error {
+	if roundID == 0 {
+		var err error
+		roundID, err = helpers.GetCurrentRoundID(gameID)
+		if err != nil {
+			return err
+		}
+	}
+
+	game, err := helpers.GetUnfinishedGame(gameID)
+	if err != nil {
+		return err
+	}
+
+	if err := helpers.CreateGenericScore(models.Score{
+		GameID:   gameID,
+		RoundID:  roundID,
+		PlayerID: playerID,
+		Points:   1,
+		Type:     "imperial_rider", // Distinct type
+	}); err != nil {
+		return err
+	}
+
+	return MaybeFinishGameFromScore(game, playerID)
 }
