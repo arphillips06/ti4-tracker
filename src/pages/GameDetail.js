@@ -117,9 +117,11 @@ export default function GameDetail() {
         obsidianUsed={obsidianUsed}
         setShowObsidianModal={(val) => toggleModal("obsidian", val)}
       />
-      <VictoryBanner winner={game?.winner} finished={game?.finished_at} />
-
-
+      <VictoryBanner
+        winner={game?.winner}
+        finished={game?.finished_at}
+        victoryPathSummary={game?.victory_path}
+      />
       <div className="p-6 max-w-7xl mx-auto">
         <GameControls
           game={game}
