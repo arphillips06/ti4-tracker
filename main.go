@@ -9,6 +9,7 @@ import (
 	"github.com/arphillips06/TI4-stats/controllers"
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/helpers/stats"
+	"github.com/arphillips06/TI4-stats/services"
 	"github.com/gin-gonic/gin"
 )
 
@@ -24,7 +25,7 @@ func main() {
 		log.Printf("Could not preload victory paths: %v", err)
 		pathCounts = make(map[string]int)
 	}
-	stats.CachedVictoryPathCounts = pathCounts
+	services.CachedVictoryPathCounts = pathCounts
 
 	r.Use(func(c *gin.Context) {
 		origin := c.Request.Header.Get("Origin")

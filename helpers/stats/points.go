@@ -9,8 +9,6 @@ import (
 	"github.com/arphillips06/TI4-stats/models"
 )
 
-var CachedVictoryPathCounts = make(map[string]int)
-
 func CalculateVictoryPointSpreads() (map[int]int, error) {
 	var games []models.Game
 	err := database.DB.
@@ -92,8 +90,9 @@ func CalculateVictoryPath(gameID uint, playerID uint) (models.VictoryPath, error
 	for _, score := range scores {
 		switch strings.ToLower(score.Type) {
 		case "public":
-			if score.Objective.ID == 0 || score.Objective.Stage == "" {
-			} else {
+			if score.OriginallySecret {
+				vp.SecretPoints += score.Points
+			} else if score.Objective.ID != 0 && score.Objective.Stage != "" {
 				switch score.Objective.Stage {
 				case "I":
 					vp.Stage1Points += score.Points
