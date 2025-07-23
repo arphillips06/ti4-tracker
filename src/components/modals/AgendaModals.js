@@ -60,7 +60,7 @@ export default function AgendaModals({
         players={playersUnsorted.map((p) => ({
           ...p,
           agendaScores:
-            game.all_scores?.filter(
+            game.AllScores?.filter(
               (s) => s.PlayerID === p.player_id && s.Type?.toLowerCase() === "agenda"
             ) || [],
         }))}

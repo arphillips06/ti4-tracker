@@ -6,6 +6,8 @@ export default function PlayerSidebar({
   expandedPlayers,
   setExpandedPlayers,
   game,
+  allScores,
+  setAllScores,
   scoreObjective,
   unscoreObjective,
   secretCounts,
@@ -22,15 +24,15 @@ export default function PlayerSidebar({
 }) {
 
   const supportScorers = new Set(
-    game?.AllScores?.filter((s) => s.Type === "Support").map((s) => s.PlayerID)
+    allScores?.filter((s) => s.Type === "Support").map((s) => s.PlayerID)
   );
   const maxSupportScorers = (playersSorted?.length || 0) - 1;
 
-  const custodiansScorerId = game?.AllScores?.find((s) => s.Type === "mecatol")?.PlayerID || null;
+  const custodiansScorerId = allScores?.find((s) => s.Type === "mecatol")?.PlayerID || null;
 
   // Step 1: Gather all CDL-revealed secret objective IDs across all players
   const cdlRevealedObjectiveIds = new Set(
-    game?.AllScores
+    allScores
       ?.filter((s) => s.AgendaTitle === "Classified Document Leaks")
       .map((s) => s.ObjectiveID)
   );
@@ -79,7 +81,7 @@ export default function PlayerSidebar({
                 }}
                 onError={(e) => (e.target.style.display = "none")}
               />
-              {game?.AllScores?.some(
+              {allScores?.some(
                 (s) => s.Type === "mecatol" && s.PlayerID === entry.player_id
               ) && (
                   <img
@@ -102,7 +104,7 @@ export default function PlayerSidebar({
                     <button
                       className="btn btn-sm btn-outline-danger"
                       disabled={
-                        !game?.AllScores?.some(
+                        !allScores?.some(
                           (s) => s.Type === "Support" && s.PlayerID === entry.player_id
                         )
                       }
@@ -130,7 +132,7 @@ export default function PlayerSidebar({
 
                     <span>
                       {(() => {
-                        const total = game?.AllScores
+                        const total = allScores
                           ?.filter((s) => s.Type === "Support" && s.PlayerID === entry.player_id)
                           .reduce((sum, s) => sum + s.Points, 0) || 0;
 
@@ -142,7 +144,7 @@ export default function PlayerSidebar({
                       className="btn btn-sm btn-outline-success"
                       disabled={
                         (() => {
-                          const totalSupportPoints = game?.AllScores
+                          const totalSupportPoints = allScores
                             ?.filter((s) => s.Type === "Support")
                             .reduce((acc, s) => acc + s.Points, 0) || 0;
                           return totalSupportPoints >= maxSupportScorers;
@@ -183,11 +185,13 @@ export default function PlayerSidebar({
                           −
                         </button>
                         <ul className="dropdown-menu">
-                          {game.AllScores?.filter(
+                          {allScores?.filter(
                             (s) =>
                               s.PlayerID === entry.player_id &&
                               isStillSecret(s)
                           ).map((s) => {
+                            console.log("Checking score", s, "for ObjectiveID:", s.ObjectiveID);
+
                             const obj = secretObjectives.find((o) => o.id === s.ObjectiveID);
                             return obj ? (
                               <li key={obj.id}>
@@ -204,19 +208,27 @@ export default function PlayerSidebar({
                           const extraSecret = parseInt(entry.player_id) === parseInt(obsidianHolderId) ? 1 : 0;
                           const baseSecrets = 3;
                           const maxSecrets = baseSecrets + extraSecret;
+                          console.log("🔎 AllScores dump for player", entry.name, allScores?.filter(s => s.PlayerID === entry.player_id));
 
                           // Filter secrets excluding CDL revealed ones (public)
-                          const scoredSecrets = game?.AllScores?.filter(
-                            (s) =>
-                              s.PlayerID === entry.player_id &&
-                              (s.Type || "").toLowerCase() === "secret" &&
-                              !cdlRevealedObjectiveIds.has(s.ObjectiveID)
-                          ) || [];
+                          const scoredSecrets = (allScores || []).filter((s) => {
+                            const isSecret = (s.Type || "").toLowerCase() === "secret";
+                            const isThisPlayer = s.PlayerID === entry.player_id;
+                            const isCDL = cdlRevealedObjectiveIds.has(s.ObjectiveID);
+
+                            if (isThisPlayer) {
+                              console.log(`🔬 Score check for ${entry.name} → ID: ${s.ObjectiveID}, Type: ${s.Type}, CDL revealed: ${isCDL}`);
+                            }
+
+                            return isThisPlayer && isSecret && !isCDL;
+                          });
+                          console.log(`🔍 Player ${entry.name} scoredSecrets:`, scoredSecrets.map(s => s.ObjectiveID));
 
                           return [...Array(maxSecrets)].map((_, i) => {
                             const secret = scoredSecrets[i]; // might be undefined
                             const scored = !!secret;
                             // If secret is scored but revealed public by CDL it won't be here (excluded)
+                            console.log(`🎯 Slot ${i} for ${entry.name}:`, scored ? `✅ scored (ObjectiveID ${secret.ObjectiveID})` : "❌ unscored");
 
                             return (
                               <img
@@ -268,7 +280,7 @@ export default function PlayerSidebar({
                               <option
                                 key={obj.id}
                                 value={obj.id}
-                                disabled={game?.AllScores?.some(
+                                disabled={allScores?.some(
                                   (s) =>
                                     s.PlayerID === entry.player_id &&
                                     s.ObjectiveID === obj.id &&
@@ -283,14 +295,14 @@ export default function PlayerSidebar({
                       ))}
                     </select>
 
-                    {game.AllScores?.some(
+                    {allScores?.some(
                       (s) =>
                         s.PlayerID === entry.player_id &&
                         s.AgendaTitle === "Mutiny"
                     ) && (
                         <div className="mt-1 small text-success">Bonus: Mutiny</div>
                       )}
-                    {game.AllScores?.some(
+                    {allScores?.some(
                       (s) =>
                         s.PlayerID === entry.player_id &&
                         s.AgendaTitle === "Seed of an Empire"
@@ -301,7 +313,7 @@ export default function PlayerSidebar({
                     <div className="mt-3 small">
                       <button
                         className="btn btn-warning btn-sm"
-                        disabled={game?.AllScores?.some((s) => s.Type === "mecatol")}
+                        disabled={allScores?.some((s) => s.Type === "mecatol")}
                         onClick={async () => {
                           try {
                             await fetch(`${API_BASE_URL}/score/mecatol`, {
@@ -312,25 +324,30 @@ export default function PlayerSidebar({
                                 player_id: entry.player_id,
                               }),
                             });
+
                             await refreshGameState();
                             triggerGraphUpdate?.();
 
-                            const updatedGame = await fetch(`${API_BASE_URL}/games/${gameId}`).then((r) => r.json());
-                            updatedGame.AllScores = updatedGame.all_scores || [];
+                            const updatedGame = await fetch(`${API_BASE_URL}/games/${gameId}`).then((r) =>
+                              r.json()
+                            );
+
+                            const updatedAllScores = updatedGame.all_scores || [];
+
                             updatedGame.game_players = updatedGame.players || [];
                             setGame(updatedGame);
+                            setAllScores(updatedAllScores); // ✅ this line updates secret state!
 
                             const updatedScores = await fetch(
                               `${API_BASE_URL}/games/${gameId}/objectives/scores`
                             ).then((r) => r.json());
 
                             const map = {};
-                            (Array.isArray(updatedScores)
-                              ? updatedScores
-                              : updatedScores?.value || []
-                            ).forEach((entry) => {
-                              map[entry.objective_id ?? entry.name] = entry.scored_by || [];
-                            });
+                            (Array.isArray(updatedScores) ? updatedScores : updatedScores?.value || []).forEach(
+                              (entry) => {
+                                map[entry.objective_id ?? entry.name] = entry.scored_by || [];
+                              }
+                            );
                             setObjectiveScores(map);
                           } catch (err) {
                             console.error("Failed to score Custodians:", err);
@@ -338,7 +355,7 @@ export default function PlayerSidebar({
                           }
                         }}
                       >
-                        {game?.AllScores?.some((s) => s.Type === "mecatol")
+                        {allScores?.some((s) => s.Type === "mecatol")
                           ? "Custodians Already Scored"
                           : "Score Custodians"}
                       </button>
@@ -349,7 +366,7 @@ export default function PlayerSidebar({
                       <div className="fw-semibold mb-1">Imperial Objective</div>
 
                       <div className="d-flex align-items-center gap-2 flex-wrap">
-                        {game?.AllScores?.filter(
+                        {allScores?.filter(
                           (s) => s.Type === "imperial" && s.PlayerID === entry.player_id
                         ).map((_, i) => (
                           <img
