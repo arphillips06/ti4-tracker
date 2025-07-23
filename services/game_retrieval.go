@@ -72,8 +72,6 @@ func BuildGameDetailResponse(gameID string) (models.GameDetailResponse, error) {
 				Frequency:  freq,
 				Uniqueness: uniqueness,
 			}
-			fmt.Println("Winner VP Key:", key)
-			fmt.Println("Cached keys:")
 			for k := range CachedVictoryPathCounts {
 				fmt.Println("  ", k)
 			}
@@ -100,10 +98,32 @@ func BuildGameDetailResponse(gameID string) (models.GameDetailResponse, error) {
 	for _, s := range scoreSummaryMap {
 		summaryList = append(summaryList, s)
 	}
-	scoresByObjective := make(map[uint][]models.Score)
+	var allScoreDTOs []models.ScoreDTO
+
 	for _, s := range scores {
+		allScoreDTOs = append(allScoreDTOs, models.ScoreDTO{
+			ID:               s.ID,
+			GameID:           s.GameID,
+			RoundID:          s.RoundID,
+			PlayerID:         s.PlayerID,
+			ObjectiveID:      s.ObjectiveID,
+			Points:           s.Points,
+			Type:             s.Type,
+			AgendaTitle:      s.AgendaTitle,
+			RelicTitle:       s.RelicTitle,
+			OriginallySecret: s.OriginallySecret,
+			CreatedAt:        s.CreatedAt,
+		})
+	}
+	scoreDTOsByObjective := make(map[uint][]models.ScoreDTO)
+	for _, s := range allScoreDTOs {
 		if s.ObjectiveID != 0 {
-			scoresByObjective[s.ObjectiveID] = append(scoresByObjective[s.ObjectiveID], s)
+			scoreDTOsByObjective[s.ObjectiveID] = append(scoreDTOsByObjective[s.ObjectiveID], s)
+		}
+	}
+	for _, s := range allScoreDTOs {
+		if s.Type == "secret" {
+			log.Printf("✅ Secret score in response: Player %d, Objective %d", s.PlayerID, s.ObjectiveID)
 		}
 	}
 
@@ -117,8 +137,8 @@ func BuildGameDetailResponse(gameID string) (models.GameDetailResponse, error) {
 		Rounds:             game.Rounds,
 		Objectives:         game.GameObjectives,
 		Scores:             summaryList,
-		AllScores:          scores,
-		ScoresByObjective:  scoresByObjective,
+		AllScores:          allScoreDTOs,
+		ScoresByObjective:  scoreDTOsByObjective,
 		Winner:             &game.Winner,
 		CustodiansPlayerID: custodiansPlayerID,
 		WinnerVictoryPath:  vpSummary,
