@@ -10,7 +10,7 @@ export default function useGameData(gameId) {
   const [censureHolder, setCensureHolder] = useState(null);
   const [cdlUsed, setCdlUsed] = useState(false);
   const [crownUsed, setCrownUsed] = useState(false);
-const [obsidianHolderId, setObsidianHolderId] = useState(null);
+  const [obsidianHolderId, setObsidianHolderId] = useState(null);
 
 
 
@@ -35,32 +35,42 @@ const [obsidianHolderId, setObsidianHolderId] = useState(null);
     return res.json();
   };
 
-const refreshGameState = async () => {
-  const [gameData, objectivesData, scoresData] = await Promise.all([
-    fetchGame(),
-    fetchObjectives(),
-    fetchScores(),
-  ]);
+  const refreshGameState = async () => {
+    const [gameData, objectivesData, scoresData] = await Promise.all([
+      fetchGame(),
+      fetchObjectives(),
+      fetchScores(),
+    ]);
 
-  gameData.AllScores = gameData.all_scores || [];
-  gameData.game_players = gameData.players || [];
-  gameData.winner_id = gameData.winner_id ?? gameData.WinnerID;
+    // 🛠 Re-normalize fields for compatibility
+    gameData.AllScores = (gameData.all_scores || []).map((s) => ({
+      ...s,
+      PlayerID: s.PlayerID ?? s.player_id,
+      ObjectiveID: s.ObjectiveID ?? s.objective_id,
+      RoundID: s.RoundID ?? s.round_id,
+      Type: s.Type ?? s.type,
+      Points: s.Points ?? s.points,
+      AgendaTitle: s.AgendaTitle ?? s.agenda_title,
+      RelicTitle: s.RelicTitle ?? s.relic_title,
+    }));
+    gameData.game_players = gameData.players || [];
+    gameData.winner_id = gameData.winner_id ?? gameData.WinnerID;
 
-  setGame(gameData);
+    setGame(gameData);
 
-  const obsidianScore = gameData.AllScores?.find(
-    (s) => s.Type === "relic" && s.RelicTitle === "The Obsidian"
-  );
-  setObsidianHolderId(obsidianScore?.PlayerID || null);
+    const obsidianScore = gameData.AllScores?.find(
+      (s) => s.Type === "relic" && s.RelicTitle === "The Obsidian"
+    );
+    setObsidianHolderId(obsidianScore?.PlayerID || null);
 
-  const map = {};
-  (Array.isArray(scoresData) ? scoresData : scoresData?.value || []).forEach((entry) => {
-    map[entry.objective_id] = entry.scored_by || [];
-  });
-  setObjectiveScores(map);
+    const map = {};
+    (Array.isArray(scoresData) ? scoresData : scoresData?.value || []).forEach((entry) => {
+      map[entry.objective_id] = entry.scored_by || [];
+    });
+    setObjectiveScores(map);
 
-  setObjectives(Array.isArray(objectivesData) ? objectivesData : objectivesData?.value || []);
-};
+    setObjectives(Array.isArray(objectivesData) ? objectivesData : objectivesData?.value || []);
+  };
   useEffect(() => {
     (async () => {
       const [gameData, objectiveData, secretData, scoresData] = await Promise.all([
@@ -72,7 +82,16 @@ const refreshGameState = async () => {
 
 
       // 🛠 Fix: Normalize AllScores for compatibility
-      gameData.AllScores = gameData.all_scores || [];
+      gameData.AllScores = (gameData.all_scores || []).map((s) => ({
+        ...s,
+        PlayerID: s.PlayerID ?? s.player_id,
+        ObjectiveID: s.ObjectiveID ?? s.objective_id,
+        RoundID: s.RoundID ?? s.round_id,
+        Type: s.Type ?? s.type,
+        Points: s.Points ?? s.points,
+        AgendaTitle: s.AgendaTitle ?? s.agenda_title,
+        RelicTitle: s.RelicTitle ?? s.relic_title,
+      }));
       gameData.game_players = gameData.players || [];
       setGame(gameData);
 
@@ -102,14 +121,17 @@ const refreshGameState = async () => {
 
       setObjectives(normalizedObjectives);
 
-      const normalizedSecrets = secretData.map((obj) => ({
-        id: obj.ID,
-        name: obj.name,
-        phase: obj.phase?.toLowerCase() || obj.Phase?.toLowerCase() || "",
-        ...obj,
-      }));
-      setSecretObjectives(normalizedSecrets);
+      const normalizedSecrets = (Array.isArray(secretData) ? secretData : []).map((obj) => {
+        const rawPhase = obj.phase ?? obj.Phase ?? "";
+        return {
+          id: obj.ID ?? obj.id,
+          name: obj.name ?? obj.Name,
+          phase: typeof rawPhase === "string" ? rawPhase.toLowerCase() : "",
+          ...obj,
+        };
+      });
 
+      setSecretObjectives(normalizedSecrets);
     })();
 
     const match = game?.AllScores?.find(

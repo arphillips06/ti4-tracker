@@ -51,6 +51,6 @@ export async function submitAndRefresh({ requestFn, refreshGameState, setGame, c
  * @returns {boolean} - True if used, false otherwise
  */
 export const isAgendaUsed = (game, title) =>
-  game?.all_scores?.some(
+  game?.AllScores?.some(
     (s) => s.Type?.toLowerCase() === "agenda" && s.AgendaTitle === title
   );

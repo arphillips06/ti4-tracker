@@ -77,9 +77,10 @@ export default function GameDetail() {
 
   const playersUnsorted = useMergedPlayerData(game, false);
   const playersSorted = useMergedPlayerData(game, true);
-  const groupedScoredSecrets = useGroupedScoredSecrets(game?.all_scores, secretObjectives);
+  const groupedScoredSecrets = useGroupedScoredSecrets(game?.AllScores, secretObjectives);
   const obsidianUsed = isRelicUsed("The Obsidian");
   const [showScoreGraph, setShowScoreGraph] = useState(false);
+  const [allScores, setAllScores] = useState(game?.AllScores || []);
 
   const {
     scoreObjective,
@@ -89,7 +90,7 @@ export default function GameDetail() {
   } = useObjectiveActions(gameId, refreshGameState, setLocalScored);
 
   useEffect(() => {
-    const scorer = game?.all_scores?.find((s) => s.Type === "mecatol");
+    const scorer = game?.AllScores?.find((s) => s.Type === "mecatol");
     setCustodiansScorerId(scorer?.PlayerID || null);
   }, [game]);
 
@@ -192,9 +193,12 @@ export default function GameDetail() {
               setGame={setGame}
               setObjectiveScores={setObjectiveScores}
               refreshGameState={refreshGameState}
-              custodiansScored={!!game?.all_scores?.some((s) => s.Type === "mecatol")}
+              custodiansScored={!!game?.AllScores?.some((s) => s.Type === "mecatol")}
               obsidianHolderId={obsidianHolderId}
               triggerGraphUpdate={triggerGraphUpdate}
+              allScores={game?.AllScores}
+              setAllScores={setAllScores}
+
             />
           </div>
         </div>
