@@ -56,7 +56,7 @@ func BuildGameDetailResponse(gameID string) (models.GameDetailResponse, error) {
 		vp, err := stats.CalculateVictoryPath(game.ID, *game.WinnerID)
 		if err == nil {
 			key := stats.FormatVictoryPathKey(vp)
-			if _, found := stats.CachedVictoryPathCounts[key]; !found {
+			if _, found := CachedVictoryPathCounts[key]; !found {
 				log.Printf("[VictoryPath] New key '%s' not found in cache. Refreshing cache.", key)
 				RefreshVictoryPathCache()
 			}
@@ -74,7 +74,7 @@ func BuildGameDetailResponse(gameID string) (models.GameDetailResponse, error) {
 			}
 			fmt.Println("Winner VP Key:", key)
 			fmt.Println("Cached keys:")
-			for k := range stats.CachedVictoryPathCounts {
+			for k := range CachedVictoryPathCounts {
 				fmt.Println("  ", k)
 			}
 			log.Printf("[VictoryPath] Cache pointer address: %p", &CachedVictoryPathCounts)
