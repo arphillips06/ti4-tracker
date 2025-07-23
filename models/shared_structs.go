@@ -35,10 +35,10 @@ type GameDetailResponse struct {
 	Rounds             []Round              `json:"rounds"`
 	Objectives         []GameObjective      `json:"objectives"`
 	Scores             []PlayerScoreSummary `json:"scores"`
-	AllScores          []Score              `json:"all_scores"`
+	AllScores          []ScoreDTO           `json:"all_scores"`
 	Winner             *Player              `json:"winner"`
 	CustodiansPlayerID *uint                `json:"custodiansPlayerId,omitempty"`
-	ScoresByObjective  map[uint][]Score     `json:"ScoresByObjective"`
+	ScoresByObjective  map[uint][]ScoreDTO  `json:"ScoresByObjective"`
 	WinnerVictoryPath  *VictoryPathSummary  `json:"victory_path,omitempty"`
 }
 
@@ -111,4 +111,18 @@ type AssignPlayerInput struct {
 	GameID   uint   `json:"game_id"`
 	PlayerID uint   `json:"player_id"`
 	Faction  string `json:"faction"`
+}
+
+type ScoreDTO struct {
+	ID               uint      `json:"id"`
+	GameID           uint      `json:"game_id"`
+	RoundID          uint      `json:"round_id"`
+	PlayerID         uint      `json:"player_id"`
+	ObjectiveID      uint      `json:"objective_id,omitempty"`
+	Points           int       `json:"points"`
+	Type             string    `json:"type"`
+	AgendaTitle      string    `json:"agenda_title,omitempty"`
+	RelicTitle       string    `json:"relic_title,omitempty"`
+	OriginallySecret bool      `json:"originally_secret,omitempty"`
+	CreatedAt        time.Time `json:"created_at"`
 }
