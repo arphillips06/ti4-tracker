@@ -73,6 +73,7 @@ func main() {
 	r.GET("/objectives/public/all", controllers.GetAllPublicObjectives)
 	r.GET("/api/games/:id/exists", controllers.GetGameExists)
 	r.POST("/game/:id/randomise-speaker", controllers.RandomiseSpeaker)
+	r.POST("/games/:game_id/speaker", controllers.PostAssignSpeaker)
 
 	//scoring
 	r.POST("/score", controllers.AddScore)

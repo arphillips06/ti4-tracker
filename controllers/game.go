@@ -139,3 +139,26 @@ func RandomiseSpeaker(c *gin.Context) {
 		"speaker_name": speaker.Name,
 	})
 }
+
+func PostAssignSpeaker(c *gin.Context) {
+	gameID, _ := strconv.Atoi(c.Param("game_id"))
+
+	type AssignSpeakerRequest struct {
+		PlayerID  uint `json:"player_id"`
+		RoundID   uint `json:"round_id"`
+		IsInitial bool `json:"is_initial"`
+	}
+
+	req, ok := helpers.BindJSON[AssignSpeakerRequest](c)
+	if !ok {
+		return
+	}
+
+	err := services.AssignSpeaker(uint(gameID), req.RoundID, req.PlayerID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Speaker assigned"})
+}
