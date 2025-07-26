@@ -31,7 +31,7 @@ func ParseAndValidatePlayers(inputPlayers []models.PlayerInput) ([]models.Select
 	var selected []models.SelectedPlayersWithFaction
 	for _, p := range inputPlayers {
 		if strings.TrimSpace(p.Name) == "" {
-			return nil, fmt.Errorf("Player name cannot be blank")
+			return nil, fmt.Errorf("player name cannot be blank")
 		}
 		lookup := strings.ToLower(p.Name)
 		if p.ID != "" {
@@ -42,7 +42,7 @@ func ParseAndValidatePlayers(inputPlayers []models.PlayerInput) ([]models.Select
 		if !exists {
 			newplayer, err := CreatePlayer(p.Name)
 			if err != nil {
-				return nil, fmt.Errorf("Failed to create player: %s", p.Name)
+				return nil, fmt.Errorf("failed to create player: %s", p.Name)
 			}
 			player = newplayer
 		}
@@ -165,6 +165,27 @@ func CreateNewGameWithPlayers(input models.CreateGameInput) (models.Game, []mode
 	if err := database.DB.First(&game, game.ID).Error; err != nil {
 		return models.Game{}, nil, errors.New("failed to reload game")
 	}
+	var gamePlayers []models.GamePlayer
+	if err := database.DB.Preload("Player").Where("game_id = ?", game.ID).Find(&gamePlayers).Error; err != nil {
+		return models.Game{}, nil, errors.New("failed to load game players for speaker assignment")
+	}
+
+	log.Printf("💬 UseRandomSpeaker: %v", input.UseRandomSpeaker)
+	log.Printf("🎲 Players loaded: %v", gamePlayers)
+
+	if input.UseRandomSpeaker != nil && *input.UseRandomSpeaker {
+		if len(gamePlayers) > 0 {
+			chosen := gamePlayers[rand.Intn(len(gamePlayers))]
+			log.Printf("🎙️  Chosen speaker: %v", chosen)
+			game.SpeakerID = &chosen.ID
+		}
+	}
+
+	log.Printf("💾 SpeakerID set to: %v", game.SpeakerID)
+
+	if err := database.DB.Save(&game).Error; err != nil {
+		return models.Game{}, nil, errors.New("failed to save speaker assignment")
+	}
 
 	var revealed []models.GameObjective
 	if game.UseObjectiveDecks {
@@ -186,13 +207,13 @@ func ManuallyAssignObjective(gameID uint, roundNumber uint, objectiveID uint) er
 	if err := database.DB.
 		Where("game_id = ? AND number = ?", gameID, roundNumber).
 		First(&round).Error; err != nil {
-		return errors.New("Round not found")
+		return errors.New("round not found")
 	}
 
 	var obj models.Objective
 	if err := database.DB.
 		First(&obj, objectiveID).Error; err != nil {
-		return errors.New("Objective not found")
+		return errors.New("objective not found")
 	}
 
 	var existing models.GameObjective
@@ -201,7 +222,7 @@ func ManuallyAssignObjective(gameID uint, roundNumber uint, objectiveID uint) er
 		First(&existing).Error
 
 	if err == nil {
-		return errors.New("Objective already assigned to this game")
+		return errors.New("objective already assigned to this game")
 	}
 
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -223,4 +244,25 @@ func ManuallyAssignObjective(gameID uint, roundNumber uint, objectiveID uint) er
 	log.Printf("Assigned objective %s (ID %d) to game %d round %d", obj.Name, obj.ID, gameID, roundNumber)
 
 	return database.DB.Create(&reveal).Error
+}
+
+func RandomiseSpeaker(gameID uint) (*models.Player, error) {
+	var players []models.Player
+	if err := database.DB.Where("game_id = ?", gameID).Find(&players).Error; err != nil {
+		return nil, errors.New("failed to fetch players")
+	}
+
+	if len(players) == 0 {
+		return nil, errors.New("no players found for this game")
+	}
+
+	chosen := players[rand.Intn(len(players))]
+
+	// Update the Game's SpeakerID
+	if err := database.DB.Model(&models.Game{}).Where("id = ?", gameID).
+		Update("speaker_id", chosen.ID).Error; err != nil {
+		return nil, errors.New("failed to update speaker")
+	}
+
+	return &chosen, nil
 }

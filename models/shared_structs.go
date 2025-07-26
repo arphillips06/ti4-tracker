@@ -6,6 +6,8 @@ type CreateGameInput struct {
 	WinningPoints     int           `json:"winning_points"`
 	UseObjectiveDecks *bool         `json:"use_objective_decks"`
 	Players           []PlayerInput `json:"players"`
+	UseRandomSpeaker  *bool         `json:"use_random_speaker"`
+	SpeakerID         *uint         `json:"speaker_id"`
 }
 
 type PlayerScoreSummary struct {
@@ -40,6 +42,8 @@ type GameDetailResponse struct {
 	CustodiansPlayerID *uint                `json:"custodiansPlayerId,omitempty"`
 	ScoresByObjective  map[uint][]ScoreDTO  `json:"ScoresByObjective"`
 	WinnerVictoryPath  *VictoryPathSummary  `json:"victory_path,omitempty"`
+	SpeakerID          *uint                `json:"speaker_id"`
+	SpeakerName        string               `json:"speaker_name,omitempty"`
 }
 
 type SelectedPlayersWithFaction struct {
