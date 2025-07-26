@@ -4,6 +4,7 @@ import "../layout/navbar.css";
 
 
 export default function GameNavbar({
+
   gameId,
   showScoreGraph,
   setShowScoreGraph,
@@ -20,9 +21,10 @@ export default function GameNavbar({
   crownUsed,
   obsidianUsed,
   setShowObsidianModal,
-  setShowSpeakerModal,
+  onOpenSpeakerModal,
 }) {
   const navigate = useNavigate();
+  console.log("✅ onOpenSpeakerModal prop:", onOpenSpeakerModal);
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark mb-4 px-3">
@@ -45,7 +47,14 @@ export default function GameNavbar({
         <div className="d-flex align-items-center gap-2">
           <button
             className="btn btn-outline-danger"
-            onClick={() => setShowSpeakerModal(true)}
+            onClick={() => {
+              console.log("🧪 Assign Speaker button clicked");
+              if (onOpenSpeakerModal) {
+                onOpenSpeakerModal();
+              } else {
+                console.warn("⚠️ onOpenSpeakerModal is undefined");
+              }
+            }}
           >
             Assign Speaker
           </button>
