@@ -5,20 +5,22 @@ import "time"
 //these structs are to be used with the SQL database
 //Game represents a single game
 type Game struct {
-	ID                uint            `gorm:"primaryKey" json:"id"`
-	CreatedAt         time.Time       `json:"created_at"`
-	FinishedAt        *time.Time      `json:"finished_at"`
-	WinnerID          *uint           `json:"winner_id"`
-	Winner            Player          `gorm:"foreignKey:WinnerID" json:"winner"`
-	Rounds            []Round         `gorm:"foreignKey:GameID" json:"rounds"`
-	GamePlayers       []GamePlayer    `gorm:"foreignKey:GameID" json:"players"`
-	WinningPoints     int             `json:"winning_points"`
-	CurrentRound      int             `gorm:"default:1" json:"current_round"`
-	GameObjectives    []GameObjective `json:"game_objectives"`
-	UseObjectiveDecks bool            `json:"use_objective_decks"`
-	Partial           bool            `gorm:"default:false"`
-	SpeakerID         *uint           `json:"speaker_id"`
-	Speaker           *Player         `json:"speaker,omitempty"`
+	ID                 uint            `gorm:"primaryKey" json:"id"`
+	CreatedAt          time.Time       `json:"created_at"`
+	FinishedAt         *time.Time      `json:"finished_at"`
+	WinnerID           *uint           `json:"winner_id"`
+	Winner             Player          `gorm:"foreignKey:WinnerID" json:"winner"`
+	Rounds             []Round         `gorm:"foreignKey:GameID" json:"rounds"`
+	GamePlayers        []GamePlayer    `gorm:"foreignKey:GameID" json:"players"`
+	WinningPoints      int             `json:"winning_points"`
+	CurrentRound       int             `gorm:"default:1" json:"current_round"`
+	GameObjectives     []GameObjective `json:"game_objectives"`
+	UseObjectiveDecks  bool            `json:"use_objective_decks"`
+	Partial            bool            `gorm:"default:false"`
+	SpeakerID          *uint           `json:"speaker_id"`
+	Speaker            *Player         `json:"speaker,omitempty"`
+	StartingSpeakerID  *uint
+	SpeakerAssignments []SpeakerAssignment
 }
 
 //Single player
@@ -33,7 +35,7 @@ type Player struct {
 type Round struct {
 	ID     uint `gorm:"primaryKey"`
 	GameID uint
-	Number int
+	Number int     `gorm:"column:number"`
 	Scores []Score `gorm:"foreignKey:RoundID"`
 }
 

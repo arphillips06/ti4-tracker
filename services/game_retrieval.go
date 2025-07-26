@@ -49,9 +49,14 @@ func GetGameAndScores(gameID string) (models.Game, []models.Score, error) {
 
 func BuildGameDetailResponse(gameID string) (models.GameDetailResponse, error) {
 	game, scores, err := GetGameAndScores(gameID)
+
 	if err != nil {
 		return models.GameDetailResponse{}, err
 	}
+	if game.CurrentRound == 0 {
+		log.Printf("WARNING: Game %d has CurrentRound = 0", game.ID)
+	}
+
 	var vpSummary *models.VictoryPathSummary
 	if game.WinnerID != nil {
 		vp, err := stats.CalculateVictoryPath(game.ID, *game.WinnerID)
@@ -122,16 +127,46 @@ func BuildGameDetailResponse(gameID string) (models.GameDetailResponse, error) {
 			scoreDTOsByObjective[s.ObjectiveID] = append(scoreDTOsByObjective[s.ObjectiveID], s)
 		}
 	}
-	for _, s := range allScoreDTOs {
-		if s.Type == "secret" {
-			log.Printf("✅ Secret score in response: Player %d, Objective %d", s.PlayerID, s.ObjectiveID)
+	var speakerID *uint
+	speakerName := ""
+
+	if game.CurrentRound != 0 {
+		var currentRound models.Round
+		err := database.DB.
+			Where("game_id = ? AND number = ?", game.ID, game.CurrentRound).
+			First(&currentRound).Error
+		if err == nil {
+			var assignment models.SpeakerAssignment
+			err := database.DB.
+				Where("game_id = ? AND round_id = ?", game.ID, currentRound.ID).
+				First(&assignment).Error
+			if err == nil {
+				speakerID = &assignment.PlayerID
+				var gp models.GamePlayer
+				if err := database.DB.Preload("Player").First(&gp, assignment.PlayerID).Error; err == nil {
+					speakerName = gp.Player.Name
+				} else {
+					log.Printf("failed to load GamePlayer for speaker: %v", err)
+				}
+			} else {
+				log.Printf("no speaker assignment found for game %d, round %d: %v", game.ID, game.CurrentRound, err)
+			}
+		} else {
+			log.Printf("could not fetch round object for game %d, round %d: %v", game.ID, game.CurrentRound, err)
 		}
 	}
-	speakerID := game.SpeakerID
-	speakerName := ""
-	if game.Speaker != nil {
-		speakerName = game.Speaker.Name
+
+	if speakerID == nil && game.SpeakerID != nil {
+		speakerID = game.SpeakerID
+		var gp models.GamePlayer
+		if err := database.DB.Preload("Player").First(&gp, *speakerID).Error; err == nil {
+			speakerName = gp.Player.Name
+		} else {
+			log.Printf("failed to load GamePlayer for speaker: %v", err)
+		}
 	}
+	var all []models.SpeakerAssignment
+	database.DB.Find(&all)
 
 	return models.GameDetailResponse{
 		ID:                 game.ID,

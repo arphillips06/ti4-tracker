@@ -130,3 +130,20 @@ type ScoreDTO struct {
 	OriginallySecret bool      `json:"originally_secret,omitempty"`
 	CreatedAt        time.Time `json:"created_at"`
 }
+
+type SpeakerAssignment struct {
+	ID       uint `gorm:"primaryKey"`
+	GameID   uint
+	RoundID  uint
+	PlayerID uint
+	Game     Game   `gorm:"foreignKey:GameID"`
+	Round    Round  `gorm:"foreignKey:RoundID"`
+	Player   Player `gorm:"foreignKey:PlayerID"`
+}
+
+type AssignSpeakerRequest struct {
+	GameID    uint `json:"game_id"`
+	RoundID   uint `json:"round_id"`
+	PlayerID  uint `json:"player_id"`
+	IsInitial bool `json:"is_initial"` // optional logic flag
+}

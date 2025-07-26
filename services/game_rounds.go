@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"log"
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/helpers"
@@ -82,6 +83,27 @@ func AdvanceGameRound(gameID uint) (map[string]interface{}, error) {
 	newRound, err := CreateNewRound(game)
 	if err != nil {
 		return nil, errors.New("failed to create new round")
+	}
+
+	var lastAssignment models.SpeakerAssignment
+	err = database.DB.
+		Where("game_id = ?", gameID).
+		Order("round_id DESC").
+		First(&lastAssignment).Error
+
+	if err == nil {
+		newAssignment := models.SpeakerAssignment{
+			GameID:   gameID,
+			RoundID:  newRound.ID,
+			PlayerID: lastAssignment.PlayerID,
+		}
+		if err := database.DB.Create(&newAssignment).Error; err != nil {
+			log.Printf("failed to copy speaker assignment: %v", err)
+		} else {
+			log.Printf("copied speaker assignment: player %d -> round %d", newAssignment.PlayerID, newAssignment.RoundID)
+		}
+	} else {
+		log.Printf("no previous speaker to copy for game %d: %v", gameID, err)
 	}
 
 	stage := DetermineStageToReveal(game.ID)
