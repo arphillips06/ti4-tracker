@@ -47,12 +47,6 @@ export default function PlayerSidebar({
   return (
     <div style={{ flex: "0 1 300px" }}>
       {(playersSorted || []).map((entry) => {
-        console.log("🧠 Comparing:", {
-          speakerId: game?.speaker_id,
-          entryId: entry.id,
-          entryName: entry.name,
-        });
-
         return (
           <div
             key={entry.player_id}
@@ -211,8 +205,6 @@ export default function PlayerSidebar({
                                 s.PlayerID === entry.player_id &&
                                 isStillSecret(s)
                             ).map((s) => {
-                              console.log("Checking score", s, "for ObjectiveID:", s.ObjectiveID);
-
                               const obj = secretObjectives.find((o) => o.id === s.ObjectiveID);
                               return obj ? (
                                 <li key={obj.id}>
@@ -329,7 +321,7 @@ export default function PlayerSidebar({
                           disabled={allScores?.some((s) => s.Type === "mecatol")}
                           onClick={async () => {
                             try {
-                              await fetch(`${API_BASE_URL}/score/mecatol`, {
+                              const res = await fetch(`${API_BASE_URL}/score/mecatol`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json" },
                                 body: JSON.stringify({
@@ -338,35 +330,41 @@ export default function PlayerSidebar({
                                 }),
                               });
 
-                              await refreshGameState();
-                              triggerGraphUpdate?.();
+                              if (!res.ok) {
+                                const err = await res.json();
+                                throw new Error(err.error || "Failed to score Custodians");
+                              }
 
-                              const updatedGame = await fetch(`${API_BASE_URL}/games/${gameId}`).then((r) =>
-                                r.json()
-                              );
+                              // 🔁 Fully refresh game state after scoring
+                              const [gameRes, objScoresRes] = await Promise.all([
+                                fetch(`${API_BASE_URL}/games/${gameId}`).then((r) => r.json()),
+                                fetch(`${API_BASE_URL}/games/${gameId}/objectives/scores`).then((r) => r.json()),
+                              ]);
 
-                              const updatedAllScores = updatedGame.all_scores || [];
+                              const updatedAllScores = gameRes.all_scores || [];
+                              gameRes.game_players = gameRes.players || [];
 
-                              updatedGame.game_players = updatedGame.players || [];
-                              setGame(updatedGame);
-                              setAllScores(updatedAllScores); // ✅ this line updates secret state!
-
-                              const updatedScores = await fetch(
-                                `${API_BASE_URL}/games/${gameId}/objectives/scores`
-                              ).then((r) => r.json());
+                              // ✅ Apply all updates
+                              setGame(gameRes);
+                              setAllScores(updatedAllScores);
 
                               const map = {};
-                              (Array.isArray(updatedScores) ? updatedScores : updatedScores?.value || []).forEach(
+                              (Array.isArray(objScoresRes) ? objScoresRes : objScoresRes?.value || []).forEach(
                                 (entry) => {
                                   map[entry.objective_id ?? entry.name] = entry.scored_by || [];
                                 }
                               );
                               setObjectiveScores(map);
+
+                              // ✅ Explicitly refresh to trigger sidebar update
+                              await refreshGameState();
+                              triggerGraphUpdate?.();
                             } catch (err) {
                               console.error("Failed to score Custodians:", err);
                               alert("Failed to score Custodians. See console.");
                             }
                           }}
+
                         >
                           {allScores?.some((s) => s.Type === "mecatol")
                             ? "Custodians Already Scored"

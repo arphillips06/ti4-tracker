@@ -254,11 +254,6 @@ export default function ObjectivesGrid({
                 onChange={async (e) => {
                   const selectedId = parseInt(e.target.value, 10);
                   if (selectedId && assigningObjective?.roundId) {
-                    console.log("Assigning objective:", {
-                      game_id: gameId,
-                      round_id: assigningObjective.roundId,
-                      objective_id: selectedId,
-                    });
                     await assignObjective(gameId, assigningObjective.roundId, selectedId);
                     setAssigningObjective(null);
                   }

@@ -84,6 +84,29 @@ export default function GameDetail() {
   const obsidianUsed = isRelicUsed("The Obsidian");
   const [showScoreGraph, setShowScoreGraph] = useState(false);
   const [allScores, setAllScores] = useState(game?.AllScores || []);
+  const assignSpeaker = async (playerId, isInitial = false) => {
+
+    const roundId = game?.current_round?.id;
+    if (!roundId) {
+      alert("Cannot assign speaker: round not loaded.");
+      return;
+    }
+
+    await fetch(`${API_BASE_URL}/games/${game.id}/speaker`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        player_id: playerId,
+        round_id: roundId,
+        is_initial: isInitial,
+      }),
+    });
+
+    await refreshGameState();
+  };
+  const handleOpenSpeakerModal = () => {
+    setShowSpeakerModal(true);
+  };
 
   const {
     scoreObjective,
@@ -96,6 +119,8 @@ export default function GameDetail() {
     const scorer = game?.AllScores?.find((s) => s.Type === "mecatol");
     setCustodiansScorerId(scorer?.PlayerID || null);
   }, [game]);
+  useEffect(() => {
+  }, [showSpeakerModal]);
 
   if (!game) return <div className="p-4 text-warning">Loading game data...</div>;
   const winner_id = game.winner_id || game.winner_id;
@@ -122,6 +147,7 @@ export default function GameDetail() {
         obsidianUsed={obsidianUsed}
         setShowObsidianModal={(val) => toggleModal("obsidian", val)}
         refreshGameState={refreshGameState}
+        onOpenSpeakerModal={handleOpenSpeakerModal}
       />
       <VictoryBanner
         winner={game?.winner}
@@ -207,49 +233,10 @@ export default function GameDetail() {
             <SpeakerModal
               show={showSpeakerModal}
               onClose={() => setShowSpeakerModal(false)}
-              players={playersSorted}
-              onAssign={async (selectedPlayerId) => {
-                const roundId = game?.current_round;
-                console.log("Assigning speaker:", {
-                  selectedPlayerId,
-                  gameId,
-                  roundId, // should now be a number
-                });
-
-                if (!roundId) {
-                  console.error("❌ Cannot assign speaker: current_round_id is undefined");
-                  alert("Unable to assign speaker — current round is not set.");
-                  return;
-                }
-
-                console.log("▶ Assigning speaker:", {
-                  selectedPlayerId,
-                  gameId,
-                  roundId,
-                });
-
-                const res = await fetch(`${API_BASE_URL}/game/${gameId}/round/${roundId}/speaker`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ speaker_id: selectedPlayerId }),
-                });
-
-                if (res.ok) {
-                  if (res.status === 204) {
-                    // No content — just refresh the game state
-                    await refreshGameState();
-                  } else {
-                    // 200 OK with JSON body
-                    const updatedGame = await res.json();
-                    setGame(updatedGame);
-                  }
-                }
-                else {
-                  const errorText = await res.text();
-                  console.error("❌ Failed to assign speaker:", errorText);
-                  alert("Failed to assign speaker.");
-                }
-              }}
+              players={game.players}
+              gameId={game.id}
+              refetchGame={refreshGameState}
+              roundId={game?.current_round?.id ?? game?.current_round}
             />
           </div>
         </div>

@@ -5,7 +5,6 @@ import "../../pages/stats.css";
 export default function ObjectiveMetaTable({ metas }) {
   const [sortKey, setSortKey] = useState("timesScored");
   const [sortOrder, setSortOrder] = useState("desc");
-  console.log("metas received:", metas);
 
   if (!metas || !Array.isArray(metas) || metas.length === 0) {
     return <div>No objective metadata available.</div>;

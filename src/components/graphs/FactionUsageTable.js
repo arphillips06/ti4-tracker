@@ -10,7 +10,6 @@ export default function FactionUsageTable({ data, aggregates = [] }) {
   aggregates.forEach((agg) => {
     aggregateMap[agg.faction.toLowerCase()] = agg;
   });
-  console.log("Available aggregates:", Object.keys(aggregateMap));
 
   // Aggregate player-level stats per faction
   const grouped = {};
@@ -47,7 +46,6 @@ export default function FactionUsageTable({ data, aggregates = [] }) {
       aggregate && aggregate.totalPlays > 0
         ? aggregate.totalPointsScored / aggregate.totalPlays
         : 0;
-    console.log("aggregate", aggregate);
 
     return {
       ...row,
