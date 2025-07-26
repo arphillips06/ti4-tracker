@@ -16,6 +16,8 @@ import ScoreGraph from '../components/graphs/ScoreGraph';
 import VictoryBanner from "../components/layout/VictoryBanner";
 import GameModals from "../components/modals/GameModals";
 import useGameData from "../hooks/useGameData";
+import SpeakerModal from "../components/modals/SpeakerModal";
+import API_BASE_URL from "../config"
 
 export default function GameDetail() {
   const { gameId } = useParams();
@@ -74,6 +76,7 @@ export default function GameDetail() {
   const [custodiansScorerId, setCustodiansScorerId] = useState(null);
   const [assigningObjective, setAssigningObjective] = useState(null);
   const [agendaModal, setAgendaModal] = useState(null);
+  const [showSpeakerModal, setShowSpeakerModal] = useState(false);
 
   const playersUnsorted = useMergedPlayerData(game, false);
   const playersSorted = useMergedPlayerData(game, true);
@@ -107,6 +110,7 @@ export default function GameDetail() {
         mutinyUsed={mutinyUsed}
         incentiveUsed={incentiveUsed}
         seedUsed={seedUsed}
+        setShowSpeakerModal={setShowSpeakerModal}
         setShowAgendaModal={(val) => toggleModal("agenda", val)}
         setShowCensureModal={(val) => toggleModal("censure", val)}
         setShowSeedModal={(val) => toggleModal("seed", val)}
@@ -117,6 +121,7 @@ export default function GameDetail() {
         crownUsed={crownUsed}
         obsidianUsed={obsidianUsed}
         setShowObsidianModal={(val) => toggleModal("obsidian", val)}
+        refreshGameState={refreshGameState}
       />
       <VictoryBanner
         winner={game?.winner}
@@ -198,7 +203,53 @@ export default function GameDetail() {
               triggerGraphUpdate={triggerGraphUpdate}
               allScores={game?.AllScores}
               setAllScores={setAllScores}
+            />
+            <SpeakerModal
+              show={showSpeakerModal}
+              onClose={() => setShowSpeakerModal(false)}
+              players={playersSorted}
+              onAssign={async (selectedPlayerId) => {
+                const roundId = game?.current_round;
+                console.log("Assigning speaker:", {
+                  selectedPlayerId,
+                  gameId,
+                  roundId, // should now be a number
+                });
 
+                if (!roundId) {
+                  console.error("❌ Cannot assign speaker: current_round_id is undefined");
+                  alert("Unable to assign speaker — current round is not set.");
+                  return;
+                }
+
+                console.log("▶ Assigning speaker:", {
+                  selectedPlayerId,
+                  gameId,
+                  roundId,
+                });
+
+                const res = await fetch(`${API_BASE_URL}/game/${gameId}/round/${roundId}/speaker`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ speaker_id: selectedPlayerId }),
+                });
+
+                if (res.ok) {
+                  if (res.status === 204) {
+                    // No content — just refresh the game state
+                    await refreshGameState();
+                  } else {
+                    // 200 OK with JSON body
+                    const updatedGame = await res.json();
+                    setGame(updatedGame);
+                  }
+                }
+                else {
+                  const errorText = await res.text();
+                  console.error("❌ Failed to assign speaker:", errorText);
+                  alert("Failed to assign speaker.");
+                }
+              }}
             />
           </div>
         </div>

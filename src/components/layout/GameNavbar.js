@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import "../layout/navbar.css";
 
+
 export default function GameNavbar({
   gameId,
   showScoreGraph,
@@ -19,6 +20,7 @@ export default function GameNavbar({
   crownUsed,
   obsidianUsed,
   setShowObsidianModal,
+  setShowSpeakerModal,
 }) {
   const navigate = useNavigate();
 
@@ -41,6 +43,13 @@ export default function GameNavbar({
 
         {/* Right Side: Button Group */}
         <div className="d-flex align-items-center gap-2">
+          <button
+            className="btn btn-outline-danger"
+            onClick={() => setShowSpeakerModal(true)}
+          >
+            Assign Speaker
+          </button>
+
           {/* Imperial Rider */}
           <button
             className="btn btn-outline-orange"

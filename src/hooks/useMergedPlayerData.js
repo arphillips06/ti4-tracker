@@ -14,6 +14,7 @@ export default function useMergedPlayerData(game, sort = true) {
 
     return {
       player_id: p.ID,
+      id: gp.ID,
       name,
       faction,
       factionKey,
