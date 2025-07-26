@@ -20,6 +20,9 @@ export default function NewGamePage() {
     Array.from({ length: 3 }, () => ({ name: "", faction: "", color: "" }))
   );
   const [useObjectives, setUseObjectives] = useState(true);
+  const [randomiseSpeaker, setRandomiseSpeaker] = useState(true);
+  const [selectedSpeakerId, setSelectedSpeakerId] = useState(null);
+
   const [winningPoints, setWinningPoints] = useState(10);
 
   const handlePlayerChange = (index, field, value) => {
@@ -64,6 +67,8 @@ export default function NewGamePage() {
           name: p.name,
           faction: p.faction,
         })),
+        use_random_speaker: randomiseSpeaker,
+        speaker_id: randomiseSpeaker ? null : selectedSpeakerId,
       };
 
 
@@ -133,8 +138,16 @@ export default function NewGamePage() {
             />
           </div>
         </div>
-
-
+        <div className="mb-4">
+          <div className="checkbox-container">
+            <label className="label-gold">Randomise Speaker:</label>
+            <input
+              type="checkbox"
+              checked={randomiseSpeaker}
+              onChange={(e) => setRandomiseSpeaker(e.target.checked)}
+            />
+          </div>
+        </div>
         <div className="mb-4">
           <label className="label-gold mb-1">
             Number of Players: {numPlayers}
