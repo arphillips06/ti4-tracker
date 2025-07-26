@@ -105,7 +105,6 @@ export default function GameDetail() {
     await refreshGameState();
   };
   const handleOpenSpeakerModal = () => {
-    console.log("🧪 current_round.id =", game?.current_round?.id);
     setShowSpeakerModal(true);
   };
 
@@ -121,7 +120,6 @@ export default function GameDetail() {
     setCustodiansScorerId(scorer?.PlayerID || null);
   }, [game]);
   useEffect(() => {
-    console.log("📣 showSpeakerModal state is now:", showSpeakerModal);
   }, [showSpeakerModal]);
 
   if (!game) return <div className="p-4 text-warning">Loading game data...</div>;

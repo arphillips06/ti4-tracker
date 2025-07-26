@@ -16,8 +16,6 @@ export default function GenericVotingModal({
     const [direction, setDirection] = useState(defaultDirection);
 
     const handleSubmit = () => {
-        console.log("🧪 handleSubmit called");
-
         // Prevent submission if no player selected and not abstaining
         if (!selectedPlayerId && !abstain) {
             console.warn("🚫 No player selected and not abstaining");

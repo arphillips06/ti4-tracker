@@ -3,14 +3,8 @@ import API_BASE_URL from "../../config";
 
 export default function SpeakerModal({ show, onClose, players, gameId, refetchGame, roundId }) {
   if (!show) return null;
-  console.log("👁 SpeakerModal rendered with show =", show, "players:", players);
 
   const handleAssignSpeaker = async (playerId, isInitial = false) => {
-    console.log("➡️ Assigning speaker", {
-      gameId,
-      roundId,
-      playerId,
-    });
 
     if (!roundId && roundId !== 0) {
       alert("Please wait — current round not loaded yet.");
@@ -44,7 +38,6 @@ export default function SpeakerModal({ show, onClose, players, gameId, refetchGa
               <button
                 className="btn btn-sm btn-primary"
                 onClick={() => {
-                  console.log("🔧 Assigning player ID:", p.ID);
                   handleAssignSpeaker(p.ID);
                 }}
               >

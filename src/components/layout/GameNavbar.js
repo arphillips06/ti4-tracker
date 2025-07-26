@@ -24,7 +24,6 @@ export default function GameNavbar({
   onOpenSpeakerModal,
 }) {
   const navigate = useNavigate();
-  console.log("✅ onOpenSpeakerModal prop:", onOpenSpeakerModal);
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark mb-4 px-3">
@@ -48,7 +47,6 @@ export default function GameNavbar({
           <button
             className="btn btn-outline-danger"
             onClick={() => {
-              console.log("🧪 Assign Speaker button clicked");
               if (onOpenSpeakerModal) {
                 onOpenSpeakerModal();
               } else {

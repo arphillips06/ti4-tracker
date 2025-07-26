@@ -47,12 +47,6 @@ export default function PlayerSidebar({
   return (
     <div style={{ flex: "0 1 300px" }}>
       {(playersSorted || []).map((entry) => {
-        console.log("🧠 Comparing:", {
-          speakerId: game?.speaker_id,
-          entryId: entry.id,
-          entryName: entry.name,
-        });
-
         return (
           <div
             key={entry.player_id}
@@ -211,8 +205,6 @@ export default function PlayerSidebar({
                                 s.PlayerID === entry.player_id &&
                                 isStillSecret(s)
                             ).map((s) => {
-                              console.log("Checking score", s, "for ObjectiveID:", s.ObjectiveID);
-
                               const obj = secretObjectives.find((o) => o.id === s.ObjectiveID);
                               return obj ? (
                                 <li key={obj.id}>
