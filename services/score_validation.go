@@ -15,7 +15,7 @@ func ValidateSecretScoringRules(gameID, playerID, roundID, objectiveID uint) err
 	var objective models.Objective
 	if err := database.DB.First(&objective, objectiveID).Error; err != nil {
 		log.Printf("[ERROR] Could not find objective %d: %v", objectiveID, err)
-		return errors.New("Objective not found")
+		return errors.New("objective not found")
 	}
 
 	if strings.ToLower(objective.Type) != models.ScoreTypeSecret {
@@ -35,11 +35,11 @@ func ValidateSecretScoringRules(gameID, playerID, roundID, objectiveID uint) err
 			)`,
 			playerID, roundID, strings.ToLower(objective.Phase)).
 		Count(&countThisPhase).Error; err != nil {
-		return errors.New("Failed to validate secret scoring rules")
+		return errors.New("failed to validate secret scoring rules")
 	}
 
 	if countThisPhase > 0 {
-		return errors.New("Player has already scored a secret objective in this phase this round")
+		return errors.New("player has already scored a secret objective in this phase this round")
 	}
 
 	// Total secret scoring cap
@@ -49,7 +49,7 @@ func ValidateSecretScoringRules(gameID, playerID, roundID, objectiveID uint) err
 		Joins("JOIN objectives ON objectives.id = scores.objective_id").
 		Where("scores.player_id = ? AND scores.game_id = ? AND LOWER(scores.type) = 'secret'", playerID, gameID).
 		Count(&totalSecrets).Error; err != nil {
-		return errors.New("Failed to count total secret objectives")
+		return errors.New("failed to count total secret objectives")
 	}
 
 	// Obsidian check
@@ -58,7 +58,7 @@ func ValidateSecretScoringRules(gameID, playerID, roundID, objectiveID uint) err
 		Model(&models.Score{}).
 		Where("game_id = ? AND player_id = ? AND LOWER(type) = 'relic' AND LOWER(relic_title) = 'the obsidian'", gameID, playerID).
 		Count(&obsidianUsed).Error; err != nil {
-		return errors.New("Failed to check Obsidian use")
+		return errors.New("failed to check Obsidian use")
 	}
 
 	maxSecrets := int64(3)
@@ -67,7 +67,7 @@ func ValidateSecretScoringRules(gameID, playerID, roundID, objectiveID uint) err
 	}
 
 	if totalSecrets >= maxSecrets {
-		return fmt.Errorf("Player has already scored the maximum of %d secret objectives", maxSecrets)
+		return fmt.Errorf("player has already scored the maximum of %d secret objectives", maxSecrets)
 	}
 
 	return nil

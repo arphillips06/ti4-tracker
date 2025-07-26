@@ -89,7 +89,7 @@ func ApplyMutinyAgenda(input models.AgendaResolution) error {
 		return err
 	}
 	if exists {
-		return fmt.Errorf("Mutiny has already been resolved for this game")
+		return fmt.Errorf("mutiny has already been resolved for this game")
 	}
 
 	switch input.Result {
@@ -126,7 +126,7 @@ func ApplyClassifiedDocumentLeaks(input models.ClassifiedDocumentLeaksRequest) e
 		return err
 	}
 	if exists {
-		return fmt.Errorf("Classified Document Leaks has already been resolved for this game")
+		return fmt.Errorf("classified Document Leaks has already been resolved for this game")
 	}
 
 	// Locate the secret score
@@ -136,7 +136,7 @@ func ApplyClassifiedDocumentLeaks(input models.ClassifiedDocumentLeaksRequest) e
 		First(&score).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return fmt.Errorf("Secret objective score not found for that player")
+			return fmt.Errorf("secret objective score not found for that player")
 		}
 		return err
 	}
@@ -177,7 +177,7 @@ func ApplyIncentiveProgramEffect(gameID uint, outcome string) error {
 	case "against":
 		stage = "II"
 	default:
-		return fmt.Errorf("Invalid outcome: must be 'for' or 'against'")
+		return fmt.Errorf("invalid outcome: must be 'for' or 'against'")
 	}
 
 	var existingObjectiveIDs []uint
@@ -194,7 +194,7 @@ func ApplyIncentiveProgramEffect(gameID uint, outcome string) error {
 		Order("id").
 		First(&newObjective).Error
 	if err != nil {
-		return fmt.Errorf("No additional objectives remain in Stage %s", stage)
+		return fmt.Errorf("no additional objectives remain in Stage %s", stage)
 	}
 
 	// Find the next unrevealed objective in this stage

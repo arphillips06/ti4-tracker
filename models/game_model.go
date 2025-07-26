@@ -17,13 +17,16 @@ type Game struct {
 	GameObjectives    []GameObjective `json:"game_objectives"`
 	UseObjectiveDecks bool            `json:"use_objective_decks"`
 	Partial           bool            `gorm:"default:false"`
+	SpeakerID         *uint           `json:"speaker_id"`
+	Speaker           *Player         `json:"speaker,omitempty"`
 }
 
 //Single player
 type Player struct {
-	ID    uint `gorm:"primaryKey"`
-	Name  string
-	Games []GamePlayer `gorm:"foreignKey:PlayerID" json:"-"`
+	ID     uint `gorm:"primaryKey"`
+	Name   string
+	Games  []GamePlayer `gorm:"foreignKey:PlayerID" json:"-"`
+	GameID uint         `gorm:"index"`
 }
 
 //Round counter

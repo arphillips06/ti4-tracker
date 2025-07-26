@@ -141,7 +141,7 @@ func ScoreMecatolPoint(gameID, playerID uint) error {
 		First(&existing).Error
 	if err == nil {
 		log.Printf("[ScoreMecatolPoint] Mecatol already scored for game %d", gameID)
-		return fmt.Errorf("Mecatol Rex point already awarded")
+		return fmt.Errorf("mecatol Rex point already awarded")
 	}
 	if err != gorm.ErrRecordNotFound {
 		log.Printf("[ScoreMecatolPoint] DB error when checking existing Mecatol: %v", err)
@@ -172,7 +172,7 @@ func ScoreMecatolPoint(gameID, playerID uint) error {
 	return MaybeFinishGameFromScore(&game, playerID)
 }
 
-func ScoreImperialPoint(gameID, roundID, playerID uint) error {
+func ScoreImperialPoint(gameID, playerID uint) error {
 	roundID, err := helpers.GetCurrentRoundID(gameID)
 	if err != nil {
 		log.Printf("[ScoreImperialPoint] Failed to get round ID for game %d: %v", gameID, err)
@@ -230,7 +230,7 @@ func ScoreSupportPoint(gameID, playerID uint) error {
 	}
 
 	if totalSupportPoints >= playerCount-1 {
-		return fmt.Errorf("Support for the Throne can only be scored a total of %d times in a %d-player game", playerCount-1, playerCount)
+		return fmt.Errorf("support for the Throne can only be scored a total of %d times in a %d-player game", playerCount-1, playerCount)
 	}
 
 	return helpers.CreateGenericScore(models.Score{
@@ -253,7 +253,7 @@ func LoseOneSupportPoint(gameID, playerID uint) error {
 	}
 
 	// Create a negative support score record
-	err = helpers.CreateGenericScore(models.Score{
+	helpers.CreateGenericScore(models.Score{
 		GameID:   gameID,
 		RoundID:  roundID,
 		PlayerID: playerID,

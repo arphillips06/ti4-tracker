@@ -119,3 +119,23 @@ func AssignObjective(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"message": "objective assigned"})
 }
+
+func RandomiseSpeaker(c *gin.Context) {
+	gameIDParam := c.Param("id")
+	gameID, err := strconv.ParseUint(gameIDParam, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid game ID"})
+		return
+	}
+
+	speaker, err := services.RandomiseSpeaker(uint(gameID))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"speaker_id":   speaker.ID,
+		"speaker_name": speaker.Name,
+	})
+}

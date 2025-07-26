@@ -27,6 +27,7 @@ func GetGameAndScores(gameID string) (models.Game, []models.Score, error) {
 		Preload("Winner").
 		Preload("GameObjectives.Objective").
 		Preload("GameObjectives.Round").
+		Preload("Speaker").
 		First(&game, gameID).Error; err != nil {
 		return game, nil, fmt.Errorf("game not found")
 	}
@@ -126,6 +127,11 @@ func BuildGameDetailResponse(gameID string) (models.GameDetailResponse, error) {
 			log.Printf("✅ Secret score in response: Player %d, Objective %d", s.PlayerID, s.ObjectiveID)
 		}
 	}
+	speakerID := game.SpeakerID
+	speakerName := ""
+	if game.Speaker != nil {
+		speakerName = game.Speaker.Name
+	}
 
 	return models.GameDetailResponse{
 		ID:                 game.ID,
@@ -142,5 +148,7 @@ func BuildGameDetailResponse(gameID string) (models.GameDetailResponse, error) {
 		Winner:             &game.Winner,
 		CustodiansPlayerID: custodiansPlayerID,
 		WinnerVictoryPath:  vpSummary,
+		SpeakerID:          speakerID,
+		SpeakerName:        speakerName,
 	}, nil
 }

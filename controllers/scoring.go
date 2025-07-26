@@ -53,7 +53,7 @@ func ScoreImperialPoint(c *gin.Context) {
 		return
 	}
 
-	if err := services.ScoreImperialPoint(input.GameID, input.RoundID, input.PlayerID); err != nil {
+	if err := services.ScoreImperialPoint(input.GameID, input.PlayerID); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
