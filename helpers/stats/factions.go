@@ -1,6 +1,8 @@
 package stats
 
 import (
+	"sort"
+
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
 )
@@ -80,23 +82,94 @@ func GetFactionPlayerStats() ([]models.FactionPlayerStats, error) {
 }
 
 func GetFactionAggregateStats() ([]models.FactionAggregateStats, error) {
-	db := database.DB
 	var results []models.FactionAggregateStats
+	db := database.DB
 
-	err := db.
-		Model(&models.GamePlayer{}).
-		Select(`
-			faction,
-			COUNT(DISTINCT game_players.game_id) AS total_plays,
-			SUM(CASE WHEN game_players.won THEN 1 ELSE 0 END) AS won_count,
-			COALESCE(SUM(scores.points), 0) AS total_points_scored
-		`).
-		Joins("LEFT JOIN scores ON scores.player_id = game_players.player_id AND scores.game_id = game_players.game_id").
-		Group("game_players.faction").
-		Scan(&results).Error
-
+	// Step 1: Get raw totals
+	err := db.Raw(`
+		SELECT gp.faction AS faction,
+		       COUNT(DISTINCT s.game_id) AS total_plays,
+		       SUM(s.points) AS total_points_scored
+		FROM scores s
+		JOIN game_players gp ON s.player_id = gp.player_id AND s.game_id = gp.game_id
+		GROUP BY gp.faction
+	`).Scan(&results).Error
 	if err != nil {
 		return nil, err
+	}
+
+	// Step 2: Count how many times each faction won
+	var wins []struct {
+		Faction string
+		Wins    int
+	}
+	err = db.Raw(`
+		SELECT gp.faction AS faction,
+		       COUNT(*) AS wins
+		FROM games g
+		JOIN game_players gp ON g.winner_id = gp.player_id AND g.id = gp.game_id
+		GROUP BY gp.faction
+	`).Scan(&wins).Error
+	if err != nil {
+		return nil, err
+	}
+	winMap := map[string]int{}
+	for _, w := range wins {
+		winMap[w.Faction] = w.Wins
+	}
+
+	// Step 3: Compute VP histogram
+	type HistogramRow struct {
+		Faction string
+		VP      int
+		Count   int
+	}
+	var histoRows []HistogramRow
+	err = db.Raw(`
+		SELECT gp.faction,
+		       SUM(s.points) AS vp,
+		       COUNT(*) AS count
+		FROM scores s
+		JOIN game_players gp ON s.player_id = gp.player_id AND s.game_id = gp.game_id
+		JOIN rounds r ON s.round_id = r.id
+		WHERE r.number = (
+			SELECT MAX(number) FROM rounds WHERE game_id = s.game_id
+		)
+		GROUP BY gp.faction, s.player_id, s.game_id
+	`).Scan(&histoRows).Error
+	if err != nil {
+		return nil, err
+	}
+
+	// Group histogram data by faction
+	intermediate := map[string]map[int]int{} // faction -> vp -> count
+
+	for _, row := range histoRows {
+		if _, ok := intermediate[row.Faction]; !ok {
+			intermediate[row.Faction] = map[int]int{}
+		}
+		intermediate[row.Faction][row.VP] += row.Count
+	}
+
+	histograms := map[string][]models.VPBucket{}
+	for faction, vpMap := range intermediate {
+		var buckets []models.VPBucket
+		for vp, count := range vpMap {
+			buckets = append(buckets, models.VPBucket{VP: vp, Count: count})
+		}
+		sort.Slice(buckets, func(i, j int) bool {
+			return buckets[i].VP < buckets[j].VP
+		})
+		histograms[faction] = buckets
+	}
+	for i := range results {
+		results[i].WonCount = winMap[results[i].Faction]
+
+		if buckets, ok := histograms[results[i].Faction]; ok {
+			results[i].VPHistogram = buckets
+		} else {
+			results[i].VPHistogram = []models.VPBucket{}
+		}
 	}
 
 	return results, nil
