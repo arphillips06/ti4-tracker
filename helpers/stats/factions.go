@@ -127,15 +127,19 @@ func GetFactionAggregateStats() ([]models.FactionAggregateStats, error) {
 	var histoRows []HistogramRow
 	err = db.Raw(`
 		SELECT gp.faction,
-		       SUM(s.points) AS vp,
-		       COUNT(*) AS count
-		FROM scores s
-		JOIN game_players gp ON s.player_id = gp.player_id AND s.game_id = gp.game_id
-		JOIN rounds r ON s.round_id = r.id
-		WHERE r.number = (
-			SELECT MAX(number) FROM rounds WHERE game_id = s.game_id
-		)
-		GROUP BY gp.faction, s.player_id, s.game_id
+			final_scores.vp AS vp,
+			COUNT(*) AS count
+		FROM (
+			SELECT s.game_id, s.player_id, SUM(s.points) AS vp
+			FROM scores s
+			JOIN rounds r ON s.round_id = r.id
+			WHERE r.number = (
+				SELECT MAX(number) FROM rounds WHERE game_id = s.game_id
+			)
+			GROUP BY s.game_id, s.player_id
+		) AS final_scores
+		JOIN game_players gp ON gp.player_id = final_scores.player_id AND gp.game_id = final_scores.game_id
+		GROUP BY gp.faction, final_scores.vp
 	`).Scan(&histoRows).Error
 	if err != nil {
 		return nil, err
