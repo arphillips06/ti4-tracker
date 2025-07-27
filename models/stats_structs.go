@@ -71,11 +71,17 @@ type FactionPlayerStats struct {
 	TotalPointsScored int    `json:"totalPointsScored"`
 }
 
+type VPBucket struct {
+	VP    int `json:"vp"`
+	Count int `json:"count"`
+}
+
 type FactionAggregateStats struct {
-	Faction           string `json:"faction"`
-	TotalPlays        int    `json:"totalPlays"`
-	TotalPointsScored int    `json:"totalPointsScored"`
-	WonCount          int    `json:"wonCount"`
+	Faction           string     `json:"faction"`
+	TotalPlays        int        `json:"totalPlays"`
+	TotalPointsScored int        `json:"totalPointsScored"`
+	WonCount          int        `json:"wonCount"`
+	VPHistogram       []VPBucket `json:"vpHistogram" gorm:"-"`
 }
 
 type GameDurationStat struct {
