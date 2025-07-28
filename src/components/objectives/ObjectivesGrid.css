@@ -1,11 +1,23 @@
 .objective-grid {
   display: grid;
-  grid-template-columns: repeat(5, 220px); /* Exactly 5 columns */
-  gap: 12px; /* Smaller gap */
-  justify-content: center; /* Center the row if fewer than 5 */
+  grid-template-columns: repeat(5, 220px); 
+  gap: 12px; 
+  justify-content: start; 
 }
 
 .objective-break {
   grid-column: 1 / -1;
   height: 1px;
+}
+
+.text-readable {
+  text-shadow: 1px 1px 2px black;
+  color: #fff; 
+}
+
+.text-bg-overlay {
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: #fff;
 }
