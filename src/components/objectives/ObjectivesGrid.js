@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import API_BASE_URL from "../../config";
 import factionImageMap from "../../data/factionIcons";
+import "./ObjectivesGrid.css";
 
-// ✅ Move these ABOVE where they're used
 const getFactionKey = (faction) => {
   return factionImageMap[faction] || "fallback";
 };
@@ -272,9 +272,16 @@ export default function ObjectivesGrid({
           )}
         </>
       )}
+      <div className="objective-grid">
+        {displayObjectives
+          .filter((obj) => obj.Objective?.stage !== "II")
+          .map(renderObjectiveCard)}
 
-      <div className="d-flex flex-wrap justify-content-start" style={{ gap: "20px" }}>
-        {displayObjectives.map(renderObjectiveCard)}
+        <div className="objective-break" />
+
+        {displayObjectives
+          .filter((obj) => obj.Objective?.stage === "II")
+          .map(renderObjectiveCard)}
       </div>
     </div>
   );
