@@ -1,0 +1,11 @@
+.objective-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 220px); /* Exactly 5 columns */
+  gap: 12px; /* Smaller gap */
+  justify-content: center; /* Center the row if fewer than 5 */
+}
+
+.objective-break {
+  grid-column: 1 / -1;
+  height: 1px;
+}
