@@ -7,6 +7,12 @@ import (
 	"github.com/arphillips06/TI4-stats/models"
 )
 
+type ObjectiveStats struct {
+	Type          string `json:"type"`
+	TimesAppeared int    `json:"timesAppeared"`
+	TimesScored   int    `json:"timesScored"`
+}
+
 func CalculateTopFactionsPerPlayer() ([]models.PlayerFactionStats, error) {
 	var rows []struct {
 		Name    string
@@ -248,4 +254,84 @@ func CalculateFactionStats() (map[string]int, map[string]int, map[string]float64
 	}
 
 	return plays, wins, winRates, distribution, nil
+}
+
+func CalculateFactionObjectiveStats() (map[string]map[string]models.ObjectiveStats, error) {
+	var games []models.Game
+
+	err := database.DB.
+		Preload("GamePlayers.Player").
+		Preload("GameObjectives.Objective").
+		Preload("Rounds.Scores.Objective").
+		Find(&games).Error
+	if err != nil {
+		return nil, err
+	}
+
+	factionObjectiveStats := make(map[string]map[string]models.ObjectiveStats)
+	factionGameCount := make(map[string]int) // ✅ Track games per faction
+
+	for _, game := range games {
+		// Map player ID -> faction
+		playerFaction := make(map[uint]string)
+		factionsInGame := make(map[string]struct{})
+
+		for _, gp := range game.GamePlayers {
+			playerFaction[gp.PlayerID] = gp.Faction
+			factionsInGame[gp.Faction] = struct{}{}
+			factionGameCount[gp.Faction]++ // ✅ Increment games played for this faction
+		}
+
+		// Count appearances for each faction
+		for _, gobj := range game.GameObjectives {
+			name := gobj.Objective.Name
+			typ := gobj.Objective.Type
+
+			for faction := range factionsInGame {
+				if _, ok := factionObjectiveStats[faction]; !ok {
+					factionObjectiveStats[faction] = make(map[string]models.ObjectiveStats)
+				}
+				objStats := factionObjectiveStats[faction][name]
+				objStats.Type = typ
+				objStats.AppearedCount++
+				factionObjectiveStats[faction][name] = objStats
+			}
+		}
+
+		// Count scores per faction
+		for _, round := range game.Rounds {
+			for _, score := range round.Scores {
+				name := score.Objective.Name
+				typ := score.Type
+				faction := playerFaction[score.PlayerID]
+				if faction == "" {
+					continue
+				}
+
+				if _, ok := factionObjectiveStats[faction]; !ok {
+					factionObjectiveStats[faction] = make(map[string]models.ObjectiveStats)
+				}
+				objStats := factionObjectiveStats[faction][name]
+				objStats.Type = typ
+				objStats.ScoredCount++
+				factionObjectiveStats[faction][name] = objStats
+			}
+		}
+	}
+
+	// ✅ Add rate calculations
+	for faction, objectives := range factionObjectiveStats {
+		totalGames := factionGameCount[faction]
+		for name, stats := range objectives {
+			if totalGames > 0 {
+				stats.AppearanceRate = float64(stats.AppearedCount) / float64(totalGames)
+			}
+			if stats.AppearedCount > 0 {
+				stats.ScoredWhenAppearedRate = float64(stats.ScoredCount) / float64(stats.AppearedCount)
+			}
+			objectives[name] = stats
+		}
+	}
+
+	return factionObjectiveStats, nil
 }
