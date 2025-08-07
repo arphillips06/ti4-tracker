@@ -2,7 +2,7 @@ import React from "react";
 import "./shared/FactionCard.css";
 import VictoryPointBarChart from "../VictoryPointBarChart";
 
-export default function FactionCard({ data }) {
+export default function FactionCard({ data, onMoreStatsClick }) {
   const {
     faction,
     iconUrl,
@@ -11,7 +11,7 @@ export default function FactionCard({ data }) {
     totalPlays,
     playersPlayed,
     playersWon,
-    vpHistogram,
+    vpHistogram
   } = data;
 
   return (
@@ -26,6 +26,12 @@ export default function FactionCard({ data }) {
         <div><strong>Avg Points:</strong> {avgPoints.toFixed(2)}</div>
         <div><strong>Players Played:</strong> {Object.entries(playersPlayed).map(([p, c]) => `${p} (${c})`).join(", ") || "-"}</div>
         <div><strong>Players Won With:</strong> {Object.entries(playersWon).map(([p, c]) => `${p} (${c})`).join(", ") || "-"}</div>
+        <button
+          className="btn btn-sm btn-outline-primary mt-2"
+          onClick={() => onMoreStatsClick(faction)} // ✅ calls parent
+        >
+          More Stats
+        </button>
       </div>
 
       <div className="faction-card-right">

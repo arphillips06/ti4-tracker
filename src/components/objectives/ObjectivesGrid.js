@@ -38,7 +38,21 @@ export default function ObjectivesGrid({
 }) {
   const safeObjectives = objectives || [];
   const safePlayers = (playersUnsorted || []).map(normalizePlayer); // ✅ now safe
-  const rawScores = game?.ScoresByObjective || {};
+  const rawScores = {};
+
+  if (Array.isArray(game?.AllScores)) {
+    game.AllScores.forEach((score) => {
+      const objectiveId = score.ObjectiveID || score.Objective?.ID;
+      const playerId = score.PlayerID || score.Player?.ID;
+      if (!objectiveId || !playerId) return;
+
+      if (!rawScores[objectiveId]) {
+        rawScores[objectiveId] = [];
+      }
+
+      rawScores[objectiveId].push({ PlayerID: playerId });
+    });
+  }
   const safeLocalScored = localScored || {};
   const usingDecks = String(useObjectiveDecks).toLowerCase() === "true";
   const [publicObjectives, setPublicObjectives] = useState([]);
@@ -210,8 +224,8 @@ export default function ObjectivesGrid({
   };
 
   return (
-    <div style={{ flex: "1 1 0" }}>
-      <h4>Objectives</h4>
+    <div className="flex-grow-1">
+      <h4 className="section-title">Objectives</h4>
 
       {isManualMode && (
         <>

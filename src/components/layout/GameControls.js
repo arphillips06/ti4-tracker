@@ -7,7 +7,7 @@ export default function GameControls({
   if (!game) return null;
   return (
     <div className="d-flex justify-content-between align-items-center mb-4">
-      <h2 className="h4">
+      <h2 className="hud-panel">
         Round {game.current_round} | {game.winning_points} Point Game
       </h2>
       <div className="d-flex gap-3 align-items-center">

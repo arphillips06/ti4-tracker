@@ -1,9 +1,9 @@
 .objective-grid {
   display: grid;
-  grid-template-columns: repeat(5, 220px); 
-  gap: 12px; 
-  justify-content: start; 
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
 }
+
 
 .objective-break {
   grid-column: 1 / -1;
