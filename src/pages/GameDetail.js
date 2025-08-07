@@ -161,7 +161,7 @@ export default function GameDetail() {
           setScoringMode={setScoringMode}
           onAdvanceRound={advanceRound}
         />
-        <div className="d-flex flex-row align-items-start gap-4 flex-wrap">
+        <div className="d-flex flex-column flex-md-row align-items-start gap-4 flex-wrap">
           {showScoreGraph ? (
             <div style={{ flex: 1 }}>
               <ScoreGraph gameId={gameId} refreshSignal={graphRefreshKey} />

@@ -1,0 +1,24 @@
+/* === GLOBAL READABLE TEXT === */
+.text-readable {
+  color: #fff;
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.85);
+}
+
+/* === HUD-LIKE INFO PANEL === */
+.hud-panel {
+  background-color: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-weight: 500;
+  display: inline-block;
+  margin-bottom: 1rem;
+}
+
+/* === Section Headings === */
+.section-title {
+  color: #fff;
+  font-size: 1.25rem;
+  text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.9);
+  margin-bottom: 0.75rem;
+}

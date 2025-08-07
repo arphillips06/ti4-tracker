@@ -45,7 +45,7 @@ export default function PlayerSidebar({
   };
 
   return (
-    <div style={{ flex: "0 1 300px" }}>
+    <div className="flex-shrink-1" style={{ minWidth: "250px", flexBasis: "300px" }}>
       {(playersSorted || []).map((entry) => {
         return (
           <div
