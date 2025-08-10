@@ -31,7 +31,9 @@ func MaybeFinishGameFromScore(game *models.Game, scoringPlayerID uint) error {
 		if err != nil {
 			return err
 		}
+
 		RefreshVictoryPathCache()
+
 		return database.DB.Save(game).Error
 	}
 
@@ -56,6 +58,10 @@ func MaybeFinishGameFromExhaustion(game *models.Game) error {
 	if err := WinnerByScore(game); err != nil {
 		return err
 	}
+	if err := database.DB.Save(game).Error; err != nil {
+		return err
+	}
+	log.Printf("[Achievements] Evaluating for game %d", game.ID)
 
 	return database.DB.Save(game).Error
 }

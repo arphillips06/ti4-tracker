@@ -109,8 +109,7 @@ func main() {
 		c.File("./build/index.html")
 	})
 	// achievements (read)
-	r.GET("/players/:id/achievements", controllers.GetPlayerAchievements)
-	r.GET("/games/:id/achievements", controllers.GetGameAchievements)
+	r.GET("/games/:id/achievements", controllers.Wrap(controllers.GetGameAchievements))
 
 	// For any unmatched route (client side routing), serve index.html
 	r.NoRoute(func(c *gin.Context) {
