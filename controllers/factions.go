@@ -7,7 +7,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetFactions(c *gin.Context) {
-	c.Header("Content-Type", "application/json")
-	c.JSON(http.StatusOK, factions.AllFactions)
+// GetFactions godoc
+// @Summary      List factions
+// @Description  Returns all available factions.
+// @Tags         factions
+// @Produce      json
+// @Success      200  {array}   map[string]interface{}
+// @Failure      500  {object}  map[string]string  "error"
+// @Router       /factions [get]
+func GetFactions(c *gin.Context) (int, any, error) {
+	return http.StatusOK, factions.AllFactions, nil
 }

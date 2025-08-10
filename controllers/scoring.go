@@ -13,129 +13,178 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// POST /games/:game_id/score
-// Description: Submits a score for a player by marking them as having scored a specific objective in a game.
-func AddScore(c *gin.Context) {
+// AddScore godoc
+// @Summary      Score an objective
+// @Description  Marks a player as having scored a specific objective in a game.
+// @Tags         scoring
+// @Accept       json
+// @Produce      json
+// @Param        game_id     path      string  true  "Game ID"
+// @Param        body        body      object  true  "game_id, player_id, objective_id"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]string  "error"
+// @Failure      403  {object}  map[string]string  "error"
+// @Failure      404  {object}  map[string]string  "error"
+// @Failure      500  {object}  map[string]string  "error"
+// @Router       /games/{game_id}/score [post]
+func AddScore(c *gin.Context) (int, any, error) {
 	var input struct {
 		GameID      uint `json:"game_id"`
 		PlayerID    uint `json:"player_id"`
 		ObjectiveID uint `json:"objective_id"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		return http.StatusBadRequest, gin.H{"error": err.Error()}, nil
 	}
 
 	resp, err := services.SubmitScore(input.GameID, input.PlayerID, input.ObjectiveID)
 	if err != nil {
 		switch err.Error() {
 		case "game not found", "objective not found", "current round not found":
-			c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+			return http.StatusNotFound, gin.H{"error": err.Error()}, nil
 		case "game is already finished", "objective already scored by this player":
-			c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
+			return http.StatusForbidden, gin.H{"error": err.Error()}, nil
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return http.StatusInternalServerError, gin.H{"error": err.Error()}, nil
 		}
-		return
 	}
 
-	c.JSON(http.StatusOK, resp)
+	return http.StatusOK, resp, nil
 }
 
-func ScoreImperialPoint(c *gin.Context) {
+// ScoreImperialPoint godoc
+// @Summary      Score Imperial point
+// @Tags         scoring
+// @Accept       json
+// @Produce      json
+// @Param        body  body      object  true  "game_id, player_id, round_id"
+// @Success      204
+// @Failure      400  {object}  map[string]string  "error"
+// @Failure      500  {object}  map[string]string  "error"
+// @Router       /score/imperial [post]
+func ScoreImperialPoint(c *gin.Context) (int, any, error) {
 	var input struct {
 		GameID   uint `json:"game_id"`
 		PlayerID uint `json:"player_id"`
 		RoundID  uint `json:"round_id"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		return http.StatusBadRequest, gin.H{"error": err.Error()}, nil
 	}
-
 	if err := services.ScoreImperialPoint(input.GameID, input.PlayerID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return http.StatusInternalServerError, gin.H{"error": err.Error()}, nil
 	}
-
-	c.Status(http.StatusNoContent)
+	return http.StatusNoContent, nil, nil
 }
 
-func ScoreMecatolPoint(c *gin.Context) {
+// ScoreMecatolPoint godoc
+// @Summary      Score Custodians (Mecatol) point
+// @Tags         scoring
+// @Accept       json
+// @Produce      json
+// @Param        body  body      object  true  "game_id, player_id, round_id"
+// @Success      204
+// @Failure      400  {object}  map[string]string  "error"
+// @Failure      409  {object}  map[string]string  "error"
+// @Router       /score/mecatol [post]
+func ScoreMecatolPoint(c *gin.Context) (int, any, error) {
 	var input struct {
 		GameID   uint `json:"game_id"`
 		PlayerID uint `json:"player_id"`
 		RoundID  uint `json:"round_id"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		return http.StatusBadRequest, gin.H{"error": err.Error()}, nil
 	}
-
 	if err := services.ScoreMecatolPoint(input.GameID, input.PlayerID); err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
-		return
+		return http.StatusConflict, gin.H{"error": err.Error()}, nil
 	}
-
-	c.Status(http.StatusNoContent)
+	return http.StatusNoContent, nil, nil
 }
 
-func DeleteScore(c *gin.Context) {
+// DeleteScore godoc
+// @Summary      Delete a scored objective
+// @Tags         scoring
+// @Accept       json
+// @Produce      json
+// @Param        body  body      object  true  "game_id, player_id, objective_id"
+// @Success      204
+// @Failure      400  {object}  map[string]string  "error"
+// @Failure      500  {object}  map[string]string  "error"
+// @Router       /score [delete]
+func DeleteScore(c *gin.Context) (int, any, error) {
 	var req struct {
 		GameID      int `json:"game_id"`
 		PlayerID    int `json:"player_id"`
 		ObjectiveID int `json:"objective_id"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		return http.StatusBadRequest, gin.H{"error": err.Error()}, nil
 	}
-
-	err := services.RemoveScore(req.GameID, req.PlayerID, req.ObjectiveID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+	if err := services.RemoveScore(req.GameID, req.PlayerID, req.ObjectiveID); err != nil {
+		return http.StatusInternalServerError, gin.H{"error": err.Error()}, nil
 	}
-	c.Status((http.StatusNoContent))
+	return http.StatusNoContent, nil, nil
 }
 
-// POST /players
-// Creates a new player.
-// Ensures the name is provided and not already in use.
-func CreatePlayer(c *gin.Context) {
+// CreatePlayer godoc
+// @Summary      Create player
+// @Tags         players
+// @Accept       json
+// @Produce      json
+// @Param        body  body      models.Player  true  "Player (name required)"
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]string  "error"
+// @Failure      500  {object}  map[string]string  "error"
+// @Router       /players [post]
+func CreatePlayer(c *gin.Context) (int, any, error) {
 	input, ok := helpers.BindJSON[models.Player](c)
 	if !ok || strings.TrimSpace(input.Name) == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "name is required"})
-		return
+		return http.StatusBadRequest, gin.H{"error": "name is required"}, nil
 	}
-
 	player, err := services.CreatePlayer(input.Name)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return http.StatusInternalServerError, gin.H{"error": err.Error()}, nil
 	}
-	c.JSON(http.StatusOK, player)
+	return http.StatusOK, player, nil
 }
 
-// POST /games/assign-player
-// Manually assigns a player to a game with a faction.
-// Useful when not using the automated game setup flow.
-func AssignPlayerToGame(c *gin.Context) {
+// AssignPlayerToGame godoc
+// @Summary      Assign player to game
+// @Tags         players,games
+// @Accept       json
+// @Produce      json
+// @Param        body  body      models.AssignPlayerInput  true  "Game ID, Player ID, Faction"
+// @Success      200  {object}  map[string]interface{}      "game_player"
+// @Failure      400  {object}  map[string]string           "error"
+// @Failure      500  {object}  map[string]string           "error"
+// @Router       /games/assign-player [post]
+func AssignPlayerToGame(c *gin.Context) (int, any, error) {
 	input, ok := helpers.BindJSON[models.AssignPlayerInput](c)
 	if !ok {
-		return
+		return http.StatusBadRequest, gin.H{"error": "invalid payload"}, nil
 	}
-
 	gp, err := services.AssignPlayerToGame(input.GameID, input.PlayerID, input.Faction)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return http.StatusInternalServerError, gin.H{"error": err.Error()}, nil
 	}
-
-	c.JSON(http.StatusOK, gp)
+	return http.StatusOK, gp, nil
 }
 
-func SFTT(c *gin.Context) {
+// SFTT godoc
+// @Summary      Support for the Throne
+// @Description  Give or revoke Support for the Throne for a player in a game.
+// @Tags         scoring
+// @Accept       json
+// @Produce      json
+// @Param        game_id   path      string  true  "Game ID"
+// @Param        player_id path      string  true  "Player ID"
+// @Param        body      body      object  true  "round_id, action (give|revoke)"
+// @Success      200
+// @Failure      400  {object}  map[string]string  "error"
+// @Failure      404  {object}  map[string]string  "error"
+// @Router       /games/{game_id}/players/{player_id}/sftt [post]
+func SFTT(c *gin.Context) (int, any, error) {
 	gameID, _ := strconv.ParseUint(c.Param("game_id"), 10, 64)
 	playerID, _ := strconv.ParseUint(c.Param("player_id"), 10, 64)
 
@@ -143,87 +192,99 @@ func SFTT(c *gin.Context) {
 		RoundID uint   `json:"round_id"`
 		Action  string `json:"action"`
 	}
-
 	req, ok := helpers.BindJSON[SFTTRequest](c)
 	if !ok {
-		return
+		return http.StatusBadRequest, gin.H{"error": "invalid payload"}, nil
 	}
+
 	var game models.Game
 	if err := database.DB.First(&game, gameID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Game not found"})
-		return
+		return http.StatusNotFound, gin.H{"error": "Game not found"}, nil
 	}
 
-	err := services.HandleSupportForTheThrone(uint(gameID), uint(playerID), req.Action)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	if err := services.HandleSupportForTheThrone(uint(gameID), uint(playerID), req.Action); err != nil {
+		return http.StatusBadRequest, gin.H{"error": err.Error()}, nil
 	}
 
-	c.Status(http.StatusOK)
+	return http.StatusOK, nil, nil
 }
 
-// GetScoreSummary handles GET /games/:id/scores
-// Returns total points per player in a game.
-func GetScoreSummary(c *gin.Context) {
+// GetScoreSummary godoc
+// @Summary      Player score summary
+// @Tags         scoring,players
+// @Param        id   path      string  true  "Player ID"
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}
+// @Failure      404  {object}  map[string]string  "error"
+// @Router       /players/{id}/scores/summary [get]
+func GetScoreSummary(c *gin.Context) (int, any, error) {
 	id := c.Param("id")
-
 	summary, err := services.GetScoreSummaryByPlayer(id)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
-		return
+		return http.StatusNotFound, gin.H{"error": err.Error()}, nil
 	}
-
-	c.JSON(http.StatusOK, summary)
+	return http.StatusOK, summary, nil
 }
 
-// GetScoresByRound handles GET /games/:id/scores/rounds
-// Returns a round-by-round list of scores with source info.
-func GetScoresByRound(c *gin.Context) {
+// GetScoresByRound godoc
+// @Summary      Player scores by round
+// @Tags         scoring,players
+// @Param        id   path      string  true  "Player ID"
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}
+// @Failure      500  {object}  map[string]string  "error"
+// @Router       /players/{id}/scores/by-round [get]
+func GetScoresByRound(c *gin.Context) (int, any, error) {
 	id := c.Param("id")
-
 	groupedScores, err := services.GetScoresGroupedByRound(id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not load scores"})
-		return
+		return http.StatusInternalServerError, gin.H{"error": "Could not load scores"}, nil
 	}
-
-	c.JSON(http.StatusOK, groupedScores)
+	return http.StatusOK, groupedScores, nil
 }
 
-// GetObjectiveScoreSummary handles GET /games/:id/scores/objectives
-// Returns scoring summary grouped by public and secret objectives.
-func GetObjectiveScoreSummary(c *gin.Context) {
+// GetObjectiveScoreSummary godoc
+// @Summary      Objective score summary for a game
+// @Tags         scoring,games
+// @Param        id   path      int  true  "Game ID"
+// @Produce      json
+// @Success      200  {object}  map[string]interface{}
+// @Failure      400  {object}  map[string]string  "error"
+// @Failure      500  {object}  map[string]string  "error"
+// @Router       /games/{id}/scores/objectives/summary [get]
+func GetObjectiveScoreSummary(c *gin.Context) (int, any, error) {
 	gameID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid game ID"})
-		return
+		return http.StatusBadRequest, gin.H{"error": "Invalid game ID"}, nil
 	}
-
 	summary, err := services.GetObjectiveScoreSummary(uint(gameID))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return http.StatusInternalServerError, gin.H{"error": err.Error()}, nil
 	}
-
-	c.JSON(http.StatusOK, summary)
+	return http.StatusOK, summary, nil
 }
 
-func ScoreImperialRiderPoint(c *gin.Context) {
+// ScoreImperialRiderPoint godoc
+// @Summary      Score Imperial Rider point
+// @Tags         scoring
+// @Accept       json
+// @Produce      json
+// @Param        body  body      object  true  "game_id, round_id, player_id"
+// @Success      204
+// @Failure      400  {object}  map[string]string  "error"
+// @Failure      500  {object}  map[string]string  "error"
+// @Router       /score/imperial-rider [post]
+func ScoreImperialRiderPoint(c *gin.Context) (int, any, error) {
 	var input struct {
 		GameID   uint `json:"game_id"`
 		PlayerID uint `json:"player_id"`
-		RoundID  uint `json:"round_id"` // Optional
+		RoundID  uint `json:"round_id"`
 	}
 	if err := c.ShouldBindJSON(&input); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		return http.StatusBadRequest, gin.H{"error": err.Error()}, nil
 	}
-
 	if err := services.ScoreImperialRiderPoint(input.GameID, input.RoundID, input.PlayerID); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
+		return http.StatusInternalServerError, gin.H{"error": err.Error()}, nil
 	}
-
-	c.Status(http.StatusNoContent)
+	return http.StatusNoContent, nil, nil
 }

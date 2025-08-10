@@ -5,13 +5,17 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type H func(*gin.Context) (int, any, error)
+type RespondingHandler func(*gin.Context) (int, any, error)
 
-func Wrap(h H) gin.HandlerFunc {
+func Wrap(handler RespondingHandler) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		status, payload, err := h(c)
+		status, payload, err := handler(c)
 		if err != nil {
 			handle.Handle(c, err)
+			return
+		}
+		if payload == nil {
+			c.Status(status)
 			return
 		}
 		c.JSON(status, payload)

@@ -6,6 +6,10 @@ import (
 	"os"
 	"strings"
 
+	"github.com/arphillips06/TI4-stats/docs"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
 	"github.com/arphillips06/TI4-stats/controllers"
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/helpers/stats"
@@ -17,6 +21,10 @@ func main() {
 	// Initialize DB and seed objectives
 	database.InitDatabase()
 	database.SeedObjectives()
+	docs.SwaggerInfo.Title = "TI4 Stats API"
+	docs.SwaggerInfo.Version = "0.1"
+	docs.SwaggerInfo.Description = "Endpoints for TI4-stats backend."
+	docs.SwaggerInfo.BasePath = "/"
 
 	// Setup Gin router
 	r := gin.Default()
@@ -54,37 +62,37 @@ func main() {
 	})
 
 	//player management
-	r.POST("/players", controllers.CreatePlayer)
-	r.GET("/players", controllers.ListPlayers)
-	r.GET("/players/:id/games", controllers.GetPlayerGames)
+	r.POST("/players", controllers.Wrap(controllers.CreatePlayer))
+	r.GET("/players", controllers.Wrap(controllers.ListPlayers))
+	r.GET("/players/:id/games", controllers.Wrap(controllers.GetPlayerGames))
 
 	// game routes
-	r.POST("/games", controllers.CreateGame)
-	r.GET("/games/:id/players", controllers.ListPlayersInGame)
-	r.GET("/games", controllers.ListGames)
-	r.POST("/gameplayers", controllers.AssignPlayerToGame)
-	r.POST("/games/:game_id/advance-round", controllers.AdvanceRound)
-	r.GET("/games/:id/score-summary", controllers.GetScoreSummary)
-	r.GET("/games/:id/scores-by-round", controllers.GetScoresByRound)
-	r.GET("/games/:id", controllers.GetGameByID)
-	r.GET("/games/:id/objectives", controllers.GetGameObjectives)
-	r.GET("/objectives/secrets/all", controllers.GetAllSecretObjectives)
-	r.POST("/assign_objective", controllers.AssignObjective)
-	r.GET("/objectives/public/all", controllers.GetAllPublicObjectives)
-	r.GET("/api/games/:id/exists", controllers.GetGameExists)
-	r.POST("/game/:id/randomise-speaker", controllers.RandomiseSpeaker)
-	r.POST("/games/:game_id/speaker", controllers.PostAssignSpeaker)
+	r.POST("/games", controllers.Wrap(controllers.CreateGame))
+	r.GET("/games/:id/players", controllers.Wrap(controllers.ListPlayersInGame))
+	r.GET("/games", controllers.Wrap(controllers.ListGames))
+	r.POST("/gameplayers", controllers.Wrap(controllers.AssignPlayerToGame))
+	r.POST("/games/:game_id/advance-round", controllers.Wrap(controllers.AdvanceRound))
+	r.GET("/games/:id/score-summary", controllers.Wrap(controllers.GetScoreSummary))
+	r.GET("/games/:id/scores-by-round", controllers.Wrap(controllers.GetScoresByRound))
+	r.GET("/games/:id", controllers.Wrap(controllers.GetGameByID))
+	r.GET("/games/:id/objectives", controllers.Wrap(controllers.GetGameObjectives))
+	r.GET("/objectives/secrets/all", controllers.Wrap(controllers.GetAllSecretObjectives))
+	r.POST("/assign_objective", controllers.Wrap(controllers.AssignObjective))
+	r.GET("/objectives/public/all", controllers.Wrap(controllers.GetAllPublicObjectives))
+	r.GET("/api/games/:id/exists", controllers.Wrap(controllers.GetGameExists))
+	r.POST("/game/:id/randomise-speaker", controllers.Wrap(controllers.RandomiseSpeaker))
+	r.POST("/games/:game_id/speaker", controllers.Wrap(controllers.PostAssignSpeaker))
 
 	//scoring
-	r.POST("/score", controllers.AddScore)
-	r.POST("/score/imperial", controllers.ScoreImperialPoint)
-	r.POST("/score/mecatol", controllers.ScoreMecatolPoint)
-	r.POST("/score/imperial-rider", controllers.ScoreImperialRiderPoint)
-	r.GET("/games/:id/objectives/scores", controllers.GetObjectiveScoreSummary)
-	r.POST("/unscore", controllers.DeleteScore)
+	r.POST("/score", controllers.Wrap(controllers.AddScore))
+	r.POST("/score/imperial", controllers.Wrap(controllers.ScoreImperialPoint))
+	r.POST("/score/mecatol", controllers.Wrap(controllers.ScoreMecatolPoint))
+	r.POST("/score/imperial-rider", controllers.Wrap(controllers.ScoreImperialRiderPoint))
+	r.GET("/games/:id/objectives/scores", controllers.Wrap(controllers.GetObjectiveScoreSummary))
+	r.POST("/unscore", controllers.Wrap(controllers.DeleteScore))
 
 	//expose factions to API
-	r.GET("/api/factions", controllers.GetFactions)
+	r.GET("/api/factions", controllers.Wrap(controllers.GetFactions))
 
 	//agendas
 	r.POST("/agenda/mutiny", controllers.ResolveMutinyAgenda)
@@ -94,12 +102,12 @@ func main() {
 	r.POST("/agenda/incentive-program", controllers.HandleIncentiveProgram)
 
 	//relics
-	r.POST("/relic/shard", controllers.HandleShardRelic)
-	r.POST("/relic/crown", controllers.HandleCrownRelic)
-	r.POST("/relic/obsidian", controllers.HandleObsidianRelic)
+	r.POST("/relic/shard", controllers.Wrap(controllers.HandleShardRelic))
+	r.POST("/relic/crown", controllers.Wrap(controllers.HandleCrownRelic))
+	r.POST("/relic/obsidian", controllers.Wrap(controllers.HandleObsidianRelic))
 
-	r.POST("/games/:game_id/support/:player_id", controllers.SFTT)
-	r.GET("/stats/overview", controllers.GetStatsOverview)
+	r.POST("/games/:game_id/support/:player_id", controllers.Wrap(controllers.SFTT))
+	r.GET("/stats/overview", controllers.Wrap(controllers.GetStatsOverview))
 
 	// Serve static frontend files from /build
 	r.Static("/static", "./build/static") // serve JS/CSS etc.
@@ -108,8 +116,13 @@ func main() {
 	r.GET("/", func(c *gin.Context) {
 		c.File("./build/index.html")
 	})
-	// achievements (read)
+
 	r.GET("/games/:id/achievements", controllers.Wrap(controllers.GetGameAchievements))
+	// In your router setup
+	r.GET("/achievements", controllers.Wrap(controllers.GetGlobalAchievements))
+
+	//swagger
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// For any unmatched route (client side routing), serve index.html
 	r.NoRoute(func(c *gin.Context) {
