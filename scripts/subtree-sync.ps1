@@ -1,14 +1,10 @@
-# scripts/subtree-sync.ps1
-# Usage examples:
-#   pwsh scripts/subtree-sync.ps1                 # default: sync (pull then push)
-#   pwsh scripts/subtree-sync.ps1 -Action pull    # only pull
-#   pwsh scripts/subtree-sync.ps1 -Action push    # only push
-#   pwsh scripts/subtree-sync.ps1 -Squash         # use --squash on pulls (if you used --squash on add)
-
 param(
   [ValidateSet("pull","push","sync")]
-  [string]$Action = "sync",
-  [switch]$Squash
+  [string]$Action = "sync",                # pull from TI4-stats & ti4-frontend, then push to ti4-tracker
+  [switch]$Squash,                         # use --squash on pulls (if you originally added with --squash)
+  [switch]$AutoStash,                      # auto-stash uncommitted changes
+  [string]$MonorepoRemote = "origin",      # where to push (ti4-tracker)
+  [string]$MonorepoBranch = ""             # default: current branch
 )
 
 $ErrorActionPreference = "Stop"
@@ -16,53 +12,72 @@ $ErrorActionPreference = "Stop"
 function Ensure-Clean-Tree {
   $status = (git status --porcelain)
   if ($status) {
+    if ($AutoStash) {
+      Write-Host "Working tree dirty; auto-stashing..."
+      git stash push -u -m "subtree-sync autostash $(Get-Date -Format s)" | Out-Null
+      return $true
+    }
     throw "Working tree has modifications. Commit or stash before running sync.`n`n$status"
   }
+  return $false
 }
 
 function Repo-Map {
   @(
-    @{ Prefix="backend";  Remote="backend-remote";  Branch="main" }
-    @{ Prefix="frontend"; Remote="frontend-remote"; Branch="main" }
+    [pscustomobject]@{ Prefix="backend";  Remote="backend-remote";  Branch="main" }     # TI4-stats
+    [pscustomobject]@{ Prefix="frontend"; Remote="frontend-remote"; Branch="main" }     # ti4-frontend
   )
 }
 
-function Pull-One($r) {
-  $argSquash = @()
-  if ($Squash) { $argSquash += "--squash" }
-  Write-Host "==> Pulling $($r.Prefix) from $($r.Remote)/$($r.Branch) ..."
-  git subtree pull --prefix=$r.Prefix $r.Remote $r.Branch @argSquash
+function Ensure-Subtree($r) {
+  # If path has no history in git, (re-)add it as a subtree
+  $hasHistory = (git rev-list -1 HEAD -- $r.Prefix 2>$null).Trim()
+  if (-not $hasHistory) {
+    if (Test-Path -LiteralPath $r.Prefix) {
+      # Subtree add demands the prefix not exist; remove empty dir if present
+      try { Remove-Item -LiteralPath $r.Prefix -Recurse -Force -ErrorAction Stop } catch {}
+    }
+    $args = @("subtree","add","--prefix=$($r.Prefix)", $r.Remote, $r.Branch)
+    if ($Squash) { $args += "--squash" }
+    Write-Host "==> Adding subtree $($r.Prefix) from $($r.Remote)/$($r.Branch) ..."
+    git @args
+  }
 }
 
-function Push-One($r) {
-  $stamp = Get-Date -Format "yyyyMMdd-HHmmss"
-  $tmpBranch = "$($r.Prefix)-split-$stamp"
-  $remoteBranch = "monorepo-sync/$($r.Prefix)-$stamp"
+function Pull-One($r) {
+  Ensure-Subtree $r
+  $args = @("subtree","pull","--prefix=$($r.Prefix)", $r.Remote, $r.Branch)
+  if ($Squash) { $args += "--squash" }
+  Write-Host "==> Pulling $($r.Prefix) from $($r.Remote)/$($r.Branch) ..."
+  git @args
+}
 
-  Write-Host "==> Splitting $($r.Prefix) into $tmpBranch ..."
-  git subtree split --prefix=$($r.Prefix) -b $tmpBranch
-
-  Write-Host "==> Pushing $tmpBranch to $($r.Remote):$remoteBranch ..."
-  git push $r.Remote "$tmpBranch`:$remoteBranch"
-
-  Write-Host "==> Cleaning up $tmpBranch ..."
-  git branch -D $tmpBranch
+function Push-Monorepo($remote, $branch) {
+  if (-not $branch) {
+    $branch = (git rev-parse --abbrev-ref HEAD).Trim()
+  }
+  if (-not $branch -or $branch -eq "HEAD") {
+    throw "Cannot determine current branch. Set -MonorepoBranch explicitly."
+  }
+  Write-Host "==> Pushing monorepo branch '$branch' to '$remote' ..."
+  git push $remote "HEAD:refs/heads/$branch"
 }
 
 # ----- main -----
-Set-Location (Split-Path -Parent $MyInvocation.MyCommand.Path) # /scripts
-Set-Location ..  # repo root: C:\Users\Ross\GitPROJ\ti4-tracker
+Set-Location (Split-Path -Parent $MyInvocation.MyCommand.Path)  # /scripts
+Set-Location ..
 
-# Optional: write a log
-$logDir = "scripts\logs"
-if (-not (Test-Path $logDir)) { New-Item -Type Directory $logDir | Out-Null }
-$logFile = Join-Path $logDir ("subtree-sync-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".log")
+git fetch --all
+
+$didStash = Ensure-Clean-Tree
+
+# Log outside repo so we don't dirty the tree
+$logRoot = Join-Path $env:LOCALAPPDATA "ti4-tracker\logs"
+New-Item -Type Directory -Path $logRoot -ErrorAction SilentlyContinue | Out-Null
+$logFile = Join-Path $logRoot ("subtree-sync-" + (Get-Date -Format "yyyyMMdd-HHmmss") + ".log")
 Start-Transcript -Path $logFile | Out-Null
 
 try {
-  git fetch --all
-  Ensure-Clean-Tree
-
   $repos = Repo-Map
 
   if ($Action -in @("pull","sync")) {
@@ -70,7 +85,7 @@ try {
   }
 
   if ($Action -in @("push","sync")) {
-    foreach ($r in $repos) { Push-One $r }
+    Push-Monorepo -remote $MonorepoRemote -branch $MonorepoBranch
   }
 
   Write-Host "✅ Done."
@@ -81,4 +96,8 @@ catch {
 }
 finally {
   Stop-Transcript | Out-Null
+  if ($didStash) {
+    Write-Host "Restoring stashed changes..."
+    git stash pop | Out-Null
+  }
 }
