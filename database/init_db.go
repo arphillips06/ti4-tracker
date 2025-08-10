@@ -27,7 +27,7 @@ func InitDatabase() {
 		log.Fatal("Failed to connect to database (gorm):", err)
 	}
 
-	// Automigrate your models
+	// Automigrate models
 	err = DB.AutoMigrate(
 		&models.Game{},
 		&models.Player{},
@@ -37,6 +37,8 @@ func InitDatabase() {
 		&models.GameObjective{},
 		&models.ObjectiveDeck{},
 		&models.SpeakerAssignment{},
+		&models.Achievement{},
+		&models.PlayerAchievement{},
 	)
 	if err != nil {
 		log.Fatal("Failed to migrate database:", err)
