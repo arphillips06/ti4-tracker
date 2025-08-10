@@ -1,0 +1,106 @@
+/* graphs.css */
+
+/* Chart wrapper */
+.graph-container {
+  margin-bottom: 2rem;
+}
+
+/* Section title */
+.chart-section-title {
+  font-size: 1.25rem !important; 
+  color: #f4d35e !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* Bar chart area */
+.graph-bar-container {
+  height: 300px;
+  overflow: hidden;
+  transition: height 0.3s ease;
+}
+
+.graph-bar-container-large {
+  height: 600px;
+  overflow-y: auto;
+}
+
+/* Toggle button row */
+.graph-toggle-buttons {
+  margin-top: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Small button override */
+.graph-button-sm {
+  font-size: 0.8rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Table styling */
+.graph-table {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.graph-table th {
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.graph-table td,
+.graph-table th {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.styled-graph-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: 0.95rem;
+  color: #f1f1f1;
+}
+
+.styled-graph-table thead {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.styled-graph-table th,
+.styled-graph-table td {
+  padding: 0.6rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  cursor: default;
+}
+
+.styled-graph-table th {
+  cursor: pointer;
+  user-select: none;
+  font-weight: 600;
+}
+
+.styled-graph-table tr:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.chart-glass-container {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.15);
+}
+
+.chart-header {
+  font-size: 1.5rem;
+  font-family: 'Georgia', serif;
+  color: #f4d35e;
+  font-weight: bold;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  margin-bottom: 0.75rem;
+}

@@ -1,0 +1,23 @@
+.objective-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+
+.objective-break {
+  grid-column: 1 / -1;
+  height: 1px;
+}
+
+.text-readable {
+  text-shadow: 1px 1px 2px black;
+  color: #fff; 
+}
+
+.text-bg-overlay {
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 8px 12px;
+  border-radius: 6px;
+  color: #fff;
+}
