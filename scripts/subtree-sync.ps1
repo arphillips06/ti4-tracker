@@ -24,8 +24,8 @@ function Ensure-Clean-Tree {
 
 function Repo-Map {
   @(
-    [pscustomobject]@{ Prefix="backend";  Remote="backend-remote";  Branch="main" }     # TI4-stats
-    [pscustomobject]@{ Prefix="frontend"; Remote="frontend-remote"; Branch="main" }     # ti4-frontend
+    [pscustomobject]@{ Prefix="backend";  Remote="backend";  Branch="main" }   # TI4-stats
+    [pscustomobject]@{ Prefix="frontend"; Remote="frontend"; Branch="main" }  # ti4-frontend
   )
 }
 
