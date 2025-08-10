@@ -3,6 +3,7 @@ package helpers
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/models"
@@ -40,6 +41,43 @@ func HandleRequest[T any](c *gin.Context, handler func(input T) error) {
 		return
 	}
 	c.Status(http.StatusNoContent)
+}
+
+func HandleGetByID[Out any](param string, get func(id uint) (Out, error)) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		id64, err := strconv.ParseUint(c.Param(param), 10, 64)
+		if err != nil || id64 == 0 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid " + param})
+			return
+		}
+		out, err := get(uint(id64))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusOK, out)
+	}
+}
+
+func HandleAction(run func() (any, int, error)) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		res, status, err := run()
+		if err != nil {
+			if status == 0 {
+				status = http.StatusInternalServerError
+			}
+			c.JSON(status, gin.H{"error": err.Error()})
+			return
+		}
+		if status == 0 {
+			status = http.StatusOK
+		}
+		if res == nil {
+			c.Status(status)
+			return
+		}
+		c.JSON(status, res)
+	}
 }
 
 func GetTotalPoints(gameID, playerID uint) (int, error) {

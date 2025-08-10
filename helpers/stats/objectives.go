@@ -291,7 +291,7 @@ func CalculateObjectiveMetaStats() ([]models.ObjectiveMeta, error) {
 		metaMap[stat.Name] = models.ObjectiveMeta{
 			Name:         stat.Name,
 			Type:         stat.Type,
-			TimesScored:  stat.GamesScored, // ✅ now distinct games
+			TimesScored:  stat.GamesScored,
 			AverageRound: stat.AverageRound,
 		}
 	}
