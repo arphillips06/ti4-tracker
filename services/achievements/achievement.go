@@ -1,6 +1,8 @@
 // achievements/types.go
 package achievements
 
+import achievements_helper "github.com/arphillips06/TI4-stats/helpers/achievements"
+
 type Holder struct {
 	PlayerID uint  `json:"player_id"`
 	GameID   *uint `json:"game_id,omitempty"`
@@ -8,9 +10,17 @@ type Holder struct {
 }
 
 type Badge struct {
-	Key     string   `json:"key"`     // e.g. "most_points_in_round"
-	Label   string   `json:"label"`   // human label (optional)
-	Value   int      `json:"value"`   // e.g. 10 points, 4 rounds
-	Status  string   `json:"status"`  // "new" | "tied"
-	Holders []Holder `json:"holders"` // who achieved it (in this game)
+	Key     string                       `json:"key"`
+	Label   string                       `json:"label"`
+	Value   int                          `json:"value"`
+	Status  string                       `json:"status,omitempty"`
+	Holders []achievements_helper.Holder `json:"holders"`
+}
+
+type intVal struct{ Value *int }
+
+type roundTotal struct {
+	PlayerID uint
+	RoundID  uint
+	Total    int
 }

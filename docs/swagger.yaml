@@ -1,0 +1,1222 @@
+definitions:
+  controllers.RelicRequest:
+    properties:
+      game_id:
+        type: integer
+      player_id:
+        type: integer
+    type: object
+  controllers.ShardRequest:
+    properties:
+      game_id:
+        type: integer
+      new_holder_id:
+        type: integer
+    type: object
+  models.AgendaResolution:
+    properties:
+      for_votes:
+        items:
+          type: integer
+        type: array
+      game_id:
+        type: integer
+      result:
+        type: string
+      round_id:
+        type: integer
+    type: object
+  models.AssignObjectiveRequest:
+    properties:
+      game_id:
+        type: integer
+      objective_id:
+        type: integer
+      round_id:
+        type: integer
+    type: object
+  models.AssignPlayerInput:
+    properties:
+      faction:
+        type: string
+      game_id:
+        type: integer
+      player_id:
+        type: integer
+    type: object
+  models.ClassifiedDocumentLeaksRequest:
+    properties:
+      game_id:
+        type: integer
+      objective_id:
+        type: integer
+      player_id:
+        type: integer
+      round_id:
+        type: integer
+    type: object
+  models.CreateGameInput:
+    properties:
+      players:
+        items:
+          $ref: '#/definitions/models.PlayerInput'
+        type: array
+      speaker_id:
+        type: integer
+      use_objective_decks:
+        type: boolean
+      use_random_speaker:
+        type: boolean
+      winning_points:
+        type: integer
+    type: object
+  models.IncentiveProgramRequest:
+    properties:
+      game_id:
+        type: integer
+      outcome:
+        type: string
+    type: object
+  models.Player:
+    properties:
+      gameID:
+        type: integer
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  models.PlayerInput:
+    properties:
+      faction:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  models.PoliticalCensureRequest:
+    properties:
+      gained:
+        type: boolean
+      game_id:
+        type: integer
+      player_id:
+        type: integer
+      round_id:
+        type: integer
+    type: object
+  models.SeedOfEmpireResolution:
+    properties:
+      game_id:
+        type: integer
+      result:
+        description: '"for" or "against"'
+        type: string
+      round_id:
+        type: integer
+    type: object
+info:
+  contact: {}
+paths:
+  /agendas/classified-document-leaks:
+    post:
+      consumes:
+      - application/json
+      description: Selects a scored secret objective to become public; the scorer
+        keeps the point but loses a secret slot.
+      parameters:
+      - description: Game ID, player, and target secret objective
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ClassifiedDocumentLeaksRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Apply "Classified Document Leaks"
+      tags:
+      - agendas
+  /agendas/incentive-program:
+    post:
+      consumes:
+      - application/json
+      description: Grants 1 point to all players who voted with the outcome (for or
+        against).
+      parameters:
+      - description: Game ID and outcome
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.IncentiveProgramRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Apply "Incentive Program"
+      tags:
+      - agendas
+  /agendas/mutiny:
+    post:
+      consumes:
+      - application/json
+      description: Awards 1 point to players who voted "for" and finalizes the result.
+      parameters:
+      - description: Game and resolution context (if applicable)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.AgendaResolution'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Apply "Mutiny" agenda
+      tags:
+      - agendas
+  /agendas/political-censure:
+    post:
+      consumes:
+      - application/json
+      description: Bans the elected player from voting on the next agenda.
+      parameters:
+      - description: Game ID and elected player
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.PoliticalCensureRequest'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Apply "Political Censure" agenda
+      tags:
+      - agendas
+  /agendas/seed-of-empire:
+    post:
+      consumes:
+      - application/json
+      description: Grants a VP to the elected player and creates a public 1-point
+        objective for them.
+      parameters:
+      - description: Game ID and elected player
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.SeedOfEmpireResolution'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Apply "Seed of an Empire" agenda
+      tags:
+      - agendas
+  /factions:
+    get:
+      description: Returns all available factions.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List factions
+      tags:
+      - factions
+  /games:
+    get:
+      description: Returns all games with players and winner info.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List games
+      tags:
+      - games
+    post:
+      consumes:
+      - application/json
+      description: Creates a new game with players; can optionally generate objectives.
+      parameters:
+      - description: New game payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CreateGameInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: game, revealed
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a new game
+      tags:
+      - games
+  /games/{game_id}/advance-round:
+    post:
+      description: Advances the round; reveals a public objective unless none remain
+        (then ends the game).
+      parameters:
+      - description: Game ID
+        in: path
+        name: game_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Advance game round
+      tags:
+      - games
+  /games/{game_id}/players/{player_id}/sftt:
+    post:
+      consumes:
+      - application/json
+      description: Give or revoke Support for the Throne for a player in a game.
+      parameters:
+      - description: Game ID
+        in: path
+        name: game_id
+        required: true
+        type: string
+      - description: Player ID
+        in: path
+        name: player_id
+        required: true
+        type: string
+      - description: round_id, action (give|revoke)
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Support for the Throne
+      tags:
+      - scoring
+  /games/{game_id}/score:
+    post:
+      consumes:
+      - application/json
+      description: Marks a player as having scored a specific objective in a game.
+      parameters:
+      - description: Game ID
+        in: path
+        name: game_id
+        required: true
+        type: string
+      - description: game_id, player_id, objective_id
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Score an objective
+      tags:
+      - scoring
+  /games/{game_id}/speaker:
+    post:
+      consumes:
+      - application/json
+      description: Assigns a speaker (initial or current) for a specific round.
+      parameters:
+      - description: Game ID
+        in: path
+        name: game_id
+        required: true
+        type: string
+      - description: player_id, round_id, is_initial
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Assign speaker
+      tags:
+      - games
+  /games/{id}:
+    get:
+      description: Returns detailed game state with objective-based scoring breakdown.
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get game detail
+      tags:
+      - games
+  /games/{id}/achievements:
+    get:
+      description: Computes and returns per-game achievements (only for finished,
+        non-partial games).
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: value, Count
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get achievements for a game
+      tags:
+      - games
+  /games/{id}/exists:
+    get:
+      description: 'Returns {"exists": true|false}.'
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: boolean
+            type: object
+      summary: Check game exists
+      tags:
+      - games
+  /games/{id}/objectives:
+    get:
+      description: Returns all public objectives for a game, including stage and round.
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get game public objectives
+      tags:
+      - games
+  /games/{id}/players:
+    get:
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List players in a game
+      tags:
+      - players
+  /games/{id}/scores/objectives/summary:
+    get:
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Objective score summary for a game
+      tags:
+      - scoring
+      - games
+  /games/{id}/speaker/randomise:
+    post:
+      description: Randomly selects a speaker for the game.
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: speaker_id, speaker_name
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Randomise speaker
+      tags:
+      - games
+  /games/assign-objective:
+    post:
+      consumes:
+      - application/json
+      description: Admin action to attach an objective to a specific game round.
+      parameters:
+      - description: Assignment payload
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.AssignObjectiveRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Manually assign a public objective to a round
+      tags:
+      - games
+  /games/assign-player:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Game ID, Player ID, Faction
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.AssignPlayerInput'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: game_player
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Assign player to game
+      tags:
+      - players
+      - games
+  /objectives/secret:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List secret objectives
+      tags:
+      - objectives
+  /players:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List players
+      tags:
+      - players
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Player (name required)
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.Player'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create player
+      tags:
+      - players
+  /players/{id}/games:
+    get:
+      parameters:
+      - description: Player ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: player, games
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get a player's games
+      tags:
+      - players
+  /players/{id}/scores/by-round:
+    get:
+      parameters:
+      - description: Player ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Player scores by round
+      tags:
+      - scoring
+      - players
+  /players/{id}/scores/summary:
+    get:
+      parameters:
+      - description: Player ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Player score summary
+      tags:
+      - scoring
+      - players
+  /relics/crown:
+    post:
+      consumes:
+      - application/json
+      description: Grants 1 point to the specified player (one-time effect).
+      parameters:
+      - description: Game ID and player ID
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.RelicRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Apply "Crown of Emphidia"
+      tags:
+      - relics
+  /relics/obsidian:
+    post:
+      consumes:
+      - application/json
+      description: Allows a player to score one additional secret objective this game.
+      parameters:
+      - description: Game ID and player ID
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.RelicRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Apply "The Obsidian"
+      tags:
+      - relics
+  /relics/shard:
+    post:
+      consumes:
+      - application/json
+      description: Transfers Shard; grants a point to new holder and removes from
+        previous holder if applicable.
+      parameters:
+      - description: Game ID and new holder ID
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.ShardRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update "Shard of the Throne" holder
+      tags:
+      - relics
+  /score:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: game_id, player_id, objective_id
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a scored objective
+      tags:
+      - scoring
+  /score/imperial:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: game_id, player_id, round_id
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Score Imperial point
+      tags:
+      - scoring
+  /score/imperial-rider:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: game_id, round_id, player_id
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Score Imperial Rider point
+      tags:
+      - scoring
+  /score/mecatol:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: game_id, player_id, round_id
+        in: body
+        name: body
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Score Custodians (Mecatol) point
+      tags:
+      - scoring
+  /stats/overview:
+    get:
+      description: Returns headline stats plus Custodians (Mecatol) stats per player.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Stats overview
+      tags:
+      - stats
+swagger: "2.0"

@@ -7,19 +7,33 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ServeObjectives(c *gin.Context, objType string) {
+func serveObjectives(objType string) (int, any, error) {
 	objs, err := services.GetObjectivesByType(objType)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to load " + objType + " objectives"})
-		return
+		return http.StatusInternalServerError, gin.H{"error": "Failed to load " + objType + " objectives"}, nil
 	}
-	c.JSON(http.StatusOK, objs)
+	return http.StatusOK, objs, nil
 }
 
-func GetAllSecretObjectives(c *gin.Context) {
-	ServeObjectives(c, "Secret")
+// GetAllSecretObjectives godoc
+// @Summary      List secret objectives
+// @Tags         objectives
+// @Produce      json
+// @Success      200  {array}   map[string]interface{}
+// @Failure      500  {object}  map[string]string  "error"
+// @Router       /objectives/secret [get]
+func GetAllSecretObjectives(c *gin.Context) (int, any, error) {
+	return serveObjectives("Secret")
 }
 
-func GetAllPublicObjectives(c *gin.Context) {
-	ServeObjectives(c, "Public")
+// GetAllPublicObjectives godoc
+// @Summary      List public objectives
+// @Tags         objectives
+// @Produce      json
+// @Success      200  {array}   map[string]interface{}
+// @Failure      500  {object}  map[string]string  "error"
+// @Router       /objectives/public [get]
+
+func GetAllPublicObjectives(c *gin.Context) (int, any, error) {
+	return serveObjectives("Public")
 }
