@@ -5,12 +5,12 @@ export default function Home() {
   const navigate = useNavigate();
   const [gameId, setGameId] = useState("");
 
-const handleGoToGame = () => {
-  const trimmed = gameId.trim();
-  if (!trimmed || !/^\d+$/.test(trimmed)) return;
+  const handleGoToGame = () => {
+    const trimmed = gameId.trim();
+    if (!trimmed || !/^\d+$/.test(trimmed)) return;
 
-  navigate(`/games/${trimmed}`);
-};
+    navigate(`/games/${trimmed}`);
+  };
 
   return (
     <div className="container text-center p-4">
@@ -32,6 +32,10 @@ const handleGoToGame = () => {
         <Link to="/stats" className="btn btn-primary btn-lg">
           View Game Stats
         </Link>
+        <Link to="/achievements" className="btn btn-primary btn-lg">
+          View Achievements
+        </Link>
+
       </div>
       {/* New section for quick game jump */}
       <div className="mt-5">
