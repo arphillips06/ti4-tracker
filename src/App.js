@@ -9,6 +9,7 @@ import Home from './pages/Home';
 import GameList from './pages/GameList';
 import NewGamePage from './pages/NewGamePage';
 import GameDetail from './pages/GameDetail';
+import Achievements from './pages/Achievements';
 
 function App() {
   const backgroundStyle = {
@@ -31,6 +32,7 @@ function App() {
           <Route path="/new-game" element={<NewGamePage />} />
           <Route path="/games/:gameId" element={<GameDetail />} />
           <Route path="/stats" element={<StatsOverview />} />
+          <Route path="/achievements" element={<Achievements />} />
         </Routes>
       </Router>
     </div>
