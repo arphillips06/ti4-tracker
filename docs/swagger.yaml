@@ -70,11 +70,109 @@ definitions:
       winning_points:
         type: integer
     type: object
+  models.Game:
+    properties:
+      created_at:
+        type: string
+      current_round:
+        type: integer
+      finished_at:
+        type: string
+      game_objectives:
+        items:
+          $ref: '#/definitions/models.GameObjective'
+        type: array
+      id:
+        type: integer
+      partial:
+        type: boolean
+      players:
+        items:
+          $ref: '#/definitions/models.GamePlayer'
+        type: array
+      rounds:
+        items:
+          $ref: '#/definitions/models.Round'
+        type: array
+      speaker:
+        $ref: '#/definitions/models.Player'
+      speaker_id:
+        type: integer
+      speakerAssignments:
+        items:
+          $ref: '#/definitions/models.SpeakerAssignment'
+        type: array
+      startingSpeakerID:
+        type: integer
+      use_objective_decks:
+        type: boolean
+      winner:
+        $ref: '#/definitions/models.Player'
+      winner_id:
+        type: integer
+      winning_points:
+        type: integer
+    type: object
+  models.GameObjective:
+    properties:
+      GameID:
+        type: integer
+      ID:
+        type: integer
+      IsCDL:
+        type: boolean
+      Objective:
+        $ref: '#/definitions/models.Objective'
+      ObjectiveID:
+        type: integer
+      Round:
+        $ref: '#/definitions/models.Round'
+      RoundID:
+        type: integer
+      Stage:
+        type: string
+      position:
+        type: integer
+      revealed:
+        type: boolean
+    type: object
+  models.GamePlayer:
+    properties:
+      faction:
+        type: string
+      gameID:
+        type: integer
+      id:
+        type: integer
+      player:
+        $ref: '#/definitions/models.Player'
+      playerID:
+        type: integer
+      won:
+        type: boolean
+    type: object
   models.IncentiveProgramRequest:
     properties:
       game_id:
         type: integer
       outcome:
+        type: string
+    type: object
+  models.Objective:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      phase:
+        type: string
+      points:
+        type: integer
+      stage:
+        type: string
+      type:
         type: string
     type: object
   models.Player:
@@ -106,6 +204,51 @@ definitions:
       round_id:
         type: integer
     type: object
+  models.Round:
+    properties:
+      gameID:
+        type: integer
+      id:
+        type: integer
+      number:
+        type: integer
+      scores:
+        items:
+          $ref: '#/definitions/models.Score'
+        type: array
+    type: object
+  models.Score:
+    properties:
+      agendaTitle:
+        type: string
+      created_at:
+        type: string
+      gameID:
+        type: integer
+      id:
+        type: integer
+      objective:
+        $ref: '#/definitions/models.Objective'
+      objectiveID:
+        type: integer
+      originallySecret:
+        type: boolean
+      player:
+        $ref: '#/definitions/models.Player'
+      playerID:
+        type: integer
+      points:
+        type: integer
+      relicTitle:
+        type: string
+      round:
+        $ref: '#/definitions/models.Round'
+      roundID:
+        type: integer
+      type:
+        description: e.g. objective, imperial, support
+        type: string
+    type: object
   models.SeedOfEmpireResolution:
     properties:
       game_id:
@@ -116,9 +259,47 @@ definitions:
       round_id:
         type: integer
     type: object
+  models.SpeakerAssignment:
+    properties:
+      game:
+        $ref: '#/definitions/models.Game'
+      gameID:
+        type: integer
+      id:
+        type: integer
+      player:
+        $ref: '#/definitions/models.Player'
+      playerID:
+        type: integer
+      round:
+        $ref: '#/definitions/models.Round'
+      roundID:
+        type: integer
+    type: object
 info:
   contact: {}
 paths:
+  /achievements:
+    get:
+      description: Returns current records across all finished, non-partial games,
+        including all holders for each record.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: value, Count
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Global achievements (records)
+      tags:
+      - achievements
   /agendas/classified-document-leaks:
     post:
       consumes:
@@ -311,6 +492,11 @@ paths:
   /games:
     get:
       description: Returns all games with players and winner info.
+      parameters:
+      - description: Search query (e.g., 'winner:Alice', 'player:Bob')
+        in: query
+        name: search
+        type: string
       produces:
       - application/json
       responses:
@@ -318,8 +504,7 @@ paths:
           description: OK
           schema:
             items:
-              additionalProperties: true
-              type: object
+              $ref: '#/definitions/models.Game'
             type: array
         "500":
           description: error
