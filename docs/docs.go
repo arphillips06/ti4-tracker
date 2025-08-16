@@ -15,6 +15,36 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/achievements": {
+            "get": {
+                "description": "Returns current records across all finished, non-partial games, including all holders for each record.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "achievements"
+                ],
+                "summary": "Global achievements (records)",
+                "responses": {
+                    "200": {
+                        "description": "value, Count",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/agendas/classified-document-leaks": {
             "post": {
                 "description": "Selects a scored secret objective to become public; the scorer keeps the point but loses a secret slot.",
@@ -309,14 +339,21 @@ const docTemplate = `{
                     "games"
                 ],
                 "summary": "List games",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Search query (e.g., 'winner:Alice', 'player:Bob')",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "type": "array",
                             "items": {
-                                "type": "object",
-                                "additionalProperties": true
+                                "$ref": "#/definitions/models.Game"
                             }
                         }
                     },
@@ -1787,6 +1824,129 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Game": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "current_round": {
+                    "type": "integer"
+                },
+                "finished_at": {
+                    "type": "string"
+                },
+                "game_objectives": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.GameObjective"
+                    }
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "partial": {
+                    "type": "boolean"
+                },
+                "players": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.GamePlayer"
+                    }
+                },
+                "rounds": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Round"
+                    }
+                },
+                "speaker": {
+                    "$ref": "#/definitions/models.Player"
+                },
+                "speakerAssignments": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.SpeakerAssignment"
+                    }
+                },
+                "speaker_id": {
+                    "type": "integer"
+                },
+                "startingSpeakerID": {
+                    "type": "integer"
+                },
+                "use_objective_decks": {
+                    "type": "boolean"
+                },
+                "winner": {
+                    "$ref": "#/definitions/models.Player"
+                },
+                "winner_id": {
+                    "type": "integer"
+                },
+                "winning_points": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.GameObjective": {
+            "type": "object",
+            "properties": {
+                "GameID": {
+                    "type": "integer"
+                },
+                "ID": {
+                    "type": "integer"
+                },
+                "IsCDL": {
+                    "type": "boolean"
+                },
+                "Objective": {
+                    "$ref": "#/definitions/models.Objective"
+                },
+                "ObjectiveID": {
+                    "type": "integer"
+                },
+                "Round": {
+                    "$ref": "#/definitions/models.Round"
+                },
+                "RoundID": {
+                    "type": "integer"
+                },
+                "Stage": {
+                    "type": "string"
+                },
+                "position": {
+                    "type": "integer"
+                },
+                "revealed": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.GamePlayer": {
+            "type": "object",
+            "properties": {
+                "faction": {
+                    "type": "string"
+                },
+                "gameID": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "player": {
+                    "$ref": "#/definitions/models.Player"
+                },
+                "playerID": {
+                    "type": "integer"
+                },
+                "won": {
+                    "type": "boolean"
+                }
+            }
+        },
         "models.IncentiveProgramRequest": {
             "type": "object",
             "properties": {
@@ -1794,6 +1954,32 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "outcome": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.Objective": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phase": {
+                    "type": "string"
+                },
+                "points": {
+                    "type": "integer"
+                },
+                "stage": {
+                    "type": "string"
+                },
+                "type": {
                     "type": "string"
                 }
             }
@@ -1843,6 +2029,74 @@ const docTemplate = `{
                 }
             }
         },
+        "models.Round": {
+            "type": "object",
+            "properties": {
+                "gameID": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "number": {
+                    "type": "integer"
+                },
+                "scores": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Score"
+                    }
+                }
+            }
+        },
+        "models.Score": {
+            "type": "object",
+            "properties": {
+                "agendaTitle": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "gameID": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "objective": {
+                    "$ref": "#/definitions/models.Objective"
+                },
+                "objectiveID": {
+                    "type": "integer"
+                },
+                "originallySecret": {
+                    "type": "boolean"
+                },
+                "player": {
+                    "$ref": "#/definitions/models.Player"
+                },
+                "playerID": {
+                    "type": "integer"
+                },
+                "points": {
+                    "type": "integer"
+                },
+                "relicTitle": {
+                    "type": "string"
+                },
+                "round": {
+                    "$ref": "#/definitions/models.Round"
+                },
+                "roundID": {
+                    "type": "integer"
+                },
+                "type": {
+                    "description": "e.g. objective, imperial, support",
+                    "type": "string"
+                }
+            }
+        },
         "models.SeedOfEmpireResolution": {
             "type": "object",
             "properties": {
@@ -1854,6 +2108,32 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "round_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.SpeakerAssignment": {
+            "type": "object",
+            "properties": {
+                "game": {
+                    "$ref": "#/definitions/models.Game"
+                },
+                "gameID": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "player": {
+                    "$ref": "#/definitions/models.Player"
+                },
+                "playerID": {
+                    "type": "integer"
+                },
+                "round": {
+                    "$ref": "#/definitions/models.Round"
+                },
+                "roundID": {
                     "type": "integer"
                 }
             }

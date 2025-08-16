@@ -17,7 +17,7 @@ import (
 // @Description  Returns all games with players and winner info.
 // @Tags         games
 // @Produce      json
-// @Param        search  query     string  false  "Search query (e.g., 'winner=Alice', 'player=Bob')"
+// @Param        search  query     string  false  "Search query (e.g., 'winner:Alice', 'player:Bob')"
 // @Success      200     {array}   models.Game
 // @Failure      500     {object}  map[string]string  "error"
 // @Router       /games [get]

@@ -78,10 +78,11 @@ func globalFastestWin(db *gorm.DB) (Badge, bool, error) {
 
 func globalMostPointsInRound(db *gorm.DB) (Badge, bool, error) {
 	perRoundTotals := db.Model(&models.Score{}).
-		Select("scores.game_id, scores.player_id, scores.round_id, SUM(scores.points) AS total").
+		Select("scores.game_id, scores.player_id, r.number AS round_id, SUM(scores.points) AS total").
 		Joins("JOIN games ON games.id = scores.game_id").
+		Joins("JOIN rounds r ON r.id = scores.round_id").
 		Where("games.partial = FALSE AND games.finished_at IS NOT NULL").
-		Group("scores.game_id, scores.player_id, scores.round_id")
+		Group("scores.game_id, scores.player_id, r.number")
 
 	var max struct{ Value *int }
 	if err := db.Table("(?) t", perRoundTotals).
