@@ -113,10 +113,11 @@ func getAllTimeMinRounds(db *gorm.DB) (*int, error) {
 func getGameBestRoundTotals(db *gorm.DB, gameID uint) ([]roundTotal, error) {
 	var out []roundTotal
 	if err := db.Model(&models.Score{}).
-		Select("scores.player_id, scores.round_id, SUM(scores.points) AS total").
+		Select("scores.player_id, r.number AS round_id, SUM(scores.points) AS total").
 		Joins("JOIN games ON games.id = scores.game_id").
+		Joins("JOIN rounds r ON r.id = scores.round_id").
 		Where("scores.game_id = ? AND games.partial = FALSE", gameID).
-		Group("scores.player_id, scores.round_id").
+		Group("scores.player_id, r.number").
 		Having("SUM(scores.points) IS NOT NULL").
 		Order("total DESC").
 		Scan(&out).Error; err != nil {
@@ -127,10 +128,11 @@ func getGameBestRoundTotals(db *gorm.DB, gameID uint) ([]roundTotal, error) {
 
 func getAllTimeMaxRoundPoints(db *gorm.DB) (*int, error) {
 	perRoundTotals := db.Model(&models.Score{}).
-		Select("scores.game_id, scores.player_id, scores.round_id, SUM(scores.points) AS total").
+		Select("scores.game_id, scores.player_id, r.number AS round_id, SUM(scores.points) AS total").
 		Joins("JOIN games ON games.id = scores.game_id").
+		Joins("JOIN rounds r ON r.id = scores.round_id").
 		Where("games.partial = FALSE AND games.finished_at IS NOT NULL").
-		Group("scores.game_id, scores.player_id, scores.round_id")
+		Group("scores.game_id, scores.player_id, r.number")
 
 	var rec intVal
 	if err := db.Table("(?) t", perRoundTotals).
