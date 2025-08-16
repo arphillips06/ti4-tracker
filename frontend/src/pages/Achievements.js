@@ -1,19 +1,16 @@
-
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import API_BASE_URL from "../config";
-import "./achievements.css";
+import "./stats.css";          // <— reuse your header/nav styles
+import "./achievements.css";   // <— page-specific card/modal styles
 
-/**
- * Renders records from GET /achievements
- * Also (best-effort) GET /players to resolve holder names.
- */
 export default function Achievements() {
   const [items, setItems] = useState([]);
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState();
   const [query, setQuery] = useState("");
-  const [sortBy, setSortBy] = useState("label"); // label | value | holders
+  const [sortBy, setSortBy] = useState("label");
   const [active, setActive] = useState(null);
 
   useEffect(() => {
@@ -27,7 +24,7 @@ export default function Achievements() {
         const json = await res.json();
         setItems(Array.isArray(json?.value) ? json.value : []);
 
-        // players is optional
+        // Optional: get names for holders
         try {
           const pr = await fetch(`${API_BASE_URL}/players`, { signal: ctrl.signal });
           if (pr.ok) {
@@ -66,94 +63,101 @@ export default function Achievements() {
   }, [items, query, sortBy]);
 
   return (
-    <div className="ach-page">
-      <div className="ach-page__inner">
-        <header className="ach-head">
-          <div>
-            <h1 className="ach-title">Achievements</h1>
-            <p className="ach-sub">Records and milestones pulled from <code>/achievements</code>.</p>
-          </div>
-          <div className="ach-ctrls">
-            <input
-              className="ach-input"
-              placeholder="Search achievements…"
-              value={query}
-              onChange={(e)=>setQuery(e.target.value)}
-            />
-            <label className="ach-field">
-              <span className="ach-label">Sort</span>
-              <select className="ach-select" value={sortBy} onChange={(e)=>setSortBy(e.target.value)}>
-                <option value="label">By name</option>
-                <option value="value">By value</option>
-                <option value="holders">By # holders</option>
-              </select>
-            </label>
-          </div>
-        </header>
+    <div className="p-4">
+      <h1 className="mb-4">Twilight Imperium Stats</h1>
 
-        {loading && <div className="ach-skel" />}
-        {error && <div className="ach-error">Error: {String(error)}</div>}
+      <div className="stats-nav mb-4">
+        <Link to="/" className="nav-btn">Home</Link>
+        <button className="active" disabled>Achievements</button>
+      </div>
 
-        {!loading && !error && (
-          <section className="ach-grid">
-            {filtered.map((a) => (
-              <article className="ach-card" key={a.key}>
-                <div className="ach-top">
-                  <div className="ach-icon" aria-hidden>{iconFor(a.key)}</div>
-                  <div>
-                    <h3 className="ach-card__title">{a.label}</h3>
-                    <div className="ach-tags">
-                      <span className={`ach-tag ${a.status === 'record' ? 'ach-tag--ok' : ''}`}>{(a.status||'STATUS').toUpperCase()}</span>
-                      <span className="ach-tag ach-tag--warn">Value: {a.value}</span>
-                    </div>
+      <h2 className="section-title mb-3">Achievements</h2>
+
+      <div className="ach-toolbar mb-3">
+        <input
+          className="ach-input"
+          placeholder="Search achievements…"
+          value={query}
+          onChange={(e)=>setQuery(e.target.value)}
+        />
+        <label className="ach-field">
+          <span className="ach-label">Sort</span>
+          <select className="ach-select" value={sortBy} onChange={(e)=>setSortBy(e.target.value)}>
+            <option value="label">By name</option>
+            <option value="value">By value</option>
+            <option value="holders">By # holders</option>
+          </select>
+        </label>
+      </div>
+
+      {loading && <div className="ach-skel" />}
+      {error && <div className="ach-error alert alert-danger mt-3">Error: {String(error)}</div>}
+
+      {!loading && !error && (
+        <section className="ach-grid">
+          {filtered.map((a) => (
+            <article className="ach-card" key={a.key}>
+              <div className="ach-top">
+                <div>
+                  <h3 className="ach-card__title">{a.label}</h3>
+                  <div className="ach-tags">
+                    <span className={`ach-tag ${a.status === 'record' ? 'ach-tag--ok' : ''}`}>
+                      {(a.status||'STATUS').toUpperCase()}
+                    </span>
+                    <span className="ach-tag ach-tag--warn">Value: {a.value}</span>
                   </div>
                 </div>
-                <div className="ach-card__body">Key: <code>{a.key}</code></div>
-                <div className="ach-foot">
-                  <small className="ach-dim">Holders: {a.holders?.length ?? 0}</small>
-                  <button className="ach-btn" onClick={()=>setActive(a)}>Details</button>
-                </div>
-              </article>
-            ))}
-          </section>
-        )}
-      </div>
+              </div>
+              <div className="ach-foot">
+                <small className="ach-dim">Holders: {a.holders?.length ?? 0}</small>
+                <button className="nav-btn" onClick={()=>setActive(a)}>Details</button>
+              </div>
+            </article>
+          ))}
+        </section>
+      )}
 
       {active && (
         <div className="ach-modal__backdrop" onClick={()=>setActive(null)}>
           <div className="ach-modal" onClick={(e)=>e.stopPropagation()}>
-            <div className="ach-top">
-              <div className="ach-icon" aria-hidden>{iconFor(active.key)}</div>
+            <div className="d-flex align-items-center justify-content-between mb-3">
               <div>
-                <h3 className="ach-card__title">{active.label}</h3>
-                <div className="ach-sub">{(active.status||'').toUpperCase()}</div>
+                <h3 className="ach-modal__title m-0">{active.label}</h3>
+                <div className="ach-modal__sub">{(active.status||'').toUpperCase()}</div>
               </div>
-              <button className="ach-btn ach-btn--ghost" onClick={()=>setActive(null)}>Close</button>
+              <button className="nav-btn" onClick={()=>setActive(null)}>Close</button>
             </div>
-            <div className="ach-modal__body">
-              <h4>Current Value</h4>
-              <p className="ach-kpi">{active.value}</p>
-              <h4>Holders</h4>
-              <ul className="ach-list">
-                {(active.holders ?? []).map((h, idx) => (
-                  <li key={idx} className="ach-list__item">
-                    <span className="ach-list__title">{playerNameById(h.player_id)}</span>
-                    <span className="ach-list__meta">Game #{h.game_id}{h.round_id ? ` · Round #${h.round_id}` : ''}</span>
-                  </li>
-                ))}
-              </ul>
+
+            <div className="mb-3">
+              <div className="text-gold fw-semibold">Current Value</div>
+              <div className="ach-kpi">{active.value}</div>
             </div>
+
+            <div className="text-gold fw-semibold mb-2">Holders</div>
+            <div className="table-responsive">
+              <table className="table table-dark table-striped table-bordered align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th style={{width: '40%'}}>Player</th>
+                    <th style={{width: '30%'}}>Game</th>
+                    <th style={{width: '30%'}}>Round</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(active.holders ?? []).map((h, idx) => (
+                    <tr key={idx}>
+                      <td className="fw-semibold">{playerNameById(h.player_id)}</td>
+                      <td>#{h.game_id}</td>
+                      <td>{h.round_id ? `#${h.round_id}` : "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
           </div>
         </div>
       )}
     </div>
   );
-}
-
-function iconFor(key) {
-  if (/fast|speed/i.test(key)) return "⚡";
-  if (/round/i.test(key)) return "🌀";
-  if (/point/i.test(key)) return "⭐";
-  if (/win/i.test(key)) return "🏆";
-  return "🎯";
 }
