@@ -8,6 +8,7 @@ type Achievement struct {
 	Name      string // e.g. "Fastest Win"
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	Type      string
 }
 
 type PlayerAchievement struct {
@@ -29,4 +30,10 @@ type AchievementBadge struct {
 	Value      *int   `json:"value"` // record value (rounds, points, count)
 	GameID     *uint  `json:"game_id,omitempty"`
 	RoundID    *uint  `json:"round_id,omitempty"`
+}
+
+var RecordLargestMargin = Achievement{
+	Key:  "record_largest_margin",
+	Name: "Record: Largest Win Margin",
+	Type: "record",
 }
