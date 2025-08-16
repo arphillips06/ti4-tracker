@@ -25,3 +25,39 @@
   background-color: gold;
   color: black;
 }
+.search-wrap { position: relative; }
+
+.help-popover {
+  position: absolute;
+  top: 110%;
+  left: 0;
+  z-index: 10;
+  min-width: 320px;
+  max-width: 420px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(20,20,28,0.95);
+  color: #fff;
+  font-size: 0.9rem;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity .12s ease, transform .12s ease;
+  white-space: normal;
+}
+
+/* show on hover OR keyboard focus */
+.search-input:hover + .help-popover,
+.search-input:focus + .help-popover,
+.search-wrap:focus-within .help-popover {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.help-popover code {
+  background: rgba(255,255,255,0.12);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
