@@ -3,6 +3,7 @@ package controllers
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/arphillips06/TI4-stats/database"
 	"github.com/arphillips06/TI4-stats/helpers"
@@ -16,10 +17,23 @@ import (
 // @Description  Returns all games with players and winner info.
 // @Tags         games
 // @Produce      json
-// @Success      200  {array}   map[string]interface{}
-// @Failure      500  {object}  map[string]string  "error"
+// @Param        search  query     string  false  "Search query (e.g., 'winner=Alice', 'player=Bob')"
+// @Success      200     {array}   models.Game
+// @Failure      500     {object}  map[string]string  "error"
 // @Router       /games [get]
 func ListGames(c *gin.Context) (int, any, error) {
+	if s := strings.TrimSpace(c.Query("search")); s != "" {
+		var games []models.Game
+
+		if err := listGamesWithSearch(s).
+			Preload("GamePlayers.Player").
+			Preload("Winner").
+			Find(&games).Error; err != nil {
+			return http.StatusInternalServerError, gin.H{"error": err.Error()}, nil
+		}
+		return http.StatusOK, games, nil
+	}
+
 	var games []models.Game
 	if err := database.DB.
 		Preload("GamePlayers.Player").
