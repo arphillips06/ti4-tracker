@@ -26,6 +26,11 @@ func ComputeGameAchievements(db *gorm.DB, gameID uint) ([]Badge, error) {
 	} else if yes {
 		out = append(out, b)
 	}
+	if b, yes, err := computeLargestWinMarginBadge(db, gameID); err != nil {
+		return nil, err
+	} else if yes {
+		out = append(out, b)
+	}
 
 	return out, nil
 }
@@ -134,4 +139,114 @@ func getAllTimeMaxRoundPoints(db *gorm.DB) (*int, error) {
 		return nil, err
 	}
 	return rec.Value, nil
+}
+
+func computeLargestWinMarginBadge(db *gorm.DB, gameID uint) (Badge, bool, error) {
+	rows, err := getGameFinalTotals(db, gameID)
+	if err != nil || len(rows) == 0 {
+		return Badge{}, false, err
+	}
+	currentMargin := 0
+	if len(rows) >= 2 {
+		currentMargin = rows[0].Total - rows[1].Total
+	} else {
+		currentMargin = rows[0].Total
+	}
+
+	recordMax, err := getAllTimeMaxWinningMargin(db)
+	if err != nil {
+		return Badge{}, false, err
+	}
+	status := achievements_helper.CompareMaxRecord(currentMargin, recordMax)
+
+	holders, err := achievements_helper.GetWinnerHolders(db, gameID)
+	if err != nil {
+		return Badge{}, false, err
+	}
+
+	return Badge{
+		Key:     "largest_win_margin",
+		Label:   "Largest Win Margin",
+		Value:   currentMargin,
+		Status:  status,
+		Holders: holders,
+	}, true, nil
+}
+
+type playerTotal struct {
+	PlayerID uint
+	Total    int
+}
+
+func getGameFinalTotals(db *gorm.DB, gameID uint) ([]playerTotal, error) {
+	var out []playerTotal
+	if err := db.Model(&models.Score{}).
+		Select("scores.player_id, SUM(scores.points) AS total").
+		Joins("JOIN games ON games.id = scores.game_id").
+		Where("scores.game_id = ? AND games.partial = FALSE", gameID).
+		Group("scores.player_id").
+		Having("SUM(scores.points) IS NOT NULL").
+		Order("total DESC").
+		Scan(&out).Error; err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func getAllTimeMaxWinningMargin(db *gorm.DB) (*int, error) {
+	type row struct {
+		GameID   uint
+		PlayerID uint
+		Total    int
+	}
+	var rows []row
+	if err := db.Model(&models.Score{}).
+		Select("scores.game_id, scores.player_id, SUM(scores.points) AS total").
+		Joins("JOIN games ON games.id = scores.game_id").
+		Where("games.partial = FALSE AND games.finished_at IS NOT NULL").
+		Group("scores.game_id, scores.player_id").
+		Having("SUM(scores.points) IS NOT NULL").
+		Order("scores.game_id ASC, total DESC").
+		Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	var maxMargin *int
+	var currentGame uint
+	var first, second *int
+	bump := func() {
+		if first == nil {
+			return
+		}
+		margin := *first
+		if second != nil {
+			margin = *first - *second
+		}
+		if maxMargin == nil || margin > *maxMargin {
+			maxMargin = &margin
+		}
+		first, second = nil, nil
+	}
+
+	for _, r := range rows {
+		if r.GameID != currentGame {
+			if currentGame != 0 {
+				bump()
+			}
+			currentGame = r.GameID
+		}
+		if first == nil {
+			v := r.Total
+			first = &v
+			continue
+		}
+		if second == nil {
+			v := r.Total
+			second = &v
+		}
+	}
+	if currentGame != 0 {
+		bump()
+	}
+	return maxMargin, nil
 }

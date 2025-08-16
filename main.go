@@ -118,7 +118,6 @@ func main() {
 	})
 
 	r.GET("/games/:id/achievements", controllers.Wrap(controllers.GetGameAchievements))
-	// In your router setup
 	r.GET("/achievements", controllers.Wrap(controllers.GetGlobalAchievements))
 
 	//swagger
