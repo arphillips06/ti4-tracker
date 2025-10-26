@@ -1,4 +1,3 @@
-// achievements/compute.go
 package achievements
 
 import (

@@ -170,13 +170,19 @@
 /* === Chart Glass Container === */
 .chart-glass-container {
   background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
   padding: 1rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  color: #f8f9fa;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 0 14px rgba(0,0,0,0.65) inset, 0 0 12px rgba(0,0,0,0.6);
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.9);
+
+  /* layout */
+  margin: 1rem auto;
+  max-width: 1100px;
+  overflow: hidden; /* lets rounded corners clip chart SVG */
 }
 
 /* === Recharts Styling === */
@@ -200,3 +206,8 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   margin-bottom: 0.75rem;
 }
+.chart-glass-container .recharts-cartesian-grid-horizontal line,
+.chart-glass-container .recharts-cartesian-grid-vertical line {
+  stroke: rgba(255,255,255,0.15);
+}
+.chart-glass-container text { fill: #f8f9fa; }

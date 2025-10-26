@@ -3,6 +3,15 @@ import "./PlayerInputRow.css";
 import colorNames from "../../data/colourNames";
 import factionImageMap from "../../data/factionIcons";
 
+const toKey = (s) => {
+  if (!s) return "";
+  return s
+    .toLowerCase()
+    .replace(/^the\s+/, "")        // drop leading "The"
+    .replace(/[\s\-']/g, "")       // remove spaces, hyphens, apostrophes
+    .replace(/[^a-z0-9]/g, "");    // strip any other punctuation
+};
+
 export default function PlayerInputRow({
   index,
   value,
@@ -16,8 +25,10 @@ export default function PlayerInputRow({
   const availableFactions = factions.filter(
     (f) => !selectedFactions.includes(f.key) || f.key === value.faction
   );
-  const factionIcon = value.faction
-    ? `/faction-icons/${factionImageMap[value.faction] || "default.webp"}`
+  const key = toKey(value.faction);
+  const file = factionImageMap[key];                // e.g., "MahactGeneSorcerers.webp"
+  const factionIcon = file
+    ? `${process.env.PUBLIC_URL || ""}/faction-icons/${file}`
     : null;
 
   const glowColor = value.color || "transparent";

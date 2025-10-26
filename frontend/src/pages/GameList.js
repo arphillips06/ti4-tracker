@@ -44,7 +44,7 @@ export default function GameList() {
     cancelRef.current = axios.CancelToken.source();
 
     try {
-      const url = new URL(`${API_BASE_URL}/games`);
+      const url = new URL(`${API_BASE_URL}/games`, window.location.origin);
       if (term.trim()) url.searchParams.set('search', term.trim());
       const res = await axios.get(url.toString(), { cancelToken: cancelRef.current.token });
       const gamesData = res.data || [];
@@ -100,9 +100,9 @@ export default function GameList() {
           />
           <div id="games-search-help" className="help-popover" role="tooltip">
             <div className="mb-1"><strong>Supported:</strong></div>
-            <div><code>winner:ross</code> · <code>player:alex</code> · <code>faction:nekro</code></div>
+            <div><code>w: - winner</code> · <code>p: - player</code> · <code>f: - faction</code></div>
             <div><code>rounds&gt;=8</code> · <code>after:2025-07-01</code> · <code>before:2025-08-01</code></div>
-            <div><code>agenda:"Seed of an Empire"</code> · <code>relic:shard</code> · <code>custodians:true</code></div>
+            <div><code>a: - agenda name</code> · <code>r: - relic name</code> · <code>c: - custodians true or false</code></div>
             <div>Free text matches title/notes.</div>
             <div className="mt-1"><em>Press Enter to search immediately.</em></div>
           </div>
@@ -136,7 +136,7 @@ export default function GameList() {
             return (
               <li className="card-glass mb-4 p-3" key={game.id}>
                 <div className="mb-2">
-                  <strong>Game #{game.id}</strong> –{" "}
+                  <strong>Game #{game.game_number}</strong> –{" "}
                   <span>{game.players?.length || 0} players</span> –{" "}
                   <span>Round {game.current_round ?? "?"}</span>
                 </div>

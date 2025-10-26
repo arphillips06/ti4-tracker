@@ -2,7 +2,9 @@
 
 /* Chart wrapper */
 .graph-container {
-  margin-bottom: 2rem;
+  margin: 1rem auto;
+  max-width: 900px; /* keep graphs nicely centered */
+  height: 100%;     /* allow full fill */
 }
 
 /* Section title */
@@ -39,68 +41,71 @@
 }
 
 /* Table styling */
-.graph-table {
-  margin-top: 1rem;
+.table-scroll { overflow-x: auto; }
+
+/* Let browser size columns naturally; we'll guide with min/widths */
+.stats-table {
+  table-layout: auto;
+  width: 100%;
+  border-collapse: collapse;
   font-size: 0.9rem;
 }
 
-.graph-table th {
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.graph-table td,
-.graph-table th {
-  text-align: center;
+/* Base cell sizing */
+.stats-table th,
+.stats-table td {
+  padding: 4px 6px;
   vertical-align: middle;
 }
 
-.styled-graph-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 8px;
-  overflow: hidden;
-  font-size: 0.95rem;
-  color: #f1f1f1;
-}
-
-.styled-graph-table thead {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.styled-graph-table th,
-.styled-graph-table td {
-  padding: 0.6rem 1rem;
+/* First column (objective name): readable wrapping + minimum width */
+.stats-table th.col-name,
+.stats-table td.col-name {
+  min-width: 220px;          /* prevents vertical text */
+  white-space: nowrap;       /* wrap on spaces */
+  word-break: keep-all;      /* don't split words into letters */
+  overflow-wrap: anywhere;   /* but allow long words to break if needed */
   text-align: left;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  cursor: default;
 }
 
-.styled-graph-table th {
+/* Numeric columns: keep on one line and centered */
+.stats-table th.num,
+.stats-table td.num {
+  white-space: nowrap;
+  text-align: center;
+}
+
+/* Suggested widths to help the browser (tweak as you like) */
+.stats-table th.col-stage   { width: 70px; }
+.stats-table th.col-games   { width: 110px; }
+.stats-table th.col-chances { width: 120px; }
+.stats-table th.col-scores  { width: 110px; }
+.stats-table th.col-adj     { width: 110px; }
+.stats-table th.col-diff    { width: 120px; }
+.stats-table th.col-avg     { width: 110px; }
+.stats-table th.col-median  { width: 130px; }
+.stats-table th.col-ci      { width: 140px; }
+
+/* Allow header text to wrap to two lines if needed */
+.stats-table th {
+  white-space: normal;
+  word-break: break-word;
+  user-select: none;        /* nice for clickable sort headers */
   cursor: pointer;
-  user-select: none;
-  font-weight: 600;
 }
 
-.styled-graph-table tr:hover {
-  background: rgba(255, 255, 255, 0.06);
+/* Responsive: hide less-critical columns as the screen shrinks */
+@media (max-width: 1100px) {
+  .stats-table th.col-ci,    .stats-table td.col-ci { display: none; }
 }
 
-.chart-glass-container {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  padding: 1rem 1.5rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 0 12px rgba(0, 0, 0, 0.15);
+@media (max-width: 900px) {
+  .stats-table th.col-avg,   .stats-table td.col-avg { display: none; }
+  .stats-table th.col-median,.stats-table td.col-median { display: none; }
 }
 
-.chart-header {
-  font-size: 1.5rem;
-  font-family: 'Georgia', serif;
-  color: #f4d35e;
-  font-weight: bold;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
-  margin-bottom: 0.75rem;
+/* (Optional) slightly tighter table at smaller widths */
+@media (max-width: 1200px) {
+  .stats-table { font-size: 0.92rem; }
+  .stats-table th, .stats-table td { padding: 6px 8px; }
 }

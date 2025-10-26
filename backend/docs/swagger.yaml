@@ -78,6 +78,8 @@ definitions:
         type: integer
       finished_at:
         type: string
+      game_number:
+        type: integer
       game_objectives:
         items:
           $ref: '#/definitions/models.GameObjective'
@@ -174,6 +176,100 @@ definitions:
         type: string
       type:
         type: string
+    type: object
+  models.ObjectiveDifficultyResponse:
+    properties:
+      filters:
+        additionalProperties:
+          type: string
+        description: |-
+          Echoed filters used to compute the response.
+          Example: {"stage":"I","minAppearances":"5","minOpportunities":"0"}
+        example:
+          '"minAppearances"': '"5"'
+          '"minOpportunities"': '"0"}'
+          '{"stage"': '"I"'
+        type: object
+      generated_at:
+        description: Timestamp when these stats were generated.
+        example: "2025-08-17T14:32:10Z"
+        format: date-time
+        type: string
+      rows:
+        description: Rows of per-objective difficulty metrics, sorted by difficulty
+          desc then adj_rate asc.
+        items:
+          $ref: '#/definitions/models.ObjectiveDifficultyRow'
+        type: array
+    type: object
+  models.ObjectiveDifficultyRow:
+    properties:
+      adj_rate:
+        description: Bayesian-adjusted scoring rate (alpha=2, beta=5).
+        example: 0.5714
+        type: number
+      appearances:
+        description: Number of distinct games in which this objective appeared (was
+          revealed).
+        example: 18
+        type: integer
+      avg_round:
+        description: Average round number when this objective was first scored in
+          a game.
+        example: 2.3
+        type: number
+      difficulty:
+        description: Difficulty as 1 - RawRate (higher is harder).
+        example: 0.4222
+        type: number
+      median_round:
+        description: Median round number when this objective was first scored in a
+          game.
+        example: 2
+        type: number
+      name:
+        description: Objective name as stored in the objectives table.
+        example: Expand Borders
+        type: string
+      objective_id:
+        description: Database ID of the objective.
+        example: 12
+        type: integer
+      opportunities:
+        description: |-
+          Total number of player-opportunities to score this objective
+          (sum of players in games where the objective appeared).
+        example: 90
+        type: integer
+      phase:
+        description: Phase in which the objective is scored (e.g., "Status").
+        example: Status
+        type: string
+      raw_rate:
+        description: Raw scoring rate S/O.
+        example: 0.5778
+        type: number
+      scores:
+        description: Total number of times players actually scored this objective.
+        example: 52
+        type: integer
+      stage:
+        description: |-
+          Objective stage.
+          Allowed values depend on your dataset; commonly "I", "II" (public objectives).
+        enum:
+        - I
+        - II
+        example: I
+        type: string
+      wilson_hi:
+        description: Wilson score interval (upper bound, 95% CI).
+        example: 0.68
+        type: number
+      wilson_lo:
+        description: Wilson score interval (lower bound, 95% CI).
+        example: 0.47
+        type: number
     type: object
   models.Player:
     properties:
@@ -724,6 +820,39 @@ paths:
       tags:
       - games
   /games/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Permanently deletes a game by its ID.
+      parameters:
+      - description: Game ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: status and deleted game ID
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete a game
+      tags:
+      - games
     get:
       description: Returns detailed game state with objective-based scoring breakdown.
       parameters:
@@ -999,6 +1128,27 @@ paths:
       tags:
       - players
       - games
+  /objectives/public:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              additionalProperties: true
+              type: object
+            type: array
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List public objectives
+      tags:
+      - objectives
   /objectives/secret:
     get:
       produces:
@@ -1151,7 +1301,7 @@ paths:
       tags:
       - scoring
       - players
-  /relics/crown:
+  /relic/crown:
     post:
       consumes:
       - application/json
@@ -1187,7 +1337,43 @@ paths:
       summary: Apply "Crown of Emphidia"
       tags:
       - relics
-  /relics/obsidian:
+  /relic/latvina:
+    post:
+      consumes:
+      - application/json
+      description: Grants a player a point for planets with 4 tech specialties.
+      parameters:
+      - description: Game ID and player ID
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controllers.RelicRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Apply "Book Of Latvina"
+      tags:
+      - relics
+  /relic/obsidian:
     post:
       consumes:
       - application/json
@@ -1223,7 +1409,7 @@ paths:
       summary: Apply "The Obsidian"
       tags:
       - relics
-  /relics/shard:
+  /relic/shard:
     post:
       consumes:
       - application/json
@@ -1384,6 +1570,42 @@ paths:
       summary: Score Custodians (Mecatol) point
       tags:
       - scoring
+  /stats/objectives/difficulty:
+    get:
+      description: Calculates and returns difficulty metrics for TI4 objectives.
+      parameters:
+      - default: all
+        description: Filter by stage (I, II, secret, or all)
+        in: query
+        name: stage
+        type: string
+      - default: 5
+        description: Minimum appearances required to include
+        in: query
+        name: minAppearances
+        type: integer
+      - default: 0
+        description: Minimum scoring opportunities required
+        in: query
+        name: minOpportunities
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.ObjectiveDifficultyResponse'
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get objective difficulty
+      tags:
+      - objectives
+      - stats
   /stats/overview:
     get:
       description: Returns headline stats plus Custodians (Mecatol) stats per player.

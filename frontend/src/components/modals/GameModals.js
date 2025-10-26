@@ -5,6 +5,7 @@ import ImperialRiderModal from "./ImperialRiderModal";
 import RelicModal from "./RelicModal";
 import { handleShardSubmit } from "../../utils/relicHandlers";
 import { handleAssignObsidian } from "../../utils/obsidianhandler";
+import { handleLatvina } from "../../utils/relicHandlers";
 import { handleMutinySubmit, handleSeedSubmit, handleIncentiveSubmit, handlePoliticalCensureSubmit, handleClassifiedSubmit } from "../../utils/agendaHandlers";
 
 export default function GameModals({
@@ -140,6 +141,19 @@ export default function GameModals({
           )
         }
         description="Choose a player to gain The Obsidian (gain 1 extra secret objective slot)"
+      />
+
+      <RelicModal
+        show={modals.latvina}
+        onClose={() => toggleModal("latvina", false)}
+        title="Book of Latvina"
+        players={playersSorted}
+        onSubmit={(playerId) =>
+          handleLatvina(playerId, gameId, refreshGameState, () =>
+            toggleModal("latvina", false)
+          )
+        }
+        description='Choose a player to gain a point for having 4 tech specialty planets (Book of Latvina)'
       />
     </>
   );

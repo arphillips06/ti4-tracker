@@ -27,7 +27,7 @@ type RelicRequest struct {
 // @Success      200  {object}  map[string]string  "message"
 // @Failure      400  {object}  map[string]string  "error"
 // @Failure      500  {object}  map[string]string  "error"
-// @Router       /relics/shard [post]
+// @Router       /relic/shard [post]
 func HandleShardRelic(c *gin.Context) (int, any, error) {
 	var req ShardRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -49,7 +49,7 @@ func HandleShardRelic(c *gin.Context) (int, any, error) {
 // @Success      200  {object}  map[string]string  "message"
 // @Failure      400  {object}  map[string]string  "error"
 // @Failure      500  {object}  map[string]string  "error"
-// @Router       /relics/crown [post]
+// @Router       /relic/crown [post]
 func HandleCrownRelic(c *gin.Context) (int, any, error) {
 	var req RelicRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -71,7 +71,7 @@ func HandleCrownRelic(c *gin.Context) (int, any, error) {
 // @Success      200  {object}  map[string]string  "message"
 // @Failure      400  {object}  map[string]string  "error"
 // @Failure      500  {object}  map[string]string  "error"
-// @Router       /relics/obsidian [post]
+// @Router       /relic/obsidian [post]
 func HandleObsidianRelic(c *gin.Context) (int, any, error) {
 	var req RelicRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -81,4 +81,26 @@ func HandleObsidianRelic(c *gin.Context) (int, any, error) {
 		return http.StatusInternalServerError, gin.H{"error": "Failed to record Obsidian relic use"}, nil
 	}
 	return http.StatusOK, gin.H{"message": "The Obsidian has been granted"}, nil
+}
+
+// HandleLatvinaRelic godoc
+// @Summary      Apply "Book Of Latvina"
+// @Description  Grants a player a point for planets with 4 tech specialties.
+// @Tags         relics
+// @Accept       json
+// @Produce      json
+// @Param        body  body      controllers.RelicRequest  true  "Game ID and player ID"
+// @Success      200  {object}  map[string]string  "message"
+// @Failure      400  {object}  map[string]string  "error"
+// @Failure      500  {object}  map[string]string  "error"
+// @Router       /relic/latvina [post]
+func HandleLatvinaRelic(c *gin.Context) (int, any, error) {
+	var req RelicRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		return http.StatusBadRequest, gin.H{"error": "Invalid request"}, nil
+	}
+	if err := services.ApplyBookOfLatvina(req.GameID, req.PlayerID); err != nil {
+		return http.StatusInternalServerError, gin.H{"error": "Failed to record Book Of Latvina use"}, nil
+	}
+	return http.StatusOK, gin.H{"message": "Book Of Latvina point assigned"}, nil
 }

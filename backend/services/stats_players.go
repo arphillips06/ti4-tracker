@@ -58,8 +58,10 @@ func GetPlayerCustodiansStats() ([]PlayerCustodiansStats, error) {
 		}
 
 		custodiansWinPercent := 0
-		if gamesWon > 0 {
-			custodiansWinPercent = int((float64(custodiansWins) / float64(gamesWon)) * 100)
+		if custodiansTaken > 0 {
+			custodiansWinPercent = int((float64(custodiansWins) / float64(custodiansTaken)) * 100)
+		} else {
+			custodiansWinPercent = 0
 		}
 
 		results = append(results, PlayerCustodiansStats{

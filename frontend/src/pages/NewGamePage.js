@@ -3,9 +3,9 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import PlayerInputRow from "../components/players/PlayerInputRow";
 import factionColors from "../data/factionColors";
-import API_BASE_URL from "../config";
 import '../pages/NewGamePage.css';
 import '../pages/stats.css';
+import { postJSON } from "../utils/helpers";
 
 const FACTIONS = Object.entries(factionColors).map(([key, data]) => ({
   key,
@@ -70,28 +70,11 @@ export default function NewGamePage() {
         use_random_speaker: randomiseSpeaker,
         speaker_id: randomiseSpeaker ? null : selectedSpeakerId,
       };
-
-
-      const res = await fetch(`${API_BASE_URL}/games`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Failed to create game: ${errorText}`);
+      const data = await postJSON("/games", payload);
+      const newGameId = data?.game?.id;
+      if (!newGameId) {
+        throw new Error("No game ID returned from backend");
       }
-
-      const data = await res.json();
-
-      const newGameId = data.game.id; // <- likely fix here
-
-      if (!data.game.id) throw new Error("No game ID returned from backend");
-      navigate(`/game/${data.game.id}`);
-
       navigate(`/games/${newGameId}`);
 
     } catch (error) {

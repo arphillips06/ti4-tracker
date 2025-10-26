@@ -86,6 +86,7 @@ type FactionAggregateStats struct {
 
 type GameDurationStat struct {
 	GameID     uint      `json:"game_id"`
+	GameNumber int       `json:"game_number"`
 	RoundCount int       `json:"round_count"`
 	Duration   string    `json:"duration"`
 	Seconds    int64     `json:"seconds"`
@@ -137,4 +138,66 @@ type VictoryPathSummary struct {
 	Path       VictoryPath `json:"path"`
 	Frequency  int         `json:"frequency"`
 	Uniqueness int         `json:"uniqueness_percent"`
+}
+
+// ObjectiveDifficultyRow represents the computed difficulty stats for a single objective.
+// swagger:model ObjectiveDifficultyRow
+type ObjectiveDifficultyRow struct {
+	// Database ID of the objective.
+	ObjectiveID uint `json:"objective_id" example:"12"`
+
+	// Objective name as stored in the objectives table.
+	Name string `json:"name" example:"Expand Borders"`
+
+	// Objective stage.
+	// Allowed values depend on your dataset; commonly "I", "II" (public objectives).
+	Stage string `json:"stage" enums:"I,II" example:"I"`
+
+	// Phase in which the objective is scored (e.g., "Status").
+	Phase string `json:"phase" example:"Status"`
+
+	// Number of distinct games in which this objective appeared (was revealed).
+	Appearances int64 `json:"appearances" example:"18"`
+
+	// Total number of player-opportunities to score this objective
+	// (sum of players in games where the objective appeared).
+	Opportunities int64 `json:"opportunities" example:"90"`
+
+	// Total number of times players actually scored this objective.
+	Scores int64 `json:"scores" example:"52"`
+
+	// Raw scoring rate S/O.
+	RawRate float64 `json:"raw_rate" example:"0.5778"`
+
+	// Bayesian-adjusted scoring rate (alpha=2, beta=5).
+	AdjRate float64 `json:"adj_rate" example:"0.5714"`
+
+	// Difficulty as 1 - RawRate (higher is harder).
+	Difficulty float64 `json:"difficulty" example:"0.4222"`
+
+	// Wilson score interval (lower bound, 95% CI).
+	WilsonLo float64 `json:"wilson_lo" example:"0.47"`
+
+	// Wilson score interval (upper bound, 95% CI).
+	WilsonHi float64 `json:"wilson_hi" example:"0.68"`
+
+	// Average round number when this objective was first scored in a game.
+	AvgRound float64 `json:"avg_round" example:"2.3"`
+
+	// Median round number when this objective was first scored in a game.
+	MedianRound float64 `json:"median_round" example:"2"`
+}
+
+// ObjectiveDifficultyResponse is the API response envelope for objective difficulty.
+// swagger:model ObjectiveDifficultyResponse
+type ObjectiveDifficultyResponse struct {
+	// Rows of per-objective difficulty metrics, sorted by difficulty desc then adj_rate asc.
+	Rows []ObjectiveDifficultyRow `json:"rows"`
+
+	// Timestamp when these stats were generated.
+	GeneratedAt time.Time `json:"generated_at" swaggertype:"string" format:"date-time" example:"2025-08-17T14:32:10Z"`
+
+	// Echoed filters used to compute the response.
+	// Example: {"stage":"I","minAppearances":"5","minOpportunities":"0"}
+	Filters map[string]string `json:"filters" example:"{\"stage\":\"I\",\"minAppearances\":\"5\",\"minOpportunities\":\"0\"}"`
 }

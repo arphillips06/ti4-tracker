@@ -6,6 +6,7 @@ import "../layout/navbar.css";
 export default function GameNavbar({
 
   gameId,
+  gameNumber,
   showScoreGraph,
   setShowScoreGraph,
   mutinyUsed,
@@ -22,6 +23,8 @@ export default function GameNavbar({
   obsidianUsed,
   setShowObsidianModal,
   onOpenSpeakerModal,
+  setShowLatvinaModal,
+  bookUsed,
 }) {
   const navigate = useNavigate();
 
@@ -33,7 +36,9 @@ export default function GameNavbar({
           <button className="btn btn-sm btn-secondary" onClick={() => navigate("/")}>
             Home
           </button>
-          <span className="navbar-text text-light fw-bold">Game #{gameId}</span>
+          <span className="navbar-text text-light fw-bold">
+            Game #{gameNumber ?? gameId}
+          </span>
           <button
             className={`btn ${showScoreGraph ? "btn-secondary" : "btn-outline-info"} ms-2`}
             onClick={() => setShowScoreGraph(!showScoreGraph)}
@@ -85,7 +90,10 @@ export default function GameNavbar({
                 </button>
               </li>
               <li>
-                <button className="dropdown-item" onClick={() => setShowShardModal(true)}>
+                <button 
+                  className="dropdown-item" 
+                  onClick={() => setShowShardModal(true)}
+                >
                   Shard of the Throne
                 </button>
               </li>
@@ -96,6 +104,15 @@ export default function GameNavbar({
                   disabled={obsidianUsed}
                 >
                   The Obsidian {obsidianUsed ? "(Used)" : ""}
+                </button>
+              </li>
+              <li>
+                <button
+                  className="dropdown-item"
+                  onClick={() => setShowLatvinaModal(true)}
+                  disabled={bookUsed}
+                >
+                  Book Of Latvina {bookUsed ? "(Used)" : ""}
                 </button>
               </li>
             </ul>

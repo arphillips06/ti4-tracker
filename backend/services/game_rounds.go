@@ -62,7 +62,7 @@ func CountRevealedObjectives(gameID uint) int64 {
 	return count
 }
 
-func AdvanceGameRound(gameID uint) (map[string]interface{}, error) {
+func AdvanceGameRound(gameID uint) (map[string]any, error) {
 	game, err := helpers.GetUnfinishedGame(gameID)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func AdvanceGameRound(gameID uint) (map[string]interface{}, error) {
 		if err := MaybeFinishGameFromExhaustion(game); err != nil {
 			return nil, errors.New("failed to finish game")
 		}
-		return map[string]interface{}{
+		return map[string]any{
 			"message":       "Game Ended",
 			"round":         game.CurrentRound,
 			"totalRevealed": CountRevealedObjectives(game.ID),
@@ -109,7 +109,7 @@ func AdvanceGameRound(gameID uint) (map[string]interface{}, error) {
 	stage := DetermineStageToReveal(game.ID)
 	_ = RevealNextObjective(game.ID, newRound.ID, stage)
 
-	return map[string]interface{}{
+	return map[string]any{
 		"message":       "round_advanced",
 		"current_round": game.CurrentRound,
 		"revealed":      stage,

@@ -47,18 +47,18 @@ func parseSearchQuery(q string) (searchFilters, error) {
 
 		lc := strings.ToLower(token)
 		switch {
-		case strings.HasPrefix(lc, "winner:"):
-			f.Winner = strings.Trim(strings.TrimPrefix(token, "winner:"), `"`)
-		case strings.HasPrefix(lc, "player:"):
-			f.Player = strings.Trim(strings.TrimPrefix(token, "player:"), `"`)
-		case strings.HasPrefix(lc, "faction:"):
-			f.Faction = strings.Trim(strings.TrimPrefix(token, "faction:"), `"`)
-		case strings.HasPrefix(lc, "agenda:"):
-			f.Agenda = strings.Trim(strings.TrimPrefix(token, "agenda:"), `"`)
-		case strings.HasPrefix(lc, "relic:"):
-			f.Relic = strings.Trim(strings.TrimPrefix(token, "relic:"), `"`)
-		case strings.HasPrefix(lc, "custodians:"):
-			val := strings.Trim(strings.TrimPrefix(lc, "custodians:"), `"`)
+		case strings.HasPrefix(lc, "w:"):
+			f.Winner = strings.Trim(strings.TrimPrefix(token, "w:"), `"`)
+		case strings.HasPrefix(lc, "p:"):
+			f.Player = strings.Trim(strings.TrimPrefix(token, "p:"), `"`)
+		case strings.HasPrefix(lc, "f:"):
+			f.Faction = strings.Trim(strings.TrimPrefix(token, "f:"), `"`)
+		case strings.HasPrefix(lc, "a:"):
+			f.Agenda = strings.Trim(strings.TrimPrefix(token, "a:"), `"`)
+		case strings.HasPrefix(lc, "r:"):
+			f.Relic = strings.Trim(strings.TrimPrefix(token, "r:"), `"`)
+		case strings.HasPrefix(lc, "c:"):
+			val := strings.Trim(strings.TrimPrefix(lc, "c:"), `"`)
 			switch val {
 			case "true", "1", "yes":
 				t := true
@@ -98,7 +98,7 @@ func parseSearchQuery(q string) (searchFilters, error) {
 }
 
 func applyGameSearch(db *gorm.DB, f searchFilters) *gorm.DB {
-	db = db.Table("games").Where("games.partial = FALSE")
+	db = db.Table("games")
 
 	if f.After != nil {
 		db = db.Where("games.finished_at IS NOT NULL AND games.finished_at >= ?", *f.After)

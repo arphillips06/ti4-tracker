@@ -224,3 +224,30 @@ func PostAssignSpeaker(c *gin.Context) (int, any, error) {
 	}
 	return http.StatusOK, gin.H{"message": "Speaker assigned"}, nil
 }
+
+// DeleteGameHandler godoc
+// @Summary      Delete a game
+// @Description  Permanently deletes a game by its ID.
+// @Tags         games
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "Game ID"
+// @Success      200  {object}  map[string]interface{} "status and deleted game ID"
+// @Failure      400  {object}  map[string]string  "error"
+// @Failure      500  {object}  map[string]string  "error"
+// @Router       /games/{id} [delete]
+func DeleteGameHandler(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid game id"})
+		return
+	}
+
+	if err := helpers.DeleteGame(uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"status": "deleted", "game_id": id})
+}

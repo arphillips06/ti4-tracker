@@ -131,13 +131,15 @@ func CalculateMostCommonFinishes() ([]models.PlayerMostCommonFinish, error) {
 				gp.player_id,
 				SUM(
 					CASE 
-						WHEN s.type = 'public' OR s.type = 'secret' OR s.type = 'agenda' OR s.type = 'mecatol' OR s.type = 'support' OR s.type = 'imperial'
-						THEN 1 ELSE 0
+						WHEN s.type IN ('public','secret','agenda','mecatol','support','imperial')
+						THEN s.points ELSE 0
 					END
 				) AS score
 			FROM game_players gp
 			JOIN players p ON gp.player_id = p.id
-			LEFT JOIN scores s ON gp.player_id = s.player_id AND gp.game_id = s.game_id
+			LEFT JOIN scores s 
+				ON gp.player_id = s.player_id 
+				AND gp.game_id = s.game_id
 			GROUP BY gp.game_id, gp.player_id, p.name
 		),
 		ranked_with_position AS (

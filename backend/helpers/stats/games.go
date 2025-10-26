@@ -31,10 +31,11 @@ func computeStats(games []models.Game) models.GameLengthCategoryStats {
 		duration := game.FinishedAt.Sub(game.CreatedAt)
 
 		stat := models.GameDurationStat{
-			GameID:    game.ID,
-			Duration:  formatDuration(duration),
-			Seconds:   int64(duration.Seconds()),
-			StartedAt: game.CreatedAt,
+			GameID:     game.ID,
+			GameNumber: game.GameNumber,
+			Duration:   formatDuration(duration),
+			Seconds:    int64(duration.Seconds()),
+			StartedAt:  game.CreatedAt,
 		}
 
 		if !game.Partial {

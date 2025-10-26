@@ -69,7 +69,7 @@ func GetScoreSummaryByPlayer(gameID string) ([]models.PlayerScoreSummary, error)
 }
 
 // GetScoresGroupedByRound returns scores grouped by round for a specific game
-func GetScoresGroupedByRound(gameID string) ([]map[string]interface{}, error) {
+func GetScoresGroupedByRound(gameID string) ([]map[string]any, error) {
 	type rawScore struct {
 		Round  int    `json:"round"`
 		Player string `json:"player"`
@@ -110,9 +110,9 @@ func GetScoresGroupedByRound(gameID string) ([]map[string]interface{}, error) {
 		grouped[r.Round] = append(grouped[r.Round], r)
 	}
 
-	var response []map[string]interface{}
+	var response []map[string]any
 	for round, scores := range grouped {
-		response = append(response, map[string]interface{}{
+		response = append(response, map[string]any{
 			"round":  round,
 			"scores": scores,
 		})

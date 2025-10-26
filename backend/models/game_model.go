@@ -6,6 +6,7 @@ import "time"
 //Game represents a single game
 type Game struct {
 	ID                 uint            `gorm:"primaryKey" json:"id"`
+	GameNumber         int             `json:"game_number"`
 	CreatedAt          time.Time       `json:"created_at"`
 	FinishedAt         *time.Time      `json:"finished_at"`
 	WinnerID           *uint           `json:"winner_id"`

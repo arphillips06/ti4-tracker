@@ -1,37 +1,31 @@
 import API_BASE_URL from "../config";
+import { isAgendaScore } from "./selectors";
 
-/**
- * Perform a POST request with JSON payload and basic error handling.
- * @param {string} path - Relative API path, e.g., "/agenda/mutiny"
- * @param {Object} body - Payload to send
- * @returns {Promise<any>} - Parsed JSON or throws error
- */
-export async function postJSON(path, body) {
-  const res = await fetch(`${API_BASE_URL}${path}`, {
+export async function postJSON(url, payload) {
+  const finalUrl = url.startsWith("http")
+    ? url
+    : `${API_BASE_URL}${url}`;
+
+  const res = await fetch(finalUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify(payload),
   });
 
-  if (!res.ok) {
-    const errorText = await res.text().catch(() => "Unknown error");
-    throw new Error(`POST ${path} failed: ${errorText}`);
-  }
-
-  try {
-    return await res.json();
-  } catch {
-    return {};
-  }
+  if (!res.ok) throw new Error(`POST ${finalUrl} failed: ${res.status}`);
+  return res.json();
 }
 
-/**
- * Submit a request and optionally refresh game state or set modal/game state.
- * @param {Function} requestFn - async function that sends the request
- * @param {Function} [refreshGameState]
- * @param {Function} [setGame]
- * @param {Function} [closeModal]
- */
+export async function getJSON(url) {
+  const finalUrl = url.startsWith("http")
+    ? url
+    : `${API_BASE_URL}${url}`;
+
+  const res = await fetch(finalUrl, { headers: { "Content-Type": "application/json" } });
+  if (!res.ok) throw new Error(`GET ${finalUrl} failed: ${res.status}`);
+  return await res.json();
+}
+
 export async function submitAndRefresh({ requestFn, refreshGameState, setGame, closeModal }) {
   try {
     const result = await requestFn();
@@ -44,13 +38,5 @@ export async function submitAndRefresh({ requestFn, refreshGameState, setGame, c
   }
 }
 
-/**
- * Utility to check if an agenda has already been used in a game.
- * @param {Object} game - The full game object
- * @param {string} title - The agenda title to check
- * @returns {boolean} - True if used, false otherwise
- */
 export const isAgendaUsed = (game, title) =>
-  game?.AllScores?.some(
-    (s) => s.Type?.toLowerCase() === "agenda" && s.AgendaTitle === title
-  );
+  game?.AllScores?.some((s) => isAgendaScore(s, title));

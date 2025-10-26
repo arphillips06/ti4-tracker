@@ -10,21 +10,9 @@ import (
 func CalculateObjectiveCounts() (map[string]int, error) {
 	result := make(map[string]int)
 
-	var publicCount, secretCount, stage1Count, stage2Count, cdlCount int64
-
-	// Count unique (game_id, objective_id) pairs for each category
+	var secretCount, stage1Count, stage2Count, cdlCount int64
 
 	err := database.DB.
-		Table("scores").
-		Select("COUNT(DISTINCT game_id || '-' || objective_id)").
-		Where("type = ?", "public").
-		Scan(&publicCount).Error
-	if err != nil {
-		return nil, err
-	}
-	result["publicScored"] = int(publicCount)
-
-	err = database.DB.
 		Table("scores").
 		Select("COUNT(DISTINCT game_id || '-' || objective_id)").
 		Where("type = ?", "secret").
@@ -56,7 +44,8 @@ func CalculateObjectiveCounts() (map[string]int, error) {
 	}
 	result["stage2Scored"] = int(stage2Count)
 
-	// CDL tracking (if applicable)
+	result["publicScored"] = int(stage1Count + stage2Count)
+
 	err = database.DB.
 		Table("scores").
 		Where("agenda_title = ?", "Classified Document Leaks").
@@ -81,8 +70,9 @@ func CalculateObjectiveFrequencies() (map[string]int, map[string]int, error) {
 	// Public objectives
 	err := database.DB.Table("scores").
 		Joins("JOIN objectives ON scores.objective_id = objectives.id").
+		Joins("JOIN games ON games.id = scores.game_id").
 		Select("objectives.name, COUNT(DISTINCT scores.game_id) as count").
-		Where("objectives.stage IN ('I', 'II')").
+		Where("objectives.stage IN ('I', 'II') AND games.partial = false").
 		Group("objectives.name").
 		Scan(&publicRows).Error
 	if err != nil {
@@ -95,8 +85,9 @@ func CalculateObjectiveFrequencies() (map[string]int, map[string]int, error) {
 	// Secret objectives
 	err = database.DB.Table("scores").
 		Joins("JOIN objectives ON scores.objective_id = objectives.id").
+		Joins("JOIN games ON games.id = scores.game_id").
 		Select("objectives.name, COUNT(DISTINCT scores.game_id) as count").
-		Where("objectives.stage = 'S'").
+		Where("objectives.stage = 'S' AND games.partial = false").
 		Group("objectives.name").
 		Scan(&secretRows).Error
 	if err != nil {

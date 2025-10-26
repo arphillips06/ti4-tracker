@@ -14,7 +14,7 @@ export default function GameStats({ stats }) {
     return (
       <tr key={label}>
         <td>{label}</td>
-        <td>Game #{stat.game_id}</td>
+        <td>Game #{stat.game_number ?? stat.game_id}</td>
         <td>{stat.round_count}</td>
         <td>{stat.duration}</td>
       </tr>

@@ -170,6 +170,7 @@ func BuildGameDetailResponse(gameID string) (models.GameDetailResponse, error) {
 
 	return models.GameDetailResponse{
 		ID:                 game.ID,
+		GameNumber:         game.GameNumber,
 		WinningPoints:      game.WinningPoints,
 		CurrentRound:       game.CurrentRound,
 		FinishedAt:         game.FinishedAt,

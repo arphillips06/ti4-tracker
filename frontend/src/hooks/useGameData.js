@@ -1,5 +1,31 @@
 import { useEffect, useState } from "react";
-import API_BASE_URL from "../config"
+import { getJSON } from "../utils/helpers";
+import {
+  isAgendaScore,
+  isRelicScore,
+} from "../utils/selectors";
+
+const normalizeScore = (s) => ({
+  ...s,
+  PlayerID: s.PlayerID ?? s.player_id,
+  ObjectiveID: s.ObjectiveID ?? s.objective_id,
+  RoundID: s.RoundID ?? s.round_id,
+  Type: s.Type ?? s.type,
+  Points: s.Points ?? s.points,
+  AgendaTitle: s.AgendaTitle ?? s.agenda_title,
+  RelicTitle: s.RelicTitle ?? s.relic_title,
+});
+
+const normalizeObjective = (obj) => {
+  const rawPhase = obj.phase ?? obj.Phase ?? "";
+  return {
+    id: obj.ID ?? obj.id,
+    name: obj.name ?? obj.Name,
+    phase: typeof rawPhase === "string" ? rawPhase.toLowerCase() : "",
+    ...obj,
+  };
+};
+
 export default function useGameData(gameId) {
   const [game, setGame] = useState(null);
   const [objectives, setObjectives] = useState([]);
@@ -14,26 +40,10 @@ export default function useGameData(gameId) {
 
 
 
-  const fetchGame = async () => {
-    const res = await fetch(`${API_BASE_URL}/games/${gameId}`);
-    const data = await res.json();
-    return data; // Support both wrapped and direct response
-  };
-
-  const fetchObjectives = async () => {
-    const res = await fetch(`${API_BASE_URL}/games/${gameId}/objectives`);
-    return res.json();
-  };
-
-  const fetchScores = async () => {
-    const res = await fetch(`${API_BASE_URL}/games/${gameId}/objectives/scores`);
-    return res.json();
-  };
-
-  const fetchSecrets = async () => {
-    const res = await fetch(`${API_BASE_URL}/objectives/secrets/all`);
-    return res.json();
-  };
+  const fetchGame = () => getJSON(`/games/${gameId}`);
+  const fetchObjectives = () => getJSON(`/games/${gameId}/objectives`);
+  const fetchScores = () => getJSON(`/games/${gameId}/objectives/scores`);
+  const fetchSecrets = () => getJSON(`/objectives/secrets/all`);
 
   const refreshGameState = async () => {
     const [gameData, objectivesData, scoresData] = await Promise.all([
@@ -42,34 +52,27 @@ export default function useGameData(gameId) {
       fetchScores(),
     ]);
 
-    // 🛠 Re-normalize fields for compatibility
-    gameData.AllScores = (gameData.all_scores || []).map((s) => ({
-      ...s,
-      PlayerID: s.PlayerID ?? s.player_id,
-      ObjectiveID: s.ObjectiveID ?? s.objective_id,
-      RoundID: s.RoundID ?? s.round_id,
-      Type: s.Type ?? s.type,
-      Points: s.Points ?? s.points,
-      AgendaTitle: s.AgendaTitle ?? s.agenda_title,
-      RelicTitle: s.RelicTitle ?? s.relic_title,
-    }));
-    gameData.game_players = gameData.players || [];
-    gameData.winner_id = gameData.winner_id ?? gameData.WinnerID;
+    const normalizedScores = (gameData.all_scores || []).map(normalizeScore);
+    const normalizedObjectives = Array.isArray(objectivesData)
+      ? objectivesData.map(normalizeObjective)
+      : objectivesData?.value || [];
 
-    setGame(gameData);
-
-    const obsidianScore = gameData.AllScores?.find(
-      (s) => s.Type === "relic" && s.RelicTitle === "The Obsidian"
-    );
-    setObsidianHolderId(obsidianScore?.PlayerID || null);
-
-    const map = {};
+    const scoreMap = {};
     (Array.isArray(scoresData) ? scoresData : scoresData?.value || []).forEach((entry) => {
-      map[entry.objective_id] = entry.scored_by || [];
+      scoreMap[entry.objective_id] = entry.scored_by || [];
     });
-    setObjectiveScores(map);
 
-    setObjectives(Array.isArray(objectivesData) ? objectivesData : objectivesData?.value || []);
+    setGame({
+      ...gameData,
+      AllScores: normalizedScores,
+      game_players: gameData.players || [],
+      winner_id: gameData.winner_id ?? gameData.WinnerID,
+    });
+    setObjectives(normalizedObjectives);
+    setObjectiveScores(scoreMap);
+
+    const obsidianScore = normalizedScores.find((s) => isRelicScore(s, "The Obsidian"));
+    setObsidianHolderId(obsidianScore?.PlayerID || null);
   };
   useEffect(() => {
     (async () => {
@@ -80,64 +83,40 @@ export default function useGameData(gameId) {
         fetchScores(),
       ]);
 
+      const normalizedScores = (gameData.all_scores || []).map(normalizeScore);
+      const normalizedObjectives = Array.isArray(objectiveData)
+        ? objectiveData.map(normalizeObjective)
+        : objectiveData?.value || [];
+      const normalizedSecrets = (Array.isArray(secretData) ? secretData : []).map(normalizeObjective);
 
-      // 🛠 Fix: Normalize AllScores for compatibility
-      gameData.AllScores = (gameData.all_scores || []).map((s) => ({
-        ...s,
-        PlayerID: s.PlayerID ?? s.player_id,
-        ObjectiveID: s.ObjectiveID ?? s.objective_id,
-        RoundID: s.RoundID ?? s.round_id,
-        Type: s.Type ?? s.type,
-        Points: s.Points ?? s.points,
-        AgendaTitle: s.AgendaTitle ?? s.agenda_title,
-        RelicTitle: s.RelicTitle ?? s.relic_title,
-      }));
-      gameData.game_players = gameData.players || [];
-      setGame(gameData);
+      const scoreMap = {};
+      (Array.isArray(scoresData) ? scoresData : scoresData?.value || []).forEach((entry) => {
+        scoreMap[entry.objective_id] = entry.scored_by || [];
+      });
 
-      setMutinyUsed(gameData.AllScores?.some((s) => s.AgendaTitle === "Mutiny"));
-      setCdlUsed(gameData.AllScores?.some((s) => s.AgendaTitle === "Classified Document Leaks"));
-      setCrownUsed(gameData.AllScores?.some((s) => s.Type?.toLowerCase() === "relic" && s.RelicTitle === "The Crown of Emphidia"));
-      const obsidianScore = gameData.AllScores?.find(
-        (s) => s.Type === "relic" && s.RelicTitle === "The Obsidian"
-      );
-      setObsidianHolderId(obsidianScore?.PlayerID || null);
+      setGame({
+        ...gameData,
+        AllScores: normalizedScores,
+        game_players: gameData.players || [],
+      });
+      setObjectives(normalizedObjectives);
+      setSecretObjectives(normalizedSecrets);
+      setObjectiveScores(scoreMap);
+
+      setMutinyUsed(normalizedScores.some((s) => s.AgendaTitle === "Mutiny"));
+      setCdlUsed(normalizedScores.some((s) => s.AgendaTitle === "Classified Document Leaks"));
+      setCrownUsed(normalizedScores.some((s) => isRelicScore(s, "The Crown of Emphidia")));
+      setObsidianHolderId(normalizedScores.find((s) => isRelicScore(s, "The Obsidian"))?.PlayerID || null);
+
       const initialSecrets = {};
       (gameData.players || []).forEach((p) => {
         initialSecrets[p.PlayerID || p.id] = 0;
       });
       setSecretCounts(initialSecrets);
 
-      const scoreMap = {};
-      (Array.isArray(scoresData) ? scoresData : scoresData?.value || []).forEach((entry) => {
-        scoreMap[entry.objective_id] = entry.scored_by || [];
-      });
-      setObjectiveScores(scoreMap);
-
-      const normalizedObjectives = Array.isArray(objectiveData)
-        ? objectiveData
-        : objectiveData?.value || [];
-
-
-      setObjectives(normalizedObjectives);
-
-      const normalizedSecrets = (Array.isArray(secretData) ? secretData : []).map((obj) => {
-        const rawPhase = obj.phase ?? obj.Phase ?? "";
-        return {
-          id: obj.ID ?? obj.id,
-          name: obj.name ?? obj.Name,
-          phase: typeof rawPhase === "string" ? rawPhase.toLowerCase() : "",
-          ...obj,
-        };
-      });
-
-      setSecretObjectives(normalizedSecrets);
+      const censureMatch = normalizedScores.find((s) => isAgendaScore(s, "Political Censure"));
+      setCensureHolder(censureMatch?.PlayerID || null);
     })();
-
-    const match = game?.AllScores?.find(
-      (s) => s.Type === "Agenda" && s.AgendaTitle === "Political Censure"
-    );
-    setCensureHolder(match?.PlayerID || null);
   }, [gameId]);
 
 

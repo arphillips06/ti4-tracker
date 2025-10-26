@@ -147,8 +147,27 @@ func CreateNewGameWithPlayers(input models.CreateGameInput) (models.Game, []mode
 		return models.Game{}, nil, err
 	}
 
-	game, round1, err := CreateGameAndRound(input.WinningPoints, useDecks)
-	if err != nil {
+	var maxNumber int
+	if err := database.DB.Model(&models.Game{}).
+		Select("COALESCE(MAX(game_number), 0)").Scan(&maxNumber).Error; err != nil {
+		return models.Game{}, nil, errors.New("failed to assign game number")
+	}
+
+	game := models.Game{
+		WinningPoints:     input.WinningPoints,
+		UseObjectiveDecks: useDecks,
+		CurrentRound:      1,
+		GameNumber:        maxNumber + 1,
+	}
+	if err := database.DB.Create(&game).Error; err != nil {
+		return models.Game{}, nil, err
+	}
+
+	round1 := models.Round{
+		GameID: game.ID,
+		Number: 1,
+	}
+	if err := database.DB.Create(&round1).Error; err != nil {
 		return models.Game{}, nil, err
 	}
 
@@ -159,7 +178,9 @@ func CreateNewGameWithPlayers(input models.CreateGameInput) (models.Game, []mode
 	}
 
 	var gamePlayers []models.GamePlayer
-	if err := database.DB.Preload("Player").Where("game_id = ?", game.ID).Find(&gamePlayers).Error; err != nil {
+	if err := database.DB.Preload("Player").
+		Where("game_id = ?", game.ID).
+		Find(&gamePlayers).Error; err != nil {
 		return models.Game{}, nil, errors.New("failed to load game players for speaker assignment")
 	}
 
@@ -168,15 +189,13 @@ func CreateNewGameWithPlayers(input models.CreateGameInput) (models.Game, []mode
 		log.Printf("🎙️  Chosen speaker: %v", chosen)
 		game.SpeakerID = &chosen.ID
 
-		err := AssignSpeaker(game.ID, uint(round1.Number), chosen.ID)
-		if err != nil {
-			log.Printf("failed to insert speaker assignment: %v", err)
+		if err := AssignSpeaker(game.ID, uint(round1.Number), chosen.ID); err != nil {
 			return models.Game{}, nil, errors.New("failed to create speaker assignment")
 		}
-	}
 
-	if err := database.DB.Save(&game).Error; err != nil {
-		return models.Game{}, nil, errors.New("failed to save speaker assignment")
+		if err := database.DB.Save(&game).Error; err != nil {
+			return models.Game{}, nil, errors.New("failed to save speaker assignment")
+		}
 	}
 
 	var revealed []models.GameObjective
