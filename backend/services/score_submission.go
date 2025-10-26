@@ -12,7 +12,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func SubmitScore(gameID, playerID, objectiveID uint) (map[string]interface{}, error) {
+func SubmitScore(gameID, playerID, objectiveID uint) (map[string]any, error) {
 	game, err := helpers.GetUnfinishedGame(gameID)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func SubmitScore(gameID, playerID, objectiveID uint) (map[string]interface{}, er
 		return nil, err
 	}
 
-	resp := map[string]interface{}{
+	resp := map[string]any{
 		"message":      "Score added",
 		"objective":    objective.Name,
 		"points":       objective.Points,
@@ -219,18 +219,36 @@ func ScoreSupportPoint(gameID, playerID uint) error {
 		return err
 	}
 
-	// Get total number of scored Support points (sum of all positive and negative values)
+	var playerSupportPoints int64
+	if err := database.DB.
+		Model(&models.Score{}).
+		Where("game_id = ? AND player_id = ? AND type = ?", gameID, playerID, "Support").
+		Select("COALESCE(SUM(points), 0)").
+		Scan(&playerSupportPoints).Error; err != nil {
+		return err
+	}
+
+	if playerSupportPoints >= playerCount-1 {
+		return fmt.Errorf(
+			"player %d already has the maximum %d Support for the Throne points in a %d-player game",
+			playerID, playerCount-1, playerCount,
+		)
+	}
+
 	var totalSupportPoints int64
 	if err := database.DB.
 		Model(&models.Score{}).
 		Where("game_id = ? AND type = ?", gameID, "Support").
-		Select("COALESCE(SUM(points), 0)"). // this handles negative reversals
+		Select("COALESCE(SUM(points), 0)").
 		Scan(&totalSupportPoints).Error; err != nil {
 		return err
 	}
 
-	if totalSupportPoints >= playerCount-1 {
-		return fmt.Errorf("support for the Throne can only be scored a total of %d times in a %d-player game", playerCount-1, playerCount)
+	if totalSupportPoints >= playerCount {
+		return fmt.Errorf(
+			"support for the Throne can only be scored %d times in a %d-player game (all cards have been given away)",
+			playerCount, playerCount,
+		)
 	}
 
 	return helpers.CreateGenericScore(models.Score{

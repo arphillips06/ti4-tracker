@@ -1,5 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import {
+  isAgendaUsed,
+  isRelicUsed,
+  custodiansScorerId as getCustodiansScorerId,
+  winnerPlayerId
+} from "../utils/selectors";
 
 import PlayerSidebar from "../components/players/PlayerSidebar";
 import GameControls from "../components/layout/GameControls";
@@ -11,34 +17,27 @@ import useObjectiveActions from "../hooks/useObjectiveActions";
 import useModalControls from "../hooks/useModalControls";
 import { handleScoreImperialRider } from "../utils/imperialRiderHandler";
 import { handleScoreCrown } from "../utils/relicHandlers";
-import '../GameDetail.css';
-import ScoreGraph from '../components/graphs/ScoreGraph';
+import "../GameDetail.css";
+import ScoreGraph from "../components/graphs/ScoreGraph";
 import VictoryBanner from "../components/layout/VictoryBanner";
 import GameModals from "../components/modals/GameModals";
 import useGameData from "../hooks/useGameData";
 import SpeakerModal from "../components/modals/SpeakerModal";
-import API_BASE_URL from "../config"
 
 export default function GameDetail() {
   const { gameId } = useParams();
   const { modals, toggleModal } = useModalControls();
 
-  const scoreImperialRider = (playerId) => {
-    return handleScoreImperialRider(
-      playerId,
-      gameId,
-      refreshGameState,
-      () => toggleModal("imperial", false)
+  const scoreImperialRider = (playerId) =>
+    handleScoreImperialRider(playerId, gameId, refreshGameState, () =>
+      toggleModal("imperial", false)
     );
-  };
 
   const scoreCrown = (playerId) =>
     handleScoreCrown(playerId, gameId, refreshGameState);
-
+  
   const [graphRefreshKey, setGraphRefreshKey] = useState(0);
-  const triggerGraphUpdate = () => {
-    setGraphRefreshKey((prev) => prev + 1);
-  };
+  const triggerGraphUpdate = () => setGraphRefreshKey((prev) => prev + 1);
 
   const {
     game,
@@ -53,19 +52,11 @@ export default function GameDetail() {
     crownUsed,
     obsidianHolderId,
   } = useGameData(gameId);
+console.log("DEBUG: game object", game);
 
-  const isAgendaUsed = (title) =>
-    game?.AllScores?.some(
-      (s) => s.Type?.toLowerCase() === "agenda" && s.AgendaTitle === title
-    );
-  const isRelicUsed = (title) =>
-    game?.AllScores?.some(
-      (s) => s.Type?.toLowerCase() === "relic" && s.RelicTitle === title
-    );
-
-  const mutinyUsed = isAgendaUsed("Mutiny");
-  const incentiveUsed = isAgendaUsed("Incentive Program");
-  const seedUsed = isAgendaUsed("Seed of an Empire");
+  const mutinyUsed = isAgendaUsed(game, "Mutiny");
+  const incentiveUsed = isAgendaUsed(game, "Incentive Program");
+  const seedUsed = isAgendaUsed(game, "Seed of an Empire");
 
   const [scoringMode, setScoringMode] = useState(false);
   const [expandedPlayers, setExpandedPlayers] = useState({});
@@ -73,63 +64,38 @@ export default function GameDetail() {
   const [mutinyVotes, setMutinyVotes] = useState([]);
   const [mutinyResult, setMutinyResult] = useState("for");
   const [mutinyAbstained, setMutinyAbstained] = useState(false);
-  const [custodiansScorerId, setCustodiansScorerId] = useState(null);
   const [assigningObjective, setAssigningObjective] = useState(null);
   const [agendaModal, setAgendaModal] = useState(null);
   const [showSpeakerModal, setShowSpeakerModal] = useState(false);
 
   const playersUnsorted = useMergedPlayerData(game, false);
   const playersSorted = useMergedPlayerData(game, true);
-  const groupedScoredSecrets = useGroupedScoredSecrets(game?.AllScores, secretObjectives);
-  const obsidianUsed = isRelicUsed("The Obsidian");
+  const groupedScoredSecrets = useGroupedScoredSecrets(
+    game?.AllScores,
+    secretObjectives
+  );
+
+  const obsidianUsed = isRelicUsed(game, "The Obsidian");
+  const bookUsed = isRelicUsed(game, "Book Of Latvina");
+  const shardUsed = isRelicUsed(game, "The Crown of Emphidia");
+
   const [showScoreGraph, setShowScoreGraph] = useState(false);
   const [allScores, setAllScores] = useState(game?.AllScores || []);
-  const assignSpeaker = async (playerId, isInitial = false) => {
 
-    const roundId = game?.current_round?.id;
-    if (!roundId) {
-      alert("Cannot assign speaker: round not loaded.");
-      return;
-    }
+  const custodianOwnerId = getCustodiansScorerId(game);
 
-    await fetch(`${API_BASE_URL}/games/${game.id}/speaker`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        player_id: playerId,
-        round_id: roundId,
-        is_initial: isInitial,
-      }),
-    });
-
-    await refreshGameState();
-  };
-  const handleOpenSpeakerModal = () => {
-    setShowSpeakerModal(true);
-  };
-
-  const {
-    scoreObjective,
-    unscoreObjective,
-    assignObjective,
-    advanceRound,
-  } = useObjectiveActions(gameId, refreshGameState, setLocalScored);
-
-  useEffect(() => {
-    const scorer = game?.AllScores?.find((s) => s.Type === "mecatol");
-    setCustodiansScorerId(scorer?.PlayerID || null);
-  }, [game]);
-  useEffect(() => {
-  }, [showSpeakerModal]);
+  const handleOpenSpeakerModal = () => setShowSpeakerModal(true);
+  const { scoreObjective, unscoreObjective, assignObjective, advanceRound } =
+    useObjectiveActions(gameId, refreshGameState, setLocalScored);
 
   if (!game) return <div className="p-4 text-warning">Loading game data...</div>;
-  const winner_id = game.winner_id || game.winner_id;
-  const winnerPlayer = game.players?.find(p => p.PlayerID === winner_id || p.player_id === winner_id);
+  const winner_id = winnerPlayerId(game);
 
   return (
     <>
       <GameNavbar
         gameId={gameId}
+        gameNumber={game.game_number}
         showScoreGraph={showScoreGraph}
         setShowScoreGraph={setShowScoreGraph}
         mutinyUsed={mutinyUsed}
@@ -143,17 +109,21 @@ export default function GameDetail() {
         setShowImperialModal={(val) => toggleModal("imperial", val)}
         setShowShardModal={(val) => toggleModal("shard", val)}
         setShowCrownModal={(val) => toggleModal("crown", val)}
+        setShowLatvinaModal={(val) => toggleModal("latvina", val)}
         crownUsed={crownUsed}
         obsidianUsed={obsidianUsed}
+        bookUsed={bookUsed}
         setShowObsidianModal={(val) => toggleModal("obsidian", val)}
         refreshGameState={refreshGameState}
         onOpenSpeakerModal={handleOpenSpeakerModal}
       />
+
       <VictoryBanner
         winner={game?.winner}
         finished={game?.finished_at}
         victoryPathSummary={game?.victory_path}
       />
+
       <div className="p-6 max-w-7xl mx-auto">
         <GameControls
           game={game}
@@ -161,6 +131,7 @@ export default function GameDetail() {
           setScoringMode={setScoringMode}
           onAdvanceRound={advanceRound}
         />
+
         <div className="d-flex flex-column flex-md-row align-items-start gap-4 flex-wrap">
           {showScoreGraph ? (
             <div style={{ flex: 1 }}>
@@ -172,7 +143,7 @@ export default function GameDetail() {
               refreshGameState={refreshGameState}
               objectives={objectives}
               playersUnsorted={playersUnsorted}
-              gameId={game.id || game.ID}
+              gameId={game.id}
               objectiveScores={objectiveScores}
               localScored={localScored}
               scoringMode={scoringMode}
@@ -207,7 +178,6 @@ export default function GameDetail() {
             setMutinyAbstained={setMutinyAbstained}
           />
 
-
           <div style={{ flex: "0 1 300px" }}>
             <PlayerSidebar
               playersSorted={playersSorted}
@@ -224,7 +194,7 @@ export default function GameDetail() {
               setGame={setGame}
               setObjectiveScores={setObjectiveScores}
               refreshGameState={refreshGameState}
-              custodiansScored={!!game?.AllScores?.some((s) => s.Type === "mecatol")}
+              custodiansScored={!!custodianOwnerId}
               obsidianHolderId={obsidianHolderId}
               triggerGraphUpdate={triggerGraphUpdate}
               allScores={game?.AllScores}

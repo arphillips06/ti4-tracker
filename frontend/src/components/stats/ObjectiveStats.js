@@ -3,8 +3,9 @@ import ObjectiveStatsChart from "../graphs/ObjectiveStatsChart";
 import ObjectiveFrequencyChart from "../graphs/ObjectiveFrequencyChart";
 import ObjectiveAppearanceChart from "../graphs/ObjectiveAppearanceChart";
 import ObjectiveMetaTable from "../graphs/ObjectiveMetaTable";
-import SecretObjectiveTable from "../graphs/SecretOnjectiveTable";
+import SecretObjectiveTable from "../graphs/SecretObjectiveTable";
 import '../../pages/stats.css';
+import ObjectiveDifficultyTable from "../graphs/ObjectiveDifficultyTable";
 
 export default function ObjectiveStats({ stats }) {
   const [showObjectiveData, setShowObjectiveData] = useState(false);
@@ -40,7 +41,9 @@ export default function ObjectiveStats({ stats }) {
         <ObjectiveMetaTable metas={stats.objectiveMetaStats} />
         <SecretObjectiveTable secrets={stats.objectiveMetaStats} />
       </div>
-
+      <div className="chart-glass-container">
+        <ObjectiveDifficultyTable />
+      </div>
     </div>
   );
 

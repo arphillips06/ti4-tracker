@@ -5,6 +5,7 @@ import PoliticalCensureModal from "./PoliticalCensureModal";
 import SeedOfEmpireModal from "./SeedOfEmpireModal";
 import ClassifiedDocumentLeaksModal from "./ClassifiedDocumentLeaksModal";
 import IncentiveProgramModal from "./IncentiveProgramModal";
+import { isAgendaScoreForPlayer } from "../../utils/selectors";
 
 export default function AgendaModals({
   game,
@@ -61,7 +62,7 @@ export default function AgendaModals({
           ...p,
           agendaScores:
             game.AllScores?.filter(
-              (s) => s.PlayerID === p.player_id && s.Type?.toLowerCase() === "agenda"
+              (s) => isAgendaScoreForPlayer(s, p.player_id)
             ) || [],
         }))}
       />

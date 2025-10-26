@@ -825,6 +825,55 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "delete": {
+                "description": "Permanently deletes a game by its ID.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "games"
+                ],
+                "summary": "Delete a game",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Game ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "status and deleted game ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
             }
         },
         "/games/{id}/achievements": {
@@ -1095,6 +1144,38 @@ const docTemplate = `{
                 }
             }
         },
+        "/objectives/public": {
+            "get": {
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "objectives"
+                ],
+                "summary": "List public objectives",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": true
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/objectives/secret": {
             "get": {
                 "produces": [
@@ -1325,7 +1406,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/relics/crown": {
+        "/relic/crown": {
             "post": {
                 "description": "Grants 1 point to the specified player (one-time effect).",
                 "consumes": [
@@ -1380,7 +1461,62 @@ const docTemplate = `{
                 }
             }
         },
-        "/relics/obsidian": {
+        "/relic/latvina": {
+            "post": {
+                "description": "Grants a player a point for planets with 4 tech specialties.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "relics"
+                ],
+                "summary": "Apply \"Book Of Latvina\"",
+                "parameters": [
+                    {
+                        "description": "Game ID and player ID",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/controllers.RelicRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "message",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/relic/obsidian": {
             "post": {
                 "description": "Allows a player to score one additional secret objective this game.",
                 "consumes": [
@@ -1435,7 +1571,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/relics/shard": {
+        "/relic/shard": {
             "post": {
                 "description": "Transfers Shard; grants a point to new holder and removes from previous holder if applicable.",
                 "consumes": [
@@ -1682,6 +1818,59 @@ const docTemplate = `{
                 }
             }
         },
+        "/stats/objectives/difficulty": {
+            "get": {
+                "description": "Calculates and returns difficulty metrics for TI4 objectives.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "objectives",
+                    "stats"
+                ],
+                "summary": "Get objective difficulty",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "default": "all",
+                        "description": "Filter by stage (I, II, secret, or all)",
+                        "name": "stage",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 5,
+                        "description": "Minimum appearances required to include",
+                        "name": "minAppearances",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Minimum scoring opportunities required",
+                        "name": "minOpportunities",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.ObjectiveDifficultyResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/stats/overview": {
             "get": {
                 "description": "Returns headline stats plus Custodians (Mecatol) stats per player.",
@@ -1836,6 +2025,9 @@ const docTemplate = `{
                 "finished_at": {
                     "type": "string"
                 },
+                "game_number": {
+                    "type": "integer"
+                },
                 "game_objectives": {
                     "type": "array",
                     "items": {
@@ -1981,6 +2173,115 @@ const docTemplate = `{
                 },
                 "type": {
                     "type": "string"
+                }
+            }
+        },
+        "models.ObjectiveDifficultyResponse": {
+            "type": "object",
+            "properties": {
+                "filters": {
+                    "description": "Echoed filters used to compute the response.\nExample: {\"stage\":\"I\",\"minAppearances\":\"5\",\"minOpportunities\":\"0\"}",
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    },
+                    "example": {
+                        "\"minAppearances\"": "\"5\"",
+                        "\"minOpportunities\"": "\"0\"}",
+                        "{\"stage\"": "\"I\""
+                    }
+                },
+                "generated_at": {
+                    "description": "Timestamp when these stats were generated.",
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2025-08-17T14:32:10Z"
+                },
+                "rows": {
+                    "description": "Rows of per-objective difficulty metrics, sorted by difficulty desc then adj_rate asc.",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ObjectiveDifficultyRow"
+                    }
+                }
+            }
+        },
+        "models.ObjectiveDifficultyRow": {
+            "type": "object",
+            "properties": {
+                "adj_rate": {
+                    "description": "Bayesian-adjusted scoring rate (alpha=2, beta=5).",
+                    "type": "number",
+                    "example": 0.5714
+                },
+                "appearances": {
+                    "description": "Number of distinct games in which this objective appeared (was revealed).",
+                    "type": "integer",
+                    "example": 18
+                },
+                "avg_round": {
+                    "description": "Average round number when this objective was first scored in a game.",
+                    "type": "number",
+                    "example": 2.3
+                },
+                "difficulty": {
+                    "description": "Difficulty as 1 - RawRate (higher is harder).",
+                    "type": "number",
+                    "example": 0.4222
+                },
+                "median_round": {
+                    "description": "Median round number when this objective was first scored in a game.",
+                    "type": "number",
+                    "example": 2
+                },
+                "name": {
+                    "description": "Objective name as stored in the objectives table.",
+                    "type": "string",
+                    "example": "Expand Borders"
+                },
+                "objective_id": {
+                    "description": "Database ID of the objective.",
+                    "type": "integer",
+                    "example": 12
+                },
+                "opportunities": {
+                    "description": "Total number of player-opportunities to score this objective\n(sum of players in games where the objective appeared).",
+                    "type": "integer",
+                    "example": 90
+                },
+                "phase": {
+                    "description": "Phase in which the objective is scored (e.g., \"Status\").",
+                    "type": "string",
+                    "example": "Status"
+                },
+                "raw_rate": {
+                    "description": "Raw scoring rate S/O.",
+                    "type": "number",
+                    "example": 0.5778
+                },
+                "scores": {
+                    "description": "Total number of times players actually scored this objective.",
+                    "type": "integer",
+                    "example": 52
+                },
+                "stage": {
+                    "description": "Objective stage.\nAllowed values depend on your dataset; commonly \"I\", \"II\" (public objectives).",
+                    "type": "string",
+                    "enum": [
+                        "I",
+                        "II"
+                    ],
+                    "example": "I"
+                },
+                "wilson_hi": {
+                    "description": "Wilson score interval (upper bound, 95% CI).",
+                    "type": "number",
+                    "example": 0.68
+                },
+                "wilson_lo": {
+                    "description": "Wilson score interval (lower bound, 95% CI).",
+                    "type": "number",
+                    "example": 0.47
                 }
             }
         },

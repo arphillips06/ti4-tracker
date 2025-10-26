@@ -35,8 +35,8 @@ func CalculateVictoryPointSpreads() (map[int]int, error) {
 		if len(scores) < 2 {
 			continue
 		}
-		sort.Sort(sort.Reverse(sort.IntSlice(scores)))
-		diff := scores[0] - scores[1]
+		sort.Ints(scores)                         // ascending
+		diff := scores[len(scores)-1] - scores[0] // max - min
 		spreads[diff]++
 	}
 

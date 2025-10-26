@@ -6,9 +6,20 @@ import factionImageMap from "../../data/factionIcons";
 export default function FactionCardList({
   data,
   aggregates = [],
-  factionObjectiveStats = {}, // ✅ added here
-  onMoreStatsClick
+  factionObjectiveStats = {},
+  onMoreStatsClick,
 }) {
+  const normalizedMap = React.useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(factionImageMap).map(([k, v]) => [
+          k.toLowerCase().replace(/[^a-z0-9]/g, ""),
+          v,
+        ])
+      ),
+    []
+  );
+
   const aggregateMap = {};
   aggregates.forEach((agg) => {
     aggregateMap[agg.faction.toLowerCase()] = agg;
@@ -36,7 +47,11 @@ export default function FactionCardList({
   });
 
   const tableData = Object.values(grouped).map((row) => {
-    const iconUrl = `/faction-icons/${factionImageMap[row.faction] || "default.webp"}`;
+    const exact = factionImageMap[row.faction];
+    const normalizedKey = row.faction.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const file = exact || normalizedMap[normalizedKey] || "fallback.webp";
+    const iconUrl = `/faction-icons/${file}`;
+
     const agg = aggregateMap[row.faction.toLowerCase()];
     const avgPoints =
       agg && agg.totalPlays > 0 ? agg.totalPointsScored / agg.totalPlays : 0;
@@ -47,7 +62,7 @@ export default function FactionCardList({
       winRate: row.totalPlays > 0 ? (row.totalWins / row.totalPlays) * 100 : 0,
       iconUrl,
       vpHistogram: (agg && agg.vpHistogram) || [],
-      objectiveStats: factionObjectiveStats?.[row.faction] || {} // ✅ now passed down
+      objectiveStats: factionObjectiveStats?.[row.faction] || {},
     };
   });
 
@@ -57,7 +72,7 @@ export default function FactionCardList({
         <FactionCard
           key={f.faction}
           data={f}
-          onMoreStatsClick={onMoreStatsClick} // ✅ pass callback
+          onMoreStatsClick={onMoreStatsClick}
         />
       ))}
     </div>

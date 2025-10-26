@@ -33,3 +33,19 @@ export async function handleScoreCrown(playerId, gameId, refresh) {
     alert("Error scoring Crown of Emphidia.");
   }
 }
+
+export async function handleLatvina(playerId, gameId, refresh) {
+  try {
+    await submitAndRefresh({
+      requestFn: () =>
+        postJSON("/relic/latvina", {
+          game_id: parseInt(gameId),
+          player_id: parseInt(playerId),
+        }),
+      refreshGameState: refresh,
+    });
+  } catch (err) {
+    console.error("Failed to apply Book of Latvina:", err);
+    alert("Error applying Book of Latvina relic.");
+  }
+}

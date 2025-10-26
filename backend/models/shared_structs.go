@@ -29,6 +29,7 @@ type RoundScoresGroup struct {
 
 type GameDetailResponse struct {
 	ID                 uint                 `json:"id"`
+	GameNumber         int                  `json:"game_number"`
 	WinningPoints      int                  `json:"winning_points"`
 	CurrentRound       int                  `json:"current_round"`
 	FinishedAt         *time.Time           `json:"finished_at"`

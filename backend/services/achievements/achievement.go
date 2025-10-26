@@ -1,4 +1,3 @@
-// achievements/types.go
 package achievements
 
 import achievements_helper "github.com/arphillips06/TI4-stats/helpers/achievements"

@@ -33,7 +33,6 @@ func GetAllSecretObjectives(c *gin.Context) (int, any, error) {
 // @Success      200  {array}   map[string]interface{}
 // @Failure      500  {object}  map[string]string  "error"
 // @Router       /objectives/public [get]
-
 func GetAllPublicObjectives(c *gin.Context) (int, any, error) {
 	return serveObjectives("Public")
 }

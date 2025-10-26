@@ -11,24 +11,48 @@ export default function FactionCard({ data, onMoreStatsClick }) {
     totalPlays,
     playersPlayed,
     playersWon,
-    vpHistogram
+    vpHistogram,
   } = data;
 
   return (
     <div className="faction-card-container">
       <div className="faction-card-left">
-        <img src={iconUrl} alt={faction} className="faction-icon" />
+        <img
+          src={iconUrl}
+          alt={faction}
+          className="faction-icon"
+          onError={(e) => {
+            if (e.currentTarget.dataset.fallbackApplied) return;
+            e.currentTarget.dataset.fallbackApplied = "1";
+            e.currentTarget.src = "/faction-icons/fallback.webp";
+          }}
+        />
         <div className="faction-name">{faction}</div>
       </div>
 
       <div className="faction-card-middle">
-        <div><strong>Win Rate:</strong> {winRate.toFixed(2)}% ({data.totalWins} of {totalPlays})</div>
-        <div><strong>Avg Points:</strong> {avgPoints.toFixed(2)}</div>
-        <div><strong>Players Played:</strong> {Object.entries(playersPlayed).map(([p, c]) => `${p} (${c})`).join(", ") || "-"}</div>
-        <div><strong>Players Won With:</strong> {Object.entries(playersWon).map(([p, c]) => `${p} (${c})`).join(", ") || "-"}</div>
+        <div>
+          <strong>Win Rate:</strong> {winRate.toFixed(2)}% ({data.totalWins} of{" "}
+          {totalPlays})
+        </div>
+        <div>
+          <strong>Avg Points:</strong> {avgPoints.toFixed(2)}
+        </div>
+        <div>
+          <strong>Players Played:</strong>{" "}
+          {Object.entries(playersPlayed)
+            .map(([p, c]) => `${p} (${c})`)
+            .join(", ") || "-"}
+        </div>
+        <div>
+          <strong>Players Won With:</strong>{" "}
+          {Object.entries(playersWon)
+            .map(([p, c]) => `${p} (${c})`)
+            .join(", ") || "-"}
+        </div>
         <button
           className="btn btn-sm btn-outline-primary mt-2"
-          onClick={() => onMoreStatsClick(faction)} // ✅ calls parent
+          onClick={() => onMoreStatsClick(faction)}
         >
           More Stats
         </button>

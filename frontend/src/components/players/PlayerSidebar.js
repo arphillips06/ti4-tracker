@@ -1,6 +1,7 @@
 import React from "react";
 import API_BASE_URL from "../../config";
-import './playersidebar.css';
+import "./playersidebar.css";
+
 export default function PlayerSidebar({
   playersSorted,
   expandedPlayers,
@@ -10,39 +11,59 @@ export default function PlayerSidebar({
   setAllScores,
   scoreObjective,
   unscoreObjective,
-  secretCounts,
   setSecretCounts,
   secretObjectives,
-  objectiveScores,
   gameId,
   setGame,
   setObjectiveScores,
   refreshGameState,
-  custodiansScored,
+  custodiansScored,          // optional prop; we’ll fallback if missing
   obsidianHolderId,
   triggerGraphUpdate,
 }) {
+  // Normalize the score type safely (handles either `Type` or `type`)
+  const scoreType = (s) => (s?.Type || s?.type || "").toLowerCase();
 
-  const supportScorers = new Set(
-    allScores?.filter((s) => s.Type === "Support").map((s) => s.PlayerID)
-  );
-  const maxSupportScorers = (playersSorted?.length || 0) - 1;
 
-  const custodiansScorerId = allScores?.find((s) => s.Type === "mecatol")?.PlayerID || null;
+  // Derive whether Custodians is scored if the parent didn't pass the prop
+  const custodiansScoredLocal = allScores?.some((s) => scoreType(s) === "mecatol");
+  const showImperial = typeof custodiansScored === "boolean" ? custodiansScored : custodiansScoredLocal;
 
-  // Step 1: Gather all CDL-revealed secret objective IDs across all players
+  // CDL: set of objective IDs that became public due to Classified Document Leaks
   const cdlRevealedObjectiveIds = new Set(
-    allScores
-      ?.filter((s) => s.AgendaTitle === "Classified Document Leaks")
+    (allScores || [])
+      .filter((s) => s.AgendaTitle === "Classified Document Leaks")
       .map((s) => s.ObjectiveID)
   );
 
-  // Utility: Determine if a scored objective is still secret (not publicly revealed)
+  // Is a scored secret still secret (not revealed by CDL)?
   const isStillSecret = (score) => {
-    if ((score.Type || "").toLowerCase() !== "secret") return false;
-    // If this secret objective is not revealed by CDL, it remains secret
+    if (scoreType(score) !== "secret") return false;
     return !cdlRevealedObjectiveIds.has(score.ObjectiveID);
   };
+
+  // Reusable SFTT action
+  async function postSupportAction(playerId, action) {
+    try {
+      const res = await fetch(`${API_BASE_URL}/games/${gameId}/support/${playerId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          round_id: game?.current_round_id,
+          action, // "score" | "unscore"
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      await refreshGameState?.();
+      triggerGraphUpdate?.();
+    } catch (e) {
+      console.error("Support action failed:", e);
+      alert("Failed to update Support for the Throne.");
+    }
+  }
 
   return (
     <div className="flex-shrink-1" style={{ minWidth: "250px", flexBasis: "300px" }}>
@@ -57,16 +78,12 @@ export default function PlayerSidebar({
               <div className="d-flex justify-content-between align-items-center">
                 <div className="fw-semibold small d-flex align-items-center gap-2">
                   {entry.name}
-                  {game?.speaker_id === entry.id && (
+                  {game?.speaker_id === entry.id && (  // ✅ compare to player_id
                     <img
                       src="/speaker/speaker.webp"
                       alt="Speaker"
                       title="Speaker"
-                      style={{
-                        width: "30px",
-                        height: "auto",
-                        objectFit: "contain",
-                      }}
+                      style={{ width: "30px", height: "auto", objectFit: "contain" }}
                     />
                   )}
                 </div>
@@ -94,10 +111,10 @@ export default function PlayerSidebar({
                     objectFit: "contain",
                     backgroundColor: "transparent",
                   }}
-                  onError={(e) => (e.target.style.display = "none")}
+                  onError={(e) => (e.currentTarget.style.display = "none")}
                 />
                 {allScores?.some(
-                  (s) => s.Type === "mecatol" && s.PlayerID === entry.player_id
+                  (s) => scoreType(s) === "mecatol" && s.PlayerID === entry.player_id
                 ) && (
                     <img
                       src="/MR-point/MR-scored.png"
@@ -114,82 +131,52 @@ export default function PlayerSidebar({
               <div className="d-flex flex-column gap-2 mt-2">
                 {expandedPlayers[entry.player_id] && (
                   <div className="mt-3">
+                    {/* ===== Support for the Throne ===== */}
                     <div className="small fw-semibold mb-1">Support for the Throne</div>
                     <div className="d-flex align-items-center gap-2 mb-3">
                       <button
                         className="btn btn-sm btn-outline-danger"
                         disabled={
                           !allScores?.some(
-                            (s) => s.Type === "Support" && s.PlayerID === entry.player_id
+                            (s) => (s?.Type || s?.type) === "Support" && s.PlayerID === entry.player_id
                           )
                         }
-                        onClick={async () => {
-                          const res = await fetch(`${API_BASE_URL}/games/${gameId}/support/${entry.player_id}`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              round_id: game?.current_round_id,
-                              action: "unscore",
-                            }),
-                          });
-
-                          if (res.ok) {
-                            await refreshGameState();
-                            triggerGraphUpdate?.();
-                          } else {
-                            const err = await res.json();
-                            alert(err.error || "Failed to remove Support");
-                          }
-                        }}
+                        onClick={() => postSupportAction(entry.player_id, "unscore")}
                       >
                         −
                       </button>
 
-                      <span>
+                      <span className="small">
                         {(() => {
-                          const total = allScores
-                            ?.filter((s) => s.Type === "Support" && s.PlayerID === entry.player_id)
-                            .reduce((sum, s) => sum + s.Points, 0) || 0;
-
+                          const total =
+                            allScores
+                              ?.filter((s) => (s?.Type || s?.type) === "Support" && s.PlayerID === entry.player_id)
+                              .reduce((sum, s) => sum + (s.Points || 0), 0) || 0;
                           return `${total} Support point${total === 1 ? "" : "s"}`;
                         })()}
                       </span>
 
                       <button
                         className="btn btn-sm btn-outline-success"
-                        disabled={
-                          (() => {
-                            const totalSupportPoints = allScores
-                              ?.filter((s) => s.Type === "Support")
-                              .reduce((acc, s) => acc + s.Points, 0) || 0;
-                            return totalSupportPoints >= maxSupportScorers;
-                          })()
-                        }
-                        onClick={async () => {
-                          const res = await fetch(`${API_BASE_URL}/games/${gameId}/support/${entry.player_id}`, {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                              round_id: game?.current_round_id,
-                              action: "score",
-                            }),
-                          });
-
-                          if (res.ok) {
-                            await refreshGameState();
-                            triggerGraphUpdate?.();
-                          } else {
-                            const err = await res.json();
-                            alert(err.error || "Failed to score Support");
-                          }
-                        }}
+                        disabled={(() => {
+                          const n = playersSorted?.length || 0;
+                          const playerSupportPoints =
+                            allScores
+                              ?.filter((s) => (s?.Type || s?.type) === "Support" && s.PlayerID === entry.player_id)
+                              .reduce((acc, s) => acc + (s.Points || 0), 0) || 0;
+                          return playerSupportPoints >= Math.max(0, n - 1);
+                        })()}
+                        onClick={() => postSupportAction(entry.player_id, "score")}
                       >
                         +
                       </button>
                     </div>
+
+                    {/* ===== Secrets ===== */}
                     <div className="mt-3">
                       <div className="small fw-semibold mb-1">Secrets</div>
                       <div className="d-flex align-items-center gap-2 mb-2">
+                        {/* Unscore dropdown (only still-secret ones) */}
                         <div className="dropdown">
                           <button
                             className="btn btn-sm btn-outline-secondary dropdown-toggle"
@@ -200,51 +187,57 @@ export default function PlayerSidebar({
                             −
                           </button>
                           <ul className="dropdown-menu">
-                            {allScores?.filter(
-                              (s) =>
-                                s.PlayerID === entry.player_id &&
-                                isStillSecret(s)
-                            ).map((s) => {
-                              const obj = secretObjectives.find((o) => o.id === s.ObjectiveID);
-                              return obj ? (
-                                <li key={obj.id}>
-                                  <button className="dropdown-item">{obj.name}</button>
-                                </li>
-                              ) : null;
-                            })}
+                            {allScores
+                              ?.filter((s) => s.PlayerID === entry.player_id && isStillSecret(s))
+                              .map((s) => {
+                                const obj = secretObjectives.find((o) => o.id === s.ObjectiveID);
+                                return obj ? (
+                                  <li key={obj.id}>
+                                    <button
+                                      className="dropdown-item"
+                                      onClick={async () => {
+                                        const ok = await unscoreObjective?.(entry.player_id, obj.id);
+                                        if (ok) {
+                                          setSecretCounts?.((prev) => ({
+                                            ...prev,
+                                            [entry.player_id]: Math.max(0, (prev?.[entry.player_id] || 0) - 1),
+                                          }));
+                                          triggerGraphUpdate?.();
+                                        }
+                                      }}
+                                    >
+                                      {obj.name}
+                                    </button>
+                                  </li>
+                                ) : null;
+                              })}
                           </ul>
                         </div>
 
+                        {/* Secret slots (icons) */}
                         <div className="d-flex gap-1">
                           {(() => {
-
-                            const extraSecret = parseInt(entry.player_id) === parseInt(obsidianHolderId) ? 1 : 0;
+                            const extraSecret =
+                              parseInt(entry.player_id) === parseInt(obsidianHolderId) ? 1 : 0;
                             const baseSecrets = 3;
                             const maxSecrets = baseSecrets + extraSecret;
 
-                            // Filter secrets excluding CDL revealed ones (public)
                             const scoredSecrets = (allScores || []).filter((s) => {
-                              const isSecret = (s.Type || "").toLowerCase() === "secret";
+                              const isSecret = scoreType(s) === "secret";
                               const isThisPlayer = s.PlayerID === entry.player_id;
                               const isCDL = cdlRevealedObjectiveIds.has(s.ObjectiveID);
-
                               return isThisPlayer && isSecret && !isCDL;
                             });
 
                             return [...Array(maxSecrets)].map((_, i) => {
-                              const secret = scoredSecrets[i]; // might be undefined
+                              const secret = scoredSecrets[i];
                               const scored = !!secret;
-
                               return (
                                 <img
                                   key={i}
                                   src={`/objective-backgrounds/secret-${scored ? "active" : "inactive"}.jpg`}
                                   alt={scored ? "Scored secret" : "Unscored secret"}
-                                  style={{
-                                    width: "16px",
-                                    height: "25px",
-                                    opacity: scored ? 1 : 0.4,
-                                  }}
+                                  style={{ width: "16px", height: "25px", opacity: scored ? 1 : 0.4 }}
                                 />
                               );
                             });
@@ -252,24 +245,18 @@ export default function PlayerSidebar({
                         </div>
                       </div>
 
+                      {/* Score new secret objective */}
                       <select
                         className="secret-objective-select"
                         value=""
                         onChange={async (e) => {
                           const selectedId = parseInt(e.target.value);
                           if (selectedId) {
-                            const success = await scoreObjective(
-                              entry.player_id,
-                              selectedId,
-                              entry.name
-                            );
+                            const success = await scoreObjective(entry.player_id, selectedId, entry.name);
                             if (success) {
-                              setSecretCounts((prev) => ({
+                              setSecretCounts?.((prev) => ({
                                 ...prev,
-                                [entry.player_id]: Math.min(
-                                  3,
-                                  (prev[entry.player_id] || 0) + 1
-                                ),
+                                [entry.player_id]: Math.min(3, (prev[entry.player_id] || 0) + 1),
                               }));
                               triggerGraphUpdate?.();
                             }
@@ -289,9 +276,9 @@ export default function PlayerSidebar({
                                     (s) =>
                                       s.PlayerID === entry.player_id &&
                                       s.ObjectiveID === obj.id &&
-                                      ((s.Type?.toLowerCase() === "secret") || s.AgendaTitle === "Classified Document Leaks")
+                                      (scoreType(s) === "secret" ||
+                                        s.AgendaTitle === "Classified Document Leaks")
                                   )}
-
                                 >
                                   {obj.name}
                                 </option>
@@ -300,25 +287,19 @@ export default function PlayerSidebar({
                         ))}
                       </select>
 
+                      {/* Small agenda badges (kept from your working file) */}
+                      {allScores?.some((s) => s.PlayerID === entry.player_id && s.AgendaTitle === "Mutiny") && (
+                        <div className="mt-1 small text-success">Bonus: Mutiny</div>
+                      )}
                       {allScores?.some(
-                        (s) =>
-                          s.PlayerID === entry.player_id &&
-                          s.AgendaTitle === "Mutiny"
-                      ) && (
-                          <div className="mt-1 small text-success">Bonus: Mutiny</div>
-                        )}
-                      {allScores?.some(
-                        (s) =>
-                          s.PlayerID === entry.player_id &&
-                          s.AgendaTitle === "Seed of an Empire"
-                      ) && (
-                          <div className="mt-1 small text-success">Bonus: Seed of an Empire</div>
-                        )}
+                        (s) => s.PlayerID === entry.player_id && s.AgendaTitle === "Seed of an Empire"
+                      ) && <div className="mt-1 small text-success">Bonus: Seed of an Empire</div>}
 
+                      {/* ===== Custodians (Mecatol) ===== */}
                       <div className="mt-3 small">
                         <button
                           className="btn btn-warning btn-sm"
-                          disabled={allScores?.some((s) => s.Type === "mecatol")}
+                          disabled={allScores?.some((s) => scoreType(s) === "mecatol")}
                           onClick={async () => {
                             try {
                               const res = await fetch(`${API_BASE_URL}/score/mecatol`, {
@@ -329,13 +310,12 @@ export default function PlayerSidebar({
                                   player_id: entry.player_id,
                                 }),
                               });
-
                               if (!res.ok) {
-                                const err = await res.json();
+                                const err = await res.json().catch(() => ({}));
                                 throw new Error(err.error || "Failed to score Custodians");
                               }
 
-                              // 🔁 Fully refresh game state after scoring
+                              // Refresh
                               const [gameRes, objScoresRes] = await Promise.all([
                                 fetch(`${API_BASE_URL}/games/${gameId}`).then((r) => r.json()),
                                 fetch(`${API_BASE_URL}/games/${gameId}/objectives/scores`).then((r) => r.json()),
@@ -344,51 +324,48 @@ export default function PlayerSidebar({
                               const updatedAllScores = gameRes.all_scores || [];
                               gameRes.game_players = gameRes.players || [];
 
-                              // ✅ Apply all updates
                               setGame(gameRes);
                               setAllScores(updatedAllScores);
 
                               const map = {};
                               (Array.isArray(objScoresRes) ? objScoresRes : objScoresRes?.value || []).forEach(
-                                (entry) => {
-                                  map[entry.objective_id ?? entry.name] = entry.scored_by || [];
+                                (row) => {
+                                  map[row.objective_id ?? row.name] = row.scored_by || [];
                                 }
                               );
                               setObjectiveScores(map);
 
-                              // ✅ Explicitly refresh to trigger sidebar update
-                              await refreshGameState();
+                              await refreshGameState?.();
                               triggerGraphUpdate?.();
                             } catch (err) {
                               console.error("Failed to score Custodians:", err);
                               alert("Failed to score Custodians. See console.");
                             }
                           }}
-
                         >
-                          {allScores?.some((s) => s.Type === "mecatol")
+                          {allScores?.some((s) => scoreType(s) === "mecatol")
                             ? "Custodians Already Scored"
                             : "Score Custodians"}
                         </button>
                       </div>
                     </div>
-                    {custodiansScored && (
+
+                    {/* ===== Imperial (after Custodians) ===== */}
+                    {showImperial && (
                       <div className="mt-3 small">
                         <div className="fw-semibold mb-1">Imperial Objective</div>
-
                         <div className="d-flex align-items-center gap-2 flex-wrap">
-                          {allScores?.filter(
-                            (s) => s.Type === "imperial" && s.PlayerID === entry.player_id
-                          ).map((_, i) => (
-                            <img
-                              key={i}
-                              src="/imperial/imperial8.png"
-                              alt="Imperial Point"
-                              title="Imperial Point"
-                              style={{ width: "32px", height: "48px" }}
-                            />
-                          ))}
-
+                          {allScores
+                            ?.filter((s) => scoreType(s) === "imperial" && s.PlayerID === entry.player_id)
+                            .map((_, i) => (
+                              <img
+                                key={i}
+                                src="/imperial/imperial8.png"
+                                alt="Imperial Point"
+                                title="Imperial Point"
+                                style={{ width: "32px", height: "48px" }}
+                              />
+                            ))}
                           <button
                             className="btn btn-sm btn-outline-primary"
                             onClick={async () => {
@@ -402,7 +379,6 @@ export default function PlayerSidebar({
                                     round_id: game?.current_round_id,
                                   }),
                                 });
-
                                 if (res.ok) {
                                   await refreshGameState();
                                   triggerGraphUpdate?.();
@@ -420,13 +396,14 @@ export default function PlayerSidebar({
                           </button>
                         </div>
                       </div>
-                    )}</div>
-                )}</div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        )
-      })
-      }
+        );
+      })}
     </div>
-  )
+  );
 }

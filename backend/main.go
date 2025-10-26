@@ -62,33 +62,34 @@ func main() {
 	})
 
 	//player management
-	r.POST("/players", controllers.Wrap(controllers.CreatePlayer))
 	r.GET("/players", controllers.Wrap(controllers.ListPlayers))
 	r.GET("/players/:id/games", controllers.Wrap(controllers.GetPlayerGames))
+	r.POST("/players", controllers.Wrap(controllers.CreatePlayer))
 
 	// game routes
-	r.POST("/games", controllers.Wrap(controllers.CreateGame))
 	r.GET("/games/:id/players", controllers.Wrap(controllers.ListPlayersInGame))
 	r.GET("/games", controllers.Wrap(controllers.ListGames))
-	r.POST("/gameplayers", controllers.Wrap(controllers.AssignPlayerToGame))
-	r.POST("/games/:game_id/advance-round", controllers.Wrap(controllers.AdvanceRound))
 	r.GET("/games/:id/score-summary", controllers.Wrap(controllers.GetScoreSummary))
 	r.GET("/games/:id/scores-by-round", controllers.Wrap(controllers.GetScoresByRound))
 	r.GET("/games/:id", controllers.Wrap(controllers.GetGameByID))
 	r.GET("/games/:id/objectives", controllers.Wrap(controllers.GetGameObjectives))
 	r.GET("/objectives/secrets/all", controllers.Wrap(controllers.GetAllSecretObjectives))
-	r.POST("/assign_objective", controllers.Wrap(controllers.AssignObjective))
 	r.GET("/objectives/public/all", controllers.Wrap(controllers.GetAllPublicObjectives))
 	r.GET("/api/games/:id/exists", controllers.Wrap(controllers.GetGameExists))
+	r.POST("/games", controllers.Wrap(controllers.CreateGame))
+	r.POST("/gameplayers", controllers.Wrap(controllers.AssignPlayerToGame))
+	r.POST("/games/:game_id/advance-round", controllers.Wrap(controllers.AdvanceRound))
+	r.POST("/assign_objective", controllers.Wrap(controllers.AssignObjective))
 	r.POST("/game/:id/randomise-speaker", controllers.Wrap(controllers.RandomiseSpeaker))
 	r.POST("/games/:game_id/speaker", controllers.Wrap(controllers.PostAssignSpeaker))
+	r.DELETE("/games/:id", controllers.DeleteGameHandler)
 
 	//scoring
+	r.GET("/games/:id/objectives/scores", controllers.Wrap(controllers.GetObjectiveScoreSummary))
 	r.POST("/score", controllers.Wrap(controllers.AddScore))
 	r.POST("/score/imperial", controllers.Wrap(controllers.ScoreImperialPoint))
 	r.POST("/score/mecatol", controllers.Wrap(controllers.ScoreMecatolPoint))
 	r.POST("/score/imperial-rider", controllers.Wrap(controllers.ScoreImperialRiderPoint))
-	r.GET("/games/:id/objectives/scores", controllers.Wrap(controllers.GetObjectiveScoreSummary))
 	r.POST("/unscore", controllers.Wrap(controllers.DeleteScore))
 
 	//expose factions to API
@@ -101,13 +102,16 @@ func main() {
 	r.POST("/agenda/classified-document-leaks", controllers.HandleClassifiedDocumentLeaks)
 	r.POST("/agenda/incentive-program", controllers.HandleIncentiveProgram)
 
+	//stats
+	r.GET("/stats/overview", controllers.Wrap(controllers.GetStatsOverview))
+	r.GET("/stats/objectives/difficulty", controllers.Wrap(controllers.GetObjectiveDifficulty))
+
 	//relics
 	r.POST("/relic/shard", controllers.Wrap(controllers.HandleShardRelic))
 	r.POST("/relic/crown", controllers.Wrap(controllers.HandleCrownRelic))
 	r.POST("/relic/obsidian", controllers.Wrap(controllers.HandleObsidianRelic))
-
+	r.POST("/relic/latvina", controllers.Wrap(controllers.HandleLatvinaRelic))
 	r.POST("/games/:game_id/support/:player_id", controllers.Wrap(controllers.SFTT))
-	r.GET("/stats/overview", controllers.Wrap(controllers.GetStatsOverview))
 
 	// Serve static frontend files from /build
 	r.Static("/static", "./build/static") // serve JS/CSS etc.

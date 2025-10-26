@@ -51,11 +51,23 @@ func ApplyObsidian(gameID, playerID uint) error {
 	score := models.Score{
 		GameID:     gameID,
 		PlayerID:   playerID,
-		Points:     0, // no point
+		Points:     0,
 		Type:       "relic",
 		RelicTitle: "The Obsidian",
 		CreatedAt:  time.Now(),
 	}
 
+	return database.DB.Create(&score).Error
+}
+
+func ApplyBookOfLatvina(gameID, playerID uint) error {
+	score := models.Score{
+		GameID:     gameID,
+		PlayerID:   playerID,
+		Points:     1,
+		Type:       "relic",
+		RelicTitle: "Book Of Latvina",
+		CreatedAt:  time.Now(),
+	}
 	return database.DB.Create(&score).Error
 }
